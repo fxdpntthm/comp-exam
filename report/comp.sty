@@ -1,0 +1,269 @@
+\usepackage{fontawesome,enumitem,ifthen,infer,mathwidth,mathtools,multicol,xspace,xy,xspace,tikz}
+\usepackage{parskip,tabularx,mathbbol,tcolorbox,hyphenat}
+\usepackage{tikz}
+
+\tcbuselibrary{theorems}
+%% no spaces for enumeration
+\setlist{nosep}
+\setlist{nolistsep}
+
+\usetikzlibrary{arrows,positioning,shapes,fit,calc}
+
+\makeatletter
+\DeclareFontFamily{U}{tipa}{}
+\DeclareFontShape{U}{tipa}{m}{n}{<->tipa10}{}
+
+\newcommand*{\syntaxhl}{%
+  \tcboxmath[colback=Ivory3, colframe=white, size=fbox, arc=3pt, boxrule=0.8pt]%
+}
+\newcommand{\arc@char}{{\usefont{U}{tipa}{m}{n}\symbol{62}}}%
+\newcommand{\arc}[1]{\mathpalette\arc@arc{#1}}
+% fancy over arc
+\newcommand{\arc@arc}[2]{%
+  \sbox0{$\m@th#1#2$}%
+  \vbox{
+    \hbox{\resizebox{\wd0}{\height}{\arc@char}}
+    \nointerlineskip
+    \box0
+  }%
+}
+
+%% Bibliography
+%% citation style and ACM nonsense
+\setcitestyle{sort&compress}
+% \citestyle{acmnumeric}
+%\citestyle{acmauthoryear}
+\citestyle{plainnat}
+\bibliographystyle{ACM-Reference-Format}
+% \bibliographystyle{unsrt}
+
+\setcopyright{none}
+
+%% Names for systems
+\newcommand\SF{System \textbf{F}\xspace}
+\newcommand\SFC{System \textbf{F$_C$}\xspace} % C for corecions
+\newcommand\SFR{System \textbf{F$^R_C$}\xspace} % R for roles
+\newcommand\SFP{System \textbf{F$^\uparrow_C$}\xspace} % P for promotions
+\newcommand\SFK{System \textbf{F$^\kappa_C$}\xspace} % K for kind coercions
+\newcommand\HMX{\textbf{HM(X)}\xspace}
+
+
+% Math theorems 
+\newtheorem{theorem}{Theorem}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{property}[theorem]{Property}
+%\newtheorem{rule}[theorem]{Rule}
+\theoremstyle{definition}
+\newtheorem{defn}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% Pretty references
+\usepackage{prettyref}
+\newcommand{\pref}[1]{\prettyref{#1}}
+\newrefformat{assn}{Assumption~\ref{#1}}
+\newrefformat{prop}{Property~\ref{#1}}
+\newrefformat{fig}{Figure~\ref{#1}}
+\newrefformat{sec}{Section~\ref{#1}}
+\newrefformat{subsec}{Section~\ref{#1}}
+\newrefformat{thm}{Theorem~\ref{#1}}
+\newrefformat{lem}{Lemma~\ref{#1}}
+\newrefformat{def}{Definition~\ref{#1}}
+
+% Names & utils for Typing rules
+\newcommand\ib[1]{\infbox{#1}}
+\newcommand\isp{\hspace{\infskip}}
+\newcommand\rsp{\hspace{1.5\infskip}}
+\newcommand\trule[1]{\textsc{(#1)}}
+\newcommand\erule[1]{\textsc{\{#1\}}}
+\newcommand\I[1]{\ensuremath{\mathord{#1}}\!~I}
+\newcommand\E[1]{\ensuremath{\mathord{#1}}\!~E}
+
+% commonly used math symbols
+\newcommand{\STAR}{\ast}
+\newcommand{\then}{\Rightarrow}
+\def\entails{\vdash\hspace{-0.7ex}\vdash}
+\newcommand\ent[2]{#1 \entails #2}
+\def\ctsfun{\twoheadrightarrow}
+\def\setfun{\rightarrowtail}
+\newcommand\TV[1]{TV(#1)}
+\def\co{{:}}% thin colon
+\newcommand\dom[1]{dom(#1)}
+\newcommand\mgu[2]{mgu(#1,#2)}
+\newcommand\unify[2]{unify(#1,#2)}
+\newcommand\Set[1]{\ensuremath{\{#1\}}}
+\newcommand\Tuple[1]{\ensuremath{\langle #1 \rangle}}
+\newcommand\pto{\ensuremath{\rightharpoonup}}
+\newcommand\setdiff{\backslash}
+\newcommand\FunDep[1]{\mathcal{F}_\texttt{#1}}
+\newcommand\closure[2]{{#1}^{+}_{#2}}
+\newcommand\impr[1]{impr(#1)}
+\newcommand\satisfiable[1]{\floor{#1}}
+\newcommand\Subst{\Omega}
+\newcommand\teq{\mathrel{\sim}}
+\newcommand\lhs[1]{\text{lhs}_{#1}}
+\newcommand\rhs[1]{\text{rhs}_{#1}}
+\newcommand\many[1]{\overline{#1}}
+
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+
+% Static semantics
+
+% Types and judgements
+\newcommand\TEnv{\Gamma} % Type env
+\newcommand\KEnv{\Delta} % Kind env
+\newcommand\GEnv{\Sigma} % huh?
+\newcommand\Ty{\tau}
+\newcommand\GTy{\omega}
+
+\newcommand\Preds{P}
+\newcommand\MorePreds{Q}
+
+\newcommand\KTyping[4]{#1;#2 \vdash #3 : #4}
+\newcommand\Typing[3]{#1 \vdash #2 : #3}
+\newcommand\Kinding[3]{\Typing{#1}{#2}{#3}}
+\newcommand\CoTyping[3]{#1 \vdash_{Co} #2 : #3} %% FIXME the subscripts
+\newcommand\ResTyping[3]{#1 \vdash_{res} #2 : #3}
+\newcommand\ValidGCtx[1]{\vdash_{gnd}#1}
+\newcommand\ValidVCtx[2]{#1\vdash_{var}#2}
+\newcommand\ValidCtx[1]{\vdash_{ctx}#1}
+
+\newcommand\ValidType[2]{#1 \vdash #2~\text{type}}
+\newcommand\ValidProp[2]{#1 \vdash #2~\text{prop}}
+\newcommand\ValidAssmp[2]{#1 \vdash #2~\text{asmp}}
+% \newcommand{\tenving}[3]{#1 \mid #2 \vdash #3}
+% \newcommand{\predsing}[2]{#1 \vdash #2}   %% I am not entirely convinced "predsing" is English...
+% \newcommand{\preding}[3]{#1 \mid #2 \vdash #3 \; \mathsf{pred}}
+\newcommand\fresh[2]{#1 \# #2}
+
+\newcommand{\bnfeq}{\mathrel{{:}{:}{=}}}
+\newcommand{\bnfor}{\mathrel{\mid}}
+\newcommand{\empt}{\epsilon}
+
+\newcommand{\Gen}[2]{\text{Gen}(#1, #2)}
+\newcommand{\Ins}[1]{\text{Inst}(#1)}
+
+
+% Coercion language
+\def\refl#1{\langle#1\rangle}
+\def\comp#1#2{#1 \circ #2}
+\def\refl#1{\langle#1\rangle}
+\def\sym#1{\texttt{sym}~{#1}}
+\def\Axiom{\xi}
+\def\At{\texttt{@}}
+\def\branch#1#2{\Axiom_{#1}~{#2}}
+\def\qbranch#1#2#3{\Axiom_{#1}~{#2}~{#3}}
+\def\nth#1#2{\text{nth}_{#1}~{#2}}
+\def\left#1{\texttt{left}~#1}
+\def\right#1{\texttt{right}~#1}
+\def\leftc#1{\texttt{leftc}~#1}
+\def\rightc#1{\texttt{rightc}~#1}
+\def\Co{\gamma}
+\def\MoreCo{\eta}
+\def\Prop{\phi}
+\def\AxiomEq{\Phi}
+\def\AxiomTy{\Psi}
+
+%% Types and Term Syntax
+\newcommand\Tm{M}
+\newcommand\val{V}
+\newcommand{\App}{\,}
+\newcommand\Lam[2]{\lambda #1.\App #2}
+\newcommand\TLam[2]{\Lambda #1.\App #2}
+\newcommand{\Let}[3]{\mathsf{let}\;#1 = #2\;\mathsf{in}\;#3}
+% \newcommand{\Case}[2]{\mathsf{case}\;#1\;\mathsf{of}\;#2}
+\newcommand\Forall[2]{\forall#1.~#2}
+\newcommand\tassume[2]{\texttt{assume}~{#1}~\texttt{in}~{#2}}
+\newcommand{\ClassCtrs}{\texttt{C}}
+\newcommand{\TypeCtrs}{\texttt{T}}
+\newcommand{\DataCtrs}{\texttt{D}}
+\newcommand{\FamCtrs}{\texttt{F}}
+\newcommand{\MoreFamCtrs}{\texttt{G}}
+\newcommand\Ptrns{\texttt{M}}
+\newcommand\Sub[2]{\Set{#1 \mapsto #2}}
+\def\FamPattern{\texttt{N}}
+
+\def\Cast#1#2{#1\mathrel{\blacktriangleright}#2}
+\def\noconflict{\texttt{no\_conflict}\xspace}
+\def\nc#1#2#3#4{\noconflict(#1, #2, #3, #4)}
+\def\fails{\texttt{fails}\xspace}
+\def\apart#1#2{\texttt{apart}(#1, #2)}
+\def\compat#1#2{\texttt{compat}(#1, #2)}
+\def\match#1#2{\texttt{match}(#1, #2)}
+\def\flatten#1{\texttt{flatten}(#1)}
+\def\Good#1{\texttt{Good }#1}
+
+% Operational Semantics
+\def\steps{\mathrel{\rightsquigarrow}}
+\newcommand\stepsto[2]{#1 \rightsquigarrow #2}
+\newcommand\manystepsto[2]{#1 \rightsquigarrow^* #2}
+\def\Val{\mathcal{V}}
+
+% Type rewriting
+\newcommand\TEvalCtxt[1]{\mathbb{C}\mathbb{\Lparen} #1 \mathbb{\Rparen}}
+\newcommand\tystepsto[3]{#1 \vdash \stepsto{#2}{#3}}
+\newcommand\manytystepsto[3]{#1 \vdash \manystepsto{#2}{#3}}
+
+
+
+% Compilation
+\def\compile#1{\llbracket#1\rrbracket}
+
+% Haskell listings
+\usepackage{listings}
+\lstloadlanguages{Haskell}
+\lstset{
+  xleftmargin=\parindent,
+  basicstyle=\small\ttfamily,
+  keepspaces=true,
+  keywordstyle=\bfseries,%\underbar,
+  numberstyle=\tiny,
+  flexiblecolumns=false,
+  basewidth={0.5em,0.45em},
+  morekeywords={instance, class, if, where, data, then, else, type, case, of, require, linear, primitive, newtype, family},
+  morecomment=[l]{--},
+  mathescape=true,
+  literate={+}{{$+$}}1 {/}{{$/$}}1 {*}{{$\STAR$}}1
+ % {=}{{$=$}}1
+ % {/=}{{$\not=$}}2
+    {>}{{$>$}}1 {<}{{$<$}}1 {\\}{{$\lambda$}}1
+    {\\\\}{{\char`\\\char`\\}}1 {\\"}{{\char`\\"}}2
+    {->}{{$\to$}}2 {-@}{{$\lto$}}2 {>=}{{$\geq$}}2 {<-}{{$\leftarrow$}}2
+    {<=}{{$\leq$}}2 {=>}{{$\Rightarrow$}}2
+    {\ .\ }{{$\circ$}}3
+    {>>}{{$>\!\!>$}}2 {>>=}{{$>\!\!>\!=$}}3 {>>>}{{$>\!\!>\!\!>$}}3
+    {|}{{$\mid$}}1
+    {...}{{$\dots$}}3
+    {->>}{{$\ctsfun$}}2
+    {~>}{{$\rightsquigarrow$}}2
+    {+->}{{$\setfun$}}2
+    {||-}{{$\entails$}}2
+    {@}{{$@$}}1
+    {~~>}{{$\leadsto$}}2
+    {TYPE}{{$\KType$}}1
+    {CONSTRAINT}{{$\KPred$}}1
+    {_i}{{$\!_i$}}1
+}
+\lstnewenvironment{code}{}{}
+\lstMakeShortInline{!}
+\lstnewenvironment{codef}{\lstset{basicstyle=\ttfamily\small,xleftmargin=1.5em}}{}
+
+\newcommand{\Type}{\texttt{Type}}
+
+\newenvironment{syntax}%
+{\[\begin{array}{@{}lr@{\hspace{5px}}r@{\hspace{5px}}l@{}}}
+{\end{array}\]\ignorespacesafterend}
+
+\ifcomments
+\newcommand{\commentbox}[3]{{\par\noindent\small\color{#1} \framebox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\textbf{#2:} #3}}}}
+\else
+\newcommand\commentbox[3]{}
+\fi
+\newcommand{\TODO}[1]{\commentbox{red}{TODO: }{#1}}
+\newcommand{\AI}[1]{\commentbox{RoyalPurple}{ANI}{#1}}
+
+
+\definecolor{lightgray}{gray}{0.75}
+\newcommand\shaded[1]{{\colorbox{lightgray}{#1}}}
