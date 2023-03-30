@@ -45,6 +45,9 @@
 \newcommand\SFR{System \textbf{F$^R_C$}\xspace} % R for roles
 \newcommand\SFP{System \textbf{F$^\uparrow_C$}\xspace} % P for promotions
 \newcommand\SFK{System \textbf{F$^\kappa_C$}\xspace} % K for kind coercions
+
+\newcommand\SFw{System \textbf{F$_\omega$}\xspace} % F \omega
+
 \newcommand\HMX{\textbf{HM(X)}\xspace}
 
 
@@ -133,9 +136,6 @@
 \newcommand\ValidType[2]{#1 \vdash #2~\text{type}}
 \newcommand\ValidProp[2]{#1 \vdash #2~\text{prop}}
 \newcommand\ValidAssmp[2]{#1 \vdash #2~\text{asmp}}
-% \newcommand{\tenving}[3]{#1 \mid #2 \vdash #3}
-% \newcommand{\predsing}[2]{#1 \vdash #2}   %% I am not entirely convinced "predsing" is English...
-% \newcommand{\preding}[3]{#1 \mid #2 \vdash #3 \; \mathsf{pred}}
 \newcommand\fresh[2]{#1 \# #2}
 
 \newcommand{\bnfeq}{\mathrel{{:}{:}{=}}}
@@ -148,7 +148,7 @@
 
 % Coercion language
 \def\refl#1{\langle#1\rangle}
-\def\comp#1#2{#1 \circ #2}
+\def\trans#1#2{#1 \circ #2}
 \def\refl#1{\langle#1\rangle}
 \def\sym#1{\texttt{sym}~{#1}}
 \def\Axiom{\xi}
@@ -173,7 +173,7 @@
 \newcommand\Lam[2]{\lambda #1.\App #2}
 \newcommand\TLam[2]{\Lambda #1.\App #2}
 \newcommand{\Let}[3]{\mathsf{let}\;#1 = #2\;\mathsf{in}\;#3}
-% \newcommand{\Case}[2]{\mathsf{case}\;#1\;\mathsf{of}\;#2}
+\newcommand{\Case}[2]{\mathsf{case}\;#1\;\mathsf{of}\;#2}
 \newcommand\Forall[2]{\forall#1.~#2}
 \newcommand\tassume[2]{\texttt{assume}~{#1}~\texttt{in}~{#2}}
 \newcommand{\ClassCtrs}{\texttt{C}}
@@ -181,7 +181,7 @@
 \newcommand{\DataCtrs}{\texttt{D}}
 \newcommand{\FamCtrs}{\texttt{F}}
 \newcommand{\MoreFamCtrs}{\texttt{G}}
-\newcommand\Ptrns{\texttt{M}}
+\newcommand\Ptrns{\texttt{P}}
 \newcommand\Sub[2]{\Set{#1 \mapsto #2}}
 \def\FamPattern{\texttt{N}}
 
@@ -197,9 +197,11 @@
 
 % Operational Semantics
 \def\steps{\mathrel{\rightsquigarrow}}
-\newcommand\stepsto[2]{#1 \rightsquigarrow #2}
+\newcommand\stepsto[2]{\ensuremath{#1 \rightsquigarrow #2}}
 \newcommand\manystepsto[2]{#1 \rightsquigarrow^* #2}
-\def\Val{\mathcal{V}}
+\newcommand\Val{\mathcal{V}}
+\newcommand\EvalCtxt{\mathbb{E}}
+\newcommand\EvalCtxtHole[1]{\mathbb{\Lparen} #1 \mathbb{\Rparen}}
 
 % Type rewriting
 \newcommand\TEvalCtxt[1]{\mathbb{C}\mathbb{\Lparen} #1 \mathbb{\Rparen}}
@@ -244,6 +246,7 @@
     {~~>}{{$\leadsto$}}2
     {TYPE}{{$\KType$}}1
     {CONSTRAINT}{{$\KPred$}}1
+    {FORALL}{{$\forall$}}1    
     {_i}{{$\!_i$}}1
 }
 \lstnewenvironment{code}{}{}
