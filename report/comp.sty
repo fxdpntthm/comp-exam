@@ -126,8 +126,9 @@
 
 \newcommand\KTyping[4]{#1;#2 \vdash #3 : #4}
 \newcommand\Typing[3]{#1 \vdash #2 : #3}
+\newcommand\CoKinding[3]{#1 \vdash_{c} #2 : #3}
+\newcommand\TyKinding[3]{#1 \vdash_{t} #2 : #3}
 \newcommand\Kinding[3]{\Typing{#1}{#2}{#3}}
-\newcommand\CoTyping[3]{#1 \vdash_{Co} #2 : #3} %% FIXME the subscripts
 \newcommand\ResTyping[3]{#1 \vdash_{res} #2 : #3}
 \newcommand\ValidGCtx[1]{\vdash_{gnd}#1}
 \newcommand\ValidVCtx[2]{#1\vdash_{var}#2}
@@ -155,14 +156,14 @@
 \def\At{\texttt{@}}
 \def\branch#1#2{\Axiom_{#1}~{#2}}
 \def\qbranch#1#2#3{\Axiom_{#1}~{#2}~{#3}}
-\def\nth#1#2{\text{nth}_{#1}~{#2}}
-\def\left#1{\texttt{left}~#1}
-\def\right#1{\texttt{right}~#1}
-\def\leftc#1{\texttt{leftc}~#1}
-\def\rightc#1{\texttt{rightc}~#1}
+\def\nth#1#2{\text{nth}^{#1}\App{#2}}
+\def\Left#1{\texttt{left}~#1}
+\def\Right#1{\texttt{right}~#1}
+% \def\leftc#1{\texttt{leftc}~#1}
+% \def\rightc#1{\texttt{rightc}~#1}
 \def\Co{\gamma}
-\def\MoreCo{\eta}
-\def\Prop{\phi}
+\def\MoreCo{\nu}
+\def\Prop{C}
 \def\AxiomEq{\Phi}
 \def\AxiomTy{\Psi}
 

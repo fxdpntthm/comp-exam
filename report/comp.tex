@@ -462,134 +462,174 @@ The intension of this declaration is to make !Fun! and !Fun -> Fun! be isomorphi
 \begin{figure}[ht]
   \centering
   \begin{syntax}
-    \text{Type Vars} &\alpha,\beta,\gamma  &\text{Type constants} &T \\
-    \text{Term Vars} &x,y                  & & \\
+    \text{Type Vars} &\alpha,\beta,\gamma  &\qquad\text{Type constants} &T \\
+    \text{Term Vars} &x,y                  &\qquad\text{Indices}        &i,n \in \mathbb{N} \\
     \text{Coercion Vars} &c & &
   \end{syntax}
   \begin{syntax}
-    \text{Kinds}     &&\kappa       &::= ... \mid \sigma \sim \tau\\
-    \text{Types}     &&\tau,\sigma  &::= ... \mid F_n\\
+    \text{Kinds}     &&\kappa       &::= \star \mid \kappa \to \kappa \mid \sigma \sim \tau\\
+    \text{Types}     &&\tau,\sigma  &::= \alpha \mid T \mid \tau \to \tau \mid \tau\App\tau \mid \Forall {\alpha\co\kappa} \tau \mid F_n\\
     \text{Coercions} &&\nu,\Co      &::= c \mid \refl\tau \mid \sym\Co \mid \trans\nu\Co % equiv relation
                                         \mid \Forall {\alpha\co\kappa} \Co \mid \Co\At\tau % abstraction instanst
-                                        \mid \nu\App\Co \mid \left \Co \mid \right \Co \\  % compose/decompose
-    \text{Types and Coercions} && \phi &::= \tau \mid \Co\\
-    \text{Terms}     &&M,N  &::= ... \mid \Case K \overline{P} \mid \Cast \Tm \Co\\
-    \text{Patterns}  &&P    &::= x \to M
+                                        \mid \nu\App\Co \mid \Left \Co \mid \Right \Co\\  % compose/decompose
+    \text{Types/Coercions} && \phi &::= \tau \mid \Co\\
+    \text{Patterns}  &&P    &::= H\App \many{\alpha\co\kappa}\App{\many{x\co\tau}} \\
+    \text{Terms}     &&M,N  &::= x \mid  \Lam {x\co\tau} M \mid M\App N \mid \TLam{\tau\co\kappa} M \mid M\App \tau \mid H \mid \Case M \many{P \to M} \mid \Cast \Tm \Co\\
+
     \end{syntax}
     \begin{syntax}
-    \text{Typing Context} &&\TEnv &::= \empt \mid \TEnv,x\co\tau \mid \TEnv,\alpha\co\kappa \mid \TEnv,H\co T \mid \TEnv, \gamma \co \tau\sim\sigma\\
-    \text{Substitutions}  &&\Subst
-    \end{syntax}
-  \caption{\SFC as an extension of \SF}
+    \text{Typing Context} &&\TEnv,\Delta &::= \empt \mid \TEnv,x\co\tau \mid \TEnv,\alpha\co\kappa \mid \TEnv,H\co T \mid \TEnv, \gamma \co \tau\sim\sigma\\
+    \text{Substitutions}  &&\Subst       &::= \empt \mid \Set{\many{\alpha \mapsto \tau}}
+  \end{syntax}
+
+  \begin{syntax}
+    \text{Program} &&P_{gm} &::= \many{D_{cl}} \mathrel{;} \many{\Tm}\\
+    \text{Declarations} &&D_{cl} &::= \textbf{\texttt{data}}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{where}}\App \many{C_{trs}(T)} \mid \textbf{\texttt{type}}\App F_n : \many\kappa^n \to \kappa \mid  \textbf{\texttt{axiom}}\App C\App \many{\alpha\co\kappa} : \sigma_1 \sim \sigma_2 \\
+    \text{Data Constructors} &&C_{trs}(T) &::= H : \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \many{(\tau \sim \tau)} \then \many\sigma \to T\many\alpha}
+  \end{syntax}
+  
+  \caption{The Syntax of \SFC}
   \label{fig:system-fc-syntax}
 \end{figure}
-\SFC is impredicative; there is no stratification between polytypes and monotypes. Unlike \SFw, there are no lambdas at type level this makes the type level calculus less expressive by disallowing certain types such as $\Lam a (a, a)$. The system does allow higher kinded types---which can be built in or user defined---that can be used by the type application form $\tau\App\tau$. \AI{what is the difference between $\Forall a (a, a)$ and $\Lam a. (a, a)$?} The value type constructors $T$ ranges over built-in types such as !Int! and user defined types such as algebraic datatypes. Declaration of algebraic datatypes also introduces data constructors $H$, the types of which are of the form:
+
+\SFC is impredicative; there is no stratification between polytypes and monotypes. Unlike \SFw, there are no lambdas at type level this makes the type level calculus less expressive by disallowing certain types such as $\Lam a (a, a)$. The system does allow higher kinded types---either built or user defined---that can be used by the type application form $\tau\App\tau$. \AI{what is the difference between $\Forall a (a, a)$ and $\Lam a. (a, a)$?} The value type constructors $T$ ranges over built-in types such as !Int! and user defined types such as algebraic datatypes. Declaration of algebraic datatypes introduces data constructors $H$, the types of which are of the form:
 $$
-H \co \Forall {\overline{\alpha\co\kappa}\overline{\beta\co\kappa}} \overline{\sigma} \to T \overline\alpha
+H \co \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa}} \many{\sigma} \to T \many\alpha}
 $$
-Here the type variables $\overline\alpha$ appear in the same order as in the algebraic datatype delcarations,  and type variables $\overline\beta$ are the existential, that do not appear in the return type, but may appear in the argument types $\overline\sigma$. The existential type variables $\overline\beta$ play a useful in encoding GADTs.
+Here the type variables $\many\alpha$ appear in the same order as in the algebraic datatype delcarations,  and type variables $\many\beta$ are the existential; they do not appear in the return type. This enforcement is necessary to avoid any type variable to escape its scope. The existential type variables play a crucial role in encoding GADTs. 
 
 The type equality coercion, $\gamma$, is the essential additional construct. Coercions are types and have a ``cannonical'' form of $\tau\sim\sigma$. They can be constructed, applied, passed around as arguments using the special coercion infrastructure at the level of types. They appear at term level in the form of casts $\Cast M \gamma$. For type theory enthusiasts, type coercions should be thought of as extensional type equality, meaning, if a term $M$ has a type $\tau$ and we have a type coercion $\tau\sim\sigma$, then the type cast $\Cast M  {\tau\sim\sigma}$ says that $M$ can be treated as if it has type $\sigma$. The soundness property of the type system guarantees that after the types (including casts) have been erased, the program will not crash or get stuck. Unlike other regular types, however, coercions do not classify values, i.e. there are no term level constructs that have a type $\tau\sim\sigma$. This is similar to how in \SFw there are no values of a type that has a kind $\STAR\to\STAR$.
 
-\SFC supports a full fledged coercion calculus where each syntactic construct corresponds to a logical equation. The most basic type of coercion can be produced by using the reflexivity construct $\refl\tau$. It says that the type $\tau$ witness the (obvious) fact that it is equal to itself. The other constructs on coercions are symmetry '$\sym\gamma$', transitivity '$\trans {\gamma_1}{\gamma_2}$', which together with $\refl\tau$, makes type equality an equivalence class. Coercions can also be composed and decomposed using the '$\Co_1\Co_2$', and '$\leftc\Co$' and '$\rightc\Co$' constructs respectively, Finally, coercion abstraction '$\Forall {\alpha\co\kappa}\tau$' and coercion application '$\Co\At\tau$' aids equality reasoning on polytypes.
+\SFC supports a full fledged coercion calculus where each syntactic construct corresponds to a logical equation. The most basic type of coercion can be produced by using the reflexivity construct $\refl\tau$. It says that the type $\tau$ witness the (obvious) fact that it is equal to itself. The other constructs on coercions are symmetry '$\sym\gamma$', transitivity '$\trans {\gamma_1}{\gamma_2}$', which together with $\refl\tau$, makes type equality an equivalence class. Coercions can also be composed and decomposed using the '$\Co_1\Co_2$', and '$\Left\Co$' and '$\Right\Co$' constructs respectively. Finally, coercion abstraction '$\Forall {\alpha\co\kappa}\tau$' and coercion application '$\Co\At\tau$' aids equality reasoning on polytypes.
 
 \subsection{Static Semantics}
 
 \newcommand\TCast{
   \ib{\irule[\trule{cast}]
     {\Typing \TEnv {\Tm} {\tau}}
-    {\Typing \TEnv \gamma {\tau \sim \sigma}};
+    {\CoKinding \TEnv \gamma {\tau \sim \sigma}};
     {\Typing \TEnv {\Cast \Tm \gamma} {\sigma}}
   }
 }
 
 \newcommand\KReflCo{
   \ib{\irule[\trule{co-refl}]
-    {\Typing \TEnv \tau \kappa};
-    {\Typing \TEnv {\refl \tau} {\tau \sim \tau}}
+    {\TyKinding \TEnv \tau \kappa};
+    {\CoKinding \TEnv {\refl \tau} {\tau \sim \tau}}
   }
 }
 
 \newcommand\KSymCo{
   \ib{\irule[\trule{co-sym}]
-    {\Typing \TEnv \gamma {\tau \sim \sigma}};
-    {\Typing \TEnv {\sym \gamma} {\sigma \sim \tau}}
+    {\CoKinding \TEnv \gamma {\tau \sim \sigma}};
+    {\CoKinding \TEnv {\sym \gamma} {\sigma \sim \tau}}
   }
 }
 
 \newcommand\KTransCo{
   \ib{\irule[\trule{co-trans}]
-    {\Typing\TEnv {\gamma_1} {\tau \sim \tau_2}}
-    {\Typing\TEnv {\gamma_2} {\tau_2 \sim \sigma}};
-    {\Typing\TEnv {\trans {\gamma_1} \gamma_2} {\tau \sim \sigma}}
+    {\CoKinding\TEnv {\gamma_1} {\tau \sim \tau_2}}
+    {\CoKinding\TEnv {\gamma_2} {\tau_2 \sim \sigma}};
+    {\CoKinding\TEnv {\trans {\gamma_1} \gamma_2} {\tau \sim \sigma}}
   }
 }
 
 \newcommand\KInstCo{
   \ib{\irule[\trule{co-$\E\forall$}]
-    {\Typing\TEnv \gamma {\Forall\alpha\tau_1 \sim \Forall\beta\tau_2}}
+    {\CoKinding\TEnv \gamma {\Forall\alpha\tau_1 \sim \Forall\beta\tau_2}}
     {\Subst_1 = \Sub\alpha\sigma}{\Subst_2 = \Sub\beta\sigma};
-    {\Typing\TEnv {\gamma\At\sigma} {\Subst_1\tau_1 \sim \Subst_2\tau_2}}
+    {\CoKinding\TEnv {\gamma\At\sigma} {\Subst_1\tau_1 \sim \Subst_2\tau_2}}
   }
 }
 
 \newcommand\KForallCo{
   \ib{\irule[\trule{co-$\I\forall$}]
-    {\Typing {\TEnv,\alpha\co\kappa} \gamma {\tau_1 \sim \tau_2}}{\alpha \# \TEnv};
-    {\Typing \TEnv {\Forall {\alpha\co\kappa} \gamma} {\Forall {\alpha\co\kappa}\tau_1 \sim \Forall {\alpha\co\kappa}\tau_2}}
+    {\CoKinding {\TEnv,\alpha\co\kappa} \gamma {\tau_1 \sim \tau_2}}{\alpha \# \TEnv};
+    {\CoKinding \TEnv {\Forall {\alpha\co\kappa} \gamma} {\Forall {\alpha\co\kappa}\tau_1 \sim \Forall {\alpha\co\kappa}\tau_2}}
   }
 }
 
 
 \newcommand\KCoComp{
   \ib{\irule[\trule{co-comp}]
-    {\Typing \TEnv {\gamma_1} {\tau_1 \sim \tau_2}}
-    {\Typing \TEnv {\gamma_2} {\sigma_1 \sim \sigma_2}}
-    {\Typing \TEnv {\tau_i \sigma_i} \kappa};
-    {\Typing \TEnv {\gamma_1 \gamma_2} {\tau_1 \sigma_1 \sim \tau_2 \sigma_2}}
+    {\CoKinding \TEnv {\gamma_1} {\tau_1 \sim \tau_2}}
+    {\CoKinding \TEnv {\gamma_2} {\sigma_1 \sim \sigma_2}}
+    {\TyKinding \TEnv {\tau_i\App \sigma_i} \kappa};
+    {\CoKinding \TEnv {\gamma_1\App \gamma_2} {\tau_1 \sigma_1 \sim \tau_2 \sigma_2}}
   }
 }
 
 \newcommand\KLeftCo{
   \ib{\irule[\trule{co-left}]
-    {\Typing \TEnv {\gamma} {\tau_1 \App \sigma_1 \sim \tau_2 \App \sigma_2}};
-    {\Typing \TEnv {\left \gamma} {\tau_1 \sim \tau_2}}
+    {\CoKinding \TEnv {\gamma} {\tau_1 \App \sigma_1 \sim \tau_2 \App \sigma_2}};
+    {\CoKinding \TEnv {\Left \gamma} {\tau_1 \sim \tau_2}}
   }
 }
 
 \newcommand\KRightCo{
   \ib{\irule[\trule{co-right}]
-    {\Typing \TEnv {\gamma} {\tau_1 \App \sigma_1 \sim \tau_2 \App \sigma_2}};
-    {\Typing \TEnv {\right \gamma} {\sigma_1 \sim \sigma_2}}
+    {\CoKinding \TEnv {\gamma} {\tau_1 \App \sigma_1 \sim \tau_2 \App \sigma_2}};
+    {\CoKinding \TEnv {\Right \gamma} {\sigma_1 \sim \sigma_2}}
   }
 }
 
 \newcommand\KCastCo{
   \ib{\irule[\trule{co-leftc}]
-    {\Typing \TEnv \gamma {\kappa_1 \then \tau_1 \sim \kappa_2 \then \tau_2}};
-    {\Typing \TEnv {\Cast {\gamma_1} \gamma_2} {\tau_1 \sim \tau_2}}
+    {\CoKinding \TEnv \gamma {\kappa_1 \then \tau_1 \sim \kappa_2 \then \tau_2}};
+    {\CoKinding \TEnv {\Cast {\gamma_1} \gamma_2} {\tau_1 \sim \tau_2}}
   }
 }
 
 \newcommand\KCoAx{
   \ib{\irule[\trule{co-ax}]
-    {\Typing \TEnv \gamma {\kappa_1 \then \tau_1 \sim \kappa_2 \then \tau_2}};
-    {\Typing \TEnv {\Cast {\gamma_1} \gamma_2} {\tau_1 \sim \tau_2}}
+    {\CoKinding \TEnv \gamma {\kappa_1 \then \tau_1 \sim \kappa_2 \then \tau_2}};
+    {\CoKinding \TEnv {\Cast {\gamma_1} \gamma_2} {\tau_1 \sim \tau_2}}
   }
 }
 
+\newcommand{\KTyVar}{
+  \ib{\irule[\trule{ty-var}]
+    {\alpha\co\kappa \in \TEnv};
+    {\TyKinding \TEnv \alpha \kappa}
+  }
+}
+\newcommand{\KTyApp}{
+  \ib{\irule[\trule{ty-app}]
+    {\TyKinding \TEnv \tau \kappa'}
+    {\TyKinding \TEnv \sigma {\kappa' \to \kappa}};
+    {\TyKinding \TEnv {\sigma\App\tau} \kappa}
+  }
+}
+\newcommand{\KTyCon}{
+  \ib{\irule[\trule{ty-con}]
+    {F_n \co \many \kappa^n \to \kappa' \in \TEnv}
+    {\many {\TyKinding \TEnv {\sigma} {\kappa}}^n};
+    {\TyKinding \TEnv {F_n \many\sigma^n} {\kappa'}}
+  }
+}
+\newcommand{\KTyAll}{
+  \ib{\irule[\trule{ty-all}]
+    {\TyKinding {\TEnv,\alpha\co\kappa} {\sigma} \star}
+    {\fresh \alpha \TEnv};
+    {\TyKinding \TEnv {\Forall {\alpha\co\kappa} \sigma} \star}
+  }
+}
 
 \begin{figure}[t]
   \centering
-
+  
   \begin{gather*}
     \fbox{$\Typing \TEnv M \tau$}\\
     \TCast
   \end{gather*}
 
+\begin{gather*}
+  \fbox{$\TyKinding \TEnv \tau \kappa$}\\
+  \KTyVar \rsp \KTyApp \rsp \KTyCon \rsp \KTyAll
+  \end{gather*}
   
   \begin{gather*}
-    \fbox{$\Kinding \KEnv \tau \kappa$}\\
+    \fbox{$\CoKinding \TEnv \tau \kappa$}\\
     \KReflCo \rsp \KSymCo \rsp \KTransCo \\
     \KForallCo \rsp \KInstCo \\
     \KCoComp \\
@@ -599,6 +639,37 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
   \caption{Excerpt of Static Semantics of \SFC}
   \label{fig:sf-typing}
 \end{figure}
+
+To formalize our intuitions of how the coercions ought to behave, we provide static semantics in the form of declarative style typing and kinding rules in \pref{fig:sf-typing}. To start off the \trule{cast} transforms a term $M\co\tau$ to a term $M\co\sigma$ with a witness coercion $\Co\co\tau\sim\sigma$
+
+As all the coercions are types such that their kinds give us the type equality, the coercion calculus is part of the kinding rules. The kinding rules \trule{co-refl}, \trule{co-sym}  and \trule{co-trans} makes coercion an equivalence relation. The rule \trule{co-comp} enables lifting coercions for higher kinded types and reason equalities between them. As a simple example of why coercion composition is useful, consider a higher kinded algebraic type !Tree! and a coercion $\Co\co\sigma_1\sim\sigma_2$, then using $\tau_1$ and $\tau_2$ to be equal to !Tree!, we have that $\refl{\texttt{Tree}} \App\Co : \texttt{Tree}\App\sigma_1 \sim \texttt{Tree}\App\sigma_2$.
+On the other hand, if we have a coercion $\texttt{Tree}\App\sigma_1 \sim \texttt{Tree}\App\sigma_1$ then we can recover the coercion components using the \trule{co-left} and \trule{co-right}, for the higher kinded type and its arguments repectively. In full generality, we can state the lifting property formally in \SFC using \pref{thm:sfc-coercion-lifting}.
+It captures the intuitive idea that given equal sub-parts, an equality between whole entities can be constructed.
+\begin{theorem}[Coercion Lifting]\label{thm:sfc-coercion-lifting}
+  If $\TyKinding {\TEnv,\alpha\co\kappa'} \phi \kappa$, where $\alpha$ is free in $\phi$
+  and does not appear free in $\TEnv$, 
+  $\CoKinding \TEnv \Co {\sigma_1\sim\sigma_2}$, and $\TyKinding \TEnv {\sigma_i} \kappa'$
+  then, $\CoKinding \TEnv {\Set{\alpha\mapsto \Co}\refl\phi} {\Set{\alpha\mapsto\sigma_1}\phi \sim \Set{\alpha\mapsto\sigma_2}\phi}$
+\end{theorem}
+\begin{proof}[Proof Sketch of \pref{thm:sfc-coercion-lifting}]
+  Proof is by induction on the derivation of the well kinded type $\phi$. In each of the four cases, whenever in the original derivation the rule \trule{co-refl} was used, it is replaced by the derivation of $\CoKinding \TEnv \Co {\sigma_1 \sim \sigma_2}$ % TODO: I am not convinced some how
+  % We have 4 cases: 
+  % \begin{itemize}
+  % \item[\trule{ty-var}] Either the type variable is $\alpha$ and we are done, or it is not and we use \trule{co-refl}.
+  % \item[\trule{ty-app}] By induction hypothesis and using \trule{co-comp}.
+  % \item[\trule{ty-con}] 
+  % \item[\trule{ty-all}]
+  % \end{itemize}
+  % we have a derivation $\Typing {\TEnv, \alpha\co\kappa'} \phi \kappa$. Then using \trule{co-refl} we obtain $\Typing {\TEnv, \alpha\co\kappa} {\refl\phi} {\phi \sim \phi}$.
+\end{proof}
+
+The \trule{co-$\I\forall$} and \trule{co-$\E\forall$} justify coercions between polytypes and their instantations or in other words, if two types are equal, then their instantiations with equal types are also equal. 
+
+\subsubsection{Consistency}
+We want to make sure that we can never derive anything obviouly wrong such as !Int ~ Bool! in our language.
+
+\subsection{Operational Semantics}
+We will use call by name semantics as GHC uses lazy evaluation. Adjusting the operational semantics to call by value will not change the analysis in any significant manner. We assume Barendregt's convention throughout the presentation. 
 
 \newcommand{\Beta}{
   \ib{\irule[\trule{$\beta$}]
@@ -614,8 +685,8 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
 }
 \newcommand{\CaseE}{
   \ib{\irule[\trule{case}]
-    {asdf};
-    {asdf}
+    {};
+    {\stepsto {\Case {(K \many\sigma\many\phi\many\Tm)} {\Set{...;  K\App\many\beta\App\many x \to N; ...}}} {\Set{\many {\beta\mapsto\phi}, \many{x\mapsto\Tm}}N}}
   }
 }
 \newcommand{\CoTransE}{
@@ -625,7 +696,7 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
   }
 }
 
-\newcommand{\TPush}{
+\newcommand{\TyPush}{
   \ib{\irule[\trule{ty-push}];
     % {\Co : {\Forall {c\co\kappa} \tau} \sim \Forall {c\co\kappa} \tau'};
     {$\stepsto {(\Cast{\TLam {\alpha\co\kappa} M}\Co)\App \tau} {({\TLam {\alpha\co\kappa} (\Cast M {\Co\At\alpha})})\App \tau}$}
@@ -635,9 +706,9 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
 \newcommand{\CoPush}{
   \ib{\irule[\trule{co-push}]
     {\LARGE\substack {\nu\co \sigma_1' \sim \sigma_2'\\
-                      \Co_1 : \sigma_1 \sim \sigma_1' = \left {(\left \Co)}}}
+                      \Co_1 : \sigma_1 \sim \sigma_1' = \Left {(\Left \Co)}}}
     {\LARGE\substack {\Co\co (\sigma_1 \sim \sigma_2 \then \sigma_3) \sim (\sigma_1' \sim \sigma_2' \then \sigma_3')\\
-                     {\Co_2: \sigma_2 \sim \sigma_2' = \right{(\left\Co)}\quad{\Co_3:\sigma_3\sim\sigma_3' = \right\Co}}}};
+                     {\Co_2: \sigma_2 \sim \sigma_2' = \Right{(\Left\Co)}\quad{\Co_3:\sigma_3\sim\sigma_3' = \Right\Co}}}};
     {$\stepsto {(\Cast{\TLam {\alpha\co(\sigma_1\sim\sigma_2)} M}\Co)\App \nu} {\Cast {(\TLam {\alpha\co(\sigma_1\sim\sigma_2)} M)\App (\Co_1 \circ \nu \circ \sym \Co_2)} {\Co_3}} $}
   }
 }
@@ -645,19 +716,29 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
 \newcommand{\Push}{
   \ib{\irule[\trule{push}]
     {\Co : \tau_1 \to \tau_2 \sim \tau_1' \to \tau_2'}
-    {\Co_1 = \right (\left \Co)}
-    {\Co_2 = \right \Co};
+    {\Co_1 = \Right (\Left \Co)}
+    {\Co_2 = \Right \Co};
     {$\stepsto {({\Cast {\Lam x M} {\Co}}) \App N} {\Cast {(({\Lam x M})\App {(\Cast N {\sym \Co_1})})} \Co_2}$}
   }
 }
 
-\newcommand{\KPush}{
+\newcommand{\HPush}{
   \ib{\irule[\trule{h-push}]
-    {};
-    {$\stepsto {\Cast {(\Cast \Val \Co_1)} {\Co_2}} {\Cast \Val {\trans{\Co_1} {\Co_2}}}$}
+    {\LARGE\substack{\Co : T\App\many\sigma \sim T\App\many\tau\\
+        H : \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \rho \to T\App\many\alpha^n}}}
+    {\LARGE\substack{{\Subst = \Set{\many{\alpha_i \mapsto \gamma_i}, \many{\beta_i \mapsto \phi_i}}}\\
+        {\Tm'_i = \Cast {\Tm_i} \Subst\rho_i}}}
+    {\Co_i = \Right (\Left^{i-1}\Co) }    
+    {\phi' =
+      \begin{cases}
+        \Cast {\phi_i} \Subst(v_1 \sim v_2) &\text{if }\beta_i:v_1 \sim v_2\\
+        \phi_i\quad &\text{otherwise}
+      \end{cases}
+    };
+    {$\stepsto {\Case {(\Cast {H\App \many\sigma\App\many\phi\App\many\Tm} \Co)} {\many{\Ptrns \to N}} }
+      {\Case {(H\App \many\tau\App\many{\phi'}\App\many{\Tm'})} {\many{\Ptrns \to N}} }$}
   }
 }
-
 
 
 \begin{figure}[ht]
@@ -666,44 +747,44 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
     \text{Plain Values} && \Val  &::= \Lam {x\co\tau} M \mid \Forall {\alpha\co\kappa} M \mid H\\
     \text{CValues}      && C\Val &::= \Val \mid \Cast \Val \Co\\
 
-    \text{Evaluation Contexts} &&  \EvalCtxt &::= \EvalCtxtHole{-} \mid \EvalCtxt\App M \mid \EvalCtxt \tau \mid \Cast \EvalCtxt \Co \mid \Case \EvalCtxt {\overline{P}}\\
+    \text{Evaluation Contexts} &&  \EvalCtxt &::= \EvalCtxtHole{-} \mid \EvalCtxt\App M \mid \EvalCtxt \tau \mid \Cast \EvalCtxt \Co \mid \Case \EvalCtxt {\many{P}}\\
   \end{syntax}
-
   \begin{gather*}
     \fbox{$\stepsto M N$}\\
     \Beta \rsp \TBeta\\
     \CaseE \rsp \CoTransE\\
-    \TPush \rsp \CoPush\\
-    \Push \rsp \KPush
+    \Push \rsp \TyPush\\
+    \CoPush\\
+    \HPush
   \end{gather*}
-
   \caption{Operational Semantics of \SFC}
   \label{fig:op-sem-sfc}
 \end{figure}
 
+The unusual feature of the system is that the values are stratified into normal values ($\Val$) and cvalues ($C\Val$) that are values with coercion casts respectively. Cvalues are needed to maintain type preservation, which would otherwise break in the presense of casts. The cvalues can step in one of the four ways \trule{push}, \trule{ty-push}, \trule{co-push} or \trule{h-push}. In \trule{push}, the coercion $\Co$, applied to the lambda term, is split so that it is applied to the argument ($\Co_1$) and to the redux reduction ($\Co_2$). Applying this rule exposes a \trule{$\beta$} redux. The rule \trule{ty-push} for type application that moves the coercion inside a type abstraction instantiated at the type variable.
+The rule \trule{co-push} is just like \trule{push} but for moving coercions.
 
-To formalize our intuitions of how the coercions ought to behave, we provide static semantics in the form of standard typing and kinding rules in \pref{fig:sf-typing}. To start off the \trule{cast} transforms a term $M\co\tau$ to a term $M\co\sigma$ with a witness coercion $\Co\co\tau\sim\sigma$
+The most complex rule is \trule{h-push} which makes more sense with an example in hand. Consider the case scrutinee $\Cast {(Cons\App \texttt{Int}\App x\App y)} \Co$ where, !Cons : FORALL a. a -> [a] -> [a]! and $\Co : [Int] \sim [S\App Bool]$ where !S! is a type constructor. The cast transforms the scrutee into a type $[S\App Bool]$ by pushing the coercion into its subcomponents.
+$$
+\stepsto {\Cast {(\texttt{Cons}\App \texttt{Int}\App x\App y)} \Co} {\texttt{Cons} \App (S\App Bool) (\Cast x \Right\Co) (\Cast y {(\refl{[]}\Right\Co)})}
+$$
+Coercion lifting plays an important role here to make sure that the term subcomponents $\Cast M_i {\Subst}\rho_i$ is of the appropriate type. Each rule is derived in a systematic way by making sure the type of the term does not change after moving the cast.
 
-As all the coercions are types such that their kinds give us the type equality, the coercion calculus is part of the kinding rules. The typing rules \trule{co-refl}, \trule{co-sym}  and \trule{co-trans} makes equality of types an equivalence relation. The rule \trule{co-comp} enables lifting coercions for higher kinded types and reason equalities between them. As a simple example of why coercion composition is useful, consider a higher kinded algebraic type !Tree! and a coercion $\Co\co\sigma_1\sim\sigma_2$, then using $\tau_1$ and $\tau_2$ to be equal to !Tree!, we have that $\refl{\texttt{Tree}} \App\Co : \texttt{Tree}\App\sigma_1 \sim \texttt{Tree}\App\sigma_2$.
-On the other hand, if we have a coercion $\texttt{Tree}\App\sigma_1 \sim \texttt{Tree}\App\sigma_1$ then we can recover the coercion components using the \trule{co-left} and \trule{co-right}, for the higher kinded type and its arguments repectively. In full generality, we can state the lifting property formally in \SFC using \pref{thm:sfc-coercion-lifting}.
+This coercion operation calculus is ofcourse not needed during runtime as these coercions are erased after type checking phase. They are important to prove the imporant metatheoritic property of the calculus.
 
-\begin{theorem}[Coercion Lifting]\label{thm:sfc-coercion-lifting}
-  If $\Typing {\TEnv,\alpha\co\kappa'} \phi \kappa$, where $\alpha$ is free in $\phi$
-  and does not appear free in $\TEnv$, and
-  $\Typing \TEnv \Co {\sigma_1\co\kappa' \sim   \sigma_2\co\kappa'}$
-  then, $\Typing \TEnv {\Set{\alpha\mapsto \Co}\refl\phi} {\Set{\alpha\mapsto\sigma_1}\phi \sim \Set{\alpha\mapsto\sigma_2}\phi}$
+\begin{theorem}[Progress]
+  If $\TEnv$ is consistent and $\Typing \TEnv \Tm \tau$ then, either $\Tm$ is a cvalue or, $\stepsto \Tm Tm'$ and 
 \end{theorem}
-\begin{proof}[Proof Sketch of \pref{thm:sfc-coercion-lifting}]
-  Starting with a $\phi$ that is a well kinded type, we have a derivation that $\Typing {\TEnv, \alpha\co\kappa} \phi \kappa$. Then using \trule{co-refl} we obtain $\Typing {\TEnv, \alpha\co\kappa} {\refl\phi} {\phi \sim \phi}$.
-\end{proof}
 
-The \trule{co-$\I\forall$} and \trule{co-$\E\forall$} justify coercions between polytypes and their instantations or in other words, if two types are equal, then their instantiations with equal types are also equal. 
+\subsection{Soundness}
+So do the static semantics effectively weed out all the programs that may fail at runtime?
+  
 
-\subsubsection{Consistency} we want to make sure that we can never derive anything obviouly wrong such as !Int ~ Bool! in our language.
+
 
 \subsection{Encoding Language Features}
 
-Armed with the new coercion infrastructure, it is now possible to encode most of the features discussed in \pref{sec:language-features}. \SFC is a conservative extension of \SF, so type classes and algebraic datatypes can be encoded in \SFC as is.
+Armed with the new coercion infrastructure, it is now possible to encode most of the features discussed in \pref{sec:language-features}. \SFC is a conservative extension of \SF, so type classes and algebraic datatypes can be encoded in \SFC as is. GADTs and associated types demand some more details.
 
 \subsubsection{GADTs}
 Each GADT data constructor is elaborated with equality coercions as implicit existential arguments.
@@ -715,21 +796,13 @@ For the !App! case in !Lam a! the data constructor will be elaborated as
 
 \subsubsection{Newtypes}
 Newtypes introduce a new coercion axiom in the system. For the generative type !newtype Fun = MkFun (Fun -> Fun)!
-the associated coercion axiom will be !CoFun : Fun ~ (Fun -> Fun)!. In general, for any generative type declaration of the form !newtype T $\overline\alpha$ = MkT $\tau$! will be of the form !CoT : T $\overline\alpha$ ~ $\tau$! where $\tau$ may contain $\overline\alpha$ as free type variables.
+the associated coercion axiom will be !CoFun : Fun ~ (Fun -> Fun)!. In general, for any generative type declaration of the form !newtype T $\many\alpha$ = MkT $\tau$! will be of the form !CoT : T $\many\alpha$ ~ $\tau$! where $\tau$ may contain $\many\alpha$ as free type variables.
 
 \subsubsection{Associated Types}
 Each instance introduces a new axiom into the type system. For the !Coll c! typeclass the instance !Coll [Int]! introduces the coercion !CoColl : Elem [Int] ~ Int!
 
 \subsubsection{Open Type Functions}
 Each type family instance directly translates to axioms. Thus for !Add m n! type function, the two associated instances would introduce the following axioms !CoAddZ : Add Z n ~ n! and !CoAddSmn : Add (S m) n ~ S (Add m n)!
-
-\subsection{Operational Semantics}
-We will use call by name semantics as GHC uses lazy evaluation. Adjusting the operational semantics to call by value will not change the analysis in any significant manner.
-
-
-\subsection{Soundness}
-So do the static semantics effectively weed out all the programs that may fail at runtime?
-  
 
 
 \section{\SFR}\label{sec:sfr} % R for roles
@@ -743,16 +816,6 @@ even if they have the same representations.
 
 
 \begin{figure}[ht]
-  \centering
-  \begin{syntax}
-    \text{Type Vars} &&\alpha,\beta,\gamma \\
-    \text{Term Vars} &&x,y          \\
-    \text{Kinds}     &&\kappa                  &::= \star \mid \kappa \to \kappa \mid \syntaxhl{\tau \sim \sigma}\\
-    \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \mid T \mid \syntaxhl{F} \mid \tau \to \tau \mid \Forall {\alpha\co\kappa} \tau\\
-    &&                        &\syntaxhl{\mid \sym \Co \mid \trans \nu \Co \mid \Co\At\tau \mid \left \Co \mid \right \Co} \\
-    &&                        &\syntaxhl{\mid \leftc \Co \mid \rightc \Co \mid \Cast \Co \Co}\\
-    \text{Terms}     &&M,N                     &::= x \mid H \mid \Lam {x\co\tau} M \mid M\App N \mid \TLam{\tau\co\kappa} M \mid M\App \tau
-  \end{syntax}
   \caption{Terms and Types of \SFR as an extension of \SFC}
   \label{fig:system-fcr-syntax}
 \end{figure}
@@ -778,8 +841,8 @@ We want to promote datatypes to kinds. What does it take?
     \text{Term Vars} &&x,y          \\
     \text{Kinds}     &&\kappa                  &::= \star \mid \kappa \to \kappa \mid \syntaxhl{\tau \sim \sigma}\\
     \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \mid T \mid \syntaxhl{F} \mid \tau \to \tau \mid \Forall {\alpha\co\kappa} \tau\\
-    &&                        &\syntaxhl{\mid \sym \Co \mid \trans \nu \Co \mid \Co\At\tau \mid \left \Co \mid \right \Co} \\
-    &&                        &\syntaxhl{\mid \leftc \Co \mid \rightc \Co \mid \Cast \Co \Co}\\
+    &&                        &\syntaxhl{\mid \sym \Co \mid \trans \nu \Co \mid \Co\At\tau \mid \Left \Co \mid \Right \Co} \\
+    &&                        &\syntaxhl{\mid  \Cast \Co \Co}\\
     \text{Terms}     &&M,N                     &::= x \mid H \mid \Lam {x\co\tau} M \mid M\App N \mid \TLam{\tau\co\kappa} M \mid M\App \tau
   \end{syntax}
   \caption{Terms and Types of \SFP as an extension of \SFC}
@@ -812,8 +875,8 @@ So why not just squish types and kinds together, making it truly impredicative
     \text{Term Vars} &&x,y          \\
     \text{Kinds}     &&\kappa                  &::= \star \mid \kappa \to \kappa \mid \syntaxhl{\tau \sim \sigma}\\
     \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \mid T \mid \syntaxhl{F} \mid \tau \to \tau \mid \Forall {\alpha\co\kappa} \tau\\
-    &&                        &\syntaxhl{\mid \sym \Co \mid \trans \nu \Co \mid \Co\At\tau \mid \left \Co \mid \right \Co} \\
-    &&                        &\syntaxhl{\mid \leftc \Co \mid \rightc \Co \mid \Cast \Co \Co}\\
+    &&                        &\syntaxhl{\mid \sym \Co \mid \trans \nu \Co \mid \Co\At\tau \mid \Left \Co \mid \Right \Co} \\
+    &&                        &\syntaxhl{\mid \Cast \Co \Co}\\
     \text{Terms}     &&M,N                     &::= x \mid H \mid \Lam {x\co\tau} M \mid M\App N \mid \TLam{\tau\co\kappa} M \mid M\App \tau
   \end{syntax}
   \caption{Terms and Types of \SFK as an extension of \SFC}
