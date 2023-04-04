@@ -138,6 +138,7 @@
 \newcommand\ValidProp[2]{#1 \vdash #2~\text{prop}}
 \newcommand\ValidAssmp[2]{#1 \vdash #2~\text{asmp}}
 \newcommand\fresh[2]{#1 \# #2}
+\newcommand\fvs[1]{\texttt{fvs}(#1)}
 
 \newcommand{\bnfeq}{\mathrel{{:}{:}{=}}}
 \newcommand{\bnfor}{\mathrel{\mid}}
@@ -213,7 +214,7 @@
 
 % Compilation
 \def\compile#1{\llbracket#1\rrbracket}
-
+\newcommand\GTranslate[5]{#1;#2 \vdash_{\mathcal{G}} #3 : #4 \rightsquigarrow #5}
 % Haskell listings
 \usepackage{listings}
 \lstloadlanguages{Haskell}

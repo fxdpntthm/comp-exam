@@ -53,12 +53,12 @@ $$
     \text{Term Vars} &&x,y          \\
   \end{syntax}
   \begin{syntax}
-    \text{Kinds}     &&\kappa       &::= \star \mid \kappa \to \kappa\\
-    \text{Types}     &&\tau,\sigma  &::= \alpha \mid T \mid \tau \to \tau \mid \tau\App\tau \mid \syntaxhl{\Forall {\alpha\co\kappa} \tau}\\
-    \text{Terms}     &&\Tm,N          &::= x \mid  H \mid \Lam {x\co\tau} M \mid M\App N \mid \syntaxhl{\TLam{\tau\co\kappa} M \mid M\App \tau}\\
+    \text{Kinds}     &&\kappa       &::= \star \bnfor \kappa \to \kappa\\
+    \text{Types}     &&\tau,\sigma  &::= \alpha \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \syntaxhl{\Forall {\alpha\co\kappa} \tau}\\
+    \text{Terms}     &&\Tm,N          &::= x \bnfor  H \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \syntaxhl{\TLam{\tau\co\kappa} M \bnfor M\App \tau}\\
   \end{syntax}
   \begin{syntax}
-    \text{Typing Context} &&\TEnv &::= \empt \mid \TEnv,x\co\tau \mid \TEnv,\alpha\co\kappa \mid \TEnv,H\co T\\
+    \text{Typing Context} &&\TEnv &::= \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\alpha\co\kappa \bnfor \TEnv,H\co T\\
     \text{Substitutions}  &&\Subst
   \end{syntax}
   \caption{\SF as an extension of \STLC with kinds}
@@ -467,24 +467,24 @@ The intension of this declaration is to make !Fun! and !Fun -> Fun! be isomorphi
     \text{Coercion Vars} &c & &
   \end{syntax}
   \begin{syntax}
-    \text{Kinds}     &&\kappa       &::= \star \mid \kappa \to \kappa \mid \sigma \sim \tau\\
-    \text{Types}     &&\tau,\sigma  &::= \alpha \mid T \mid \tau \to \tau \mid \tau\App\tau \mid \Forall {\alpha\co\kappa} \tau \mid F_n\\
-    \text{Coercions} &&\nu,\Co      &::= c \mid \refl\tau \mid \sym\Co \mid \trans\nu\Co % equiv relation
-                                        \mid \Forall {\alpha\co\kappa} \Co \mid \Co\At\tau % abstraction instanst
-                                        \mid \nu\App\Co \mid \Left \Co \mid \Right \Co\\  % compose/decompose
-    \text{Types/Coercions} && \phi &::= \tau \mid \Co\\
+    \text{Kinds}     &&\kappa       &::= \star \bnfor \kappa \to \kappa \bnfor \sigma \sim \tau\\
+    \text{Types}     &&\tau,\sigma  &::= \alpha \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\alpha\co\kappa} \tau \bnfor F_n\\
+    \text{Coercions} &&\nu,\Co      &::= c \bnfor \refl\tau \bnfor \sym\Co \bnfor \trans\nu\Co % equiv relation
+                                        \bnfor \Forall {\alpha\co\kappa} \Co \bnfor \Co\At\tau % abstraction instanst
+                                        \bnfor \nu\App\Co \bnfor \Left \Co \bnfor \Right \Co\\  % compose/decompose
+    \text{Types/Coercions} && \phi &::= \tau \bnfor \Co\\
     \text{Patterns}  &&P    &::= H\App \many{\alpha\co\kappa}\App{\many{x\co\tau}} \\
-    \text{Terms}     &&M,N  &::= x \mid  \Lam {x\co\tau} M \mid M\App N \mid \TLam{\tau\co\kappa} M \mid M\App \tau \mid H \mid \Case M \many{P \to M} \mid \Cast \Tm \Co\\
+    \text{Terms}     &&M,N  &::= x \bnfor  \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau \bnfor H \bnfor \Case M \many{P \to M} \bnfor \Cast \Tm \Co\\
 
     \end{syntax}
     \begin{syntax}
-    \text{Typing Context} &&\TEnv,\Delta &::= \empt \mid \TEnv,x\co\tau \mid \TEnv,\alpha\co\kappa \mid \TEnv,H\co T \mid \TEnv, \gamma \co \tau\sim\sigma\\
-    \text{Substitutions}  &&\Subst       &::= \empt \mid \Set{\many{\alpha \mapsto \tau}}
+    \text{Typing Context} &&\TEnv,\Delta &::= \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\alpha\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \gamma \co \tau\sim\sigma\\
+    \text{Substitutions}  &&\Subst       &::= \empt \bnfor \Set{\many{\alpha \mapsto \tau}}
   \end{syntax}
 
   \begin{syntax}
     \text{Program} &&P_{gm} &::= \many{D_{cl}} \mathrel{;} \many{\Tm}\\
-    \text{Declarations} &&D_{cl} &::= \textbf{\texttt{data}}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{where}}\App \many{C_{trs}(T)} \mid \textbf{\texttt{type}}\App F_n : \many\kappa^n \to \kappa \mid  \textbf{\texttt{axiom}}\App C\App \many{\alpha\co\kappa} : \sigma_1 \sim \sigma_2 \\
+    \text{Declarations} &&D_{cl} &::= \textbf{\texttt{data}}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{where}}\App \many{C_{trs}(T)} \bnfor \textbf{\texttt{type}}\App F_n : \many\kappa^n \to \kappa \bnfor  \textbf{\texttt{axiom}}\App C\App \many{\alpha\co\kappa} : \sigma_1 \sim \sigma_2 \\
     \text{Data Constructors} &&C_{trs}(T) &::= H : \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \many{(\tau \sim \tau)} \then \many\sigma \to T\many\alpha}
   \end{syntax}
   
@@ -744,10 +744,10 @@ We will use call by name semantics as GHC uses lazy evaluation. Adjusting the op
 \begin{figure}[ht]
   \centering
   \begin{syntax}
-    \text{Plain Values} && \Val  &::= \Lam {x\co\tau} M \mid \Forall {\alpha\co\kappa} M \mid H\\
-    \text{CValues}      && C\Val &::= \Val \mid \Cast \Val \Co\\
+    \text{Plain Values} && \Val  &::= \Lam {x\co\tau} M \bnfor \Forall {\alpha\co\kappa} M \bnfor H\\
+    \text{CValues}      && C\Val &::= \Val \bnfor \Cast \Val \Co\\
 
-    \text{Evaluation Contexts} &&  \EvalCtxt &::= \EvalCtxtHole{-} \mid \EvalCtxt\App M \mid \EvalCtxt \tau \mid \Cast \EvalCtxt \Co \mid \Case \EvalCtxt {\many{P}}\\
+    \text{Evaluation Contexts} &&  \EvalCtxt &::= \EvalCtxtHole{-} \bnfor \EvalCtxt\App M \bnfor \EvalCtxt \tau \bnfor \Cast \EvalCtxt \Co \bnfor \Case \EvalCtxt {\many{P}}\\
   \end{syntax}
   \begin{gather*}
     \fbox{$\stepsto M N$}\\
@@ -770,11 +770,28 @@ $$
 $$
 Coercion lifting plays an important role here to make sure that the term subcomponents $\Cast M_i {\Subst}\rho_i$ is of the appropriate type. Each rule is derived in a systematic way by making sure the type of the term does not change after moving the cast.
 
-This coercion operation calculus is ofcourse not needed during runtime as these coercions are erased after type checking phase. They are important to prove the imporant metatheoritic property of the calculus.
+This coercion operation calculus is ofcourse not needed during runtime as these coercions are erased after type checking phase. They are necessary to prove the imporant metatheoritic property of the calculus.
 
-\begin{theorem}[Progress]
-  If $\TEnv$ is consistent and $\Typing \TEnv \Tm \tau$ then, either $\Tm$ is a cvalue or, $\stepsto \Tm Tm'$ and 
+\begin{theorem}[Progress and Subject Reduction (Take 1)]
+  If $\Typing \TEnv \Tm \tau$ then, either $\Tm$ is a cvalue or, $\stepsto \Tm \Tm'$ and
+  $\Typing \TEnv {\Tm'} \tau$
 \end{theorem}
+
+However this is not entirely correct. If our system has a top level axiom such as $coBogus \co \texttt{Int} \sim \texttt{Bool}$, this coercion can be used in a cast, to convert an ill typed term to a well typed term thus breaking subject reduction property. The thoerm needs to be strengthened using an appropriate restriction on $\TEnv$. In general, checking consistency at top level is an undecidable. There exists is a conservative approximation of consistency which can be checked syntactically and it is sufficient for this purpose.
+
+\begin{definition}[\Good $\TEnv$]
+  A $\TEnv$ is \Good $\TEnv$ when
+  \begin{itemize}
+  \item If $\CoKinding \TEnv \Co {T \many\sigma \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $T\many\sigma'$
+  \item If $\CoKinding \TEnv \Co {\Forall {\alpha\co\kappa} \sigma \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $\Forall {\alpha\co\kappa} \sigma'$
+  \end{itemize}
+\end{definition}
+
+\begin{theorem}[Progress and Subject Reduction]\label{thm:progress}
+  If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ then, either $\Tm \in C\Val$ or, $\stepsto \Tm \Tm'$ and
+  $\Typing \TEnv {\Tm'} \tau$
+\end{theorem}
+
 
 \subsection{Soundness}
 So do the static semantics effectively weed out all the programs that may fail at runtime?
@@ -784,16 +801,99 @@ So do the static semantics effectively weed out all the programs that may fail a
 
 \subsection{Encoding Language Features}
 
-Armed with the new coercion infrastructure, it is now possible to encode most of the features discussed in \pref{sec:language-features}. \SFC is a conservative extension of \SF, so type classes and algebraic datatypes can be encoded in \SFC as is. GADTs and associated types demand some more details.
+Armed with the new coercion infrastructure, it is now possible to encode most of the features discussed in \pref{sec:language-features}. \SFC is a conservative extension of \SF, type classes and algebraic datatypes can thus be encoded in \SFC without any extra machinery. GADTs and associated types demand some more details.
 
 \subsubsection{GADTs}
-Each GADT data constructor is elaborated with equality coercions as implicit existential arguments.
-For the !App! case in !Lam a! the data constructor will be elaborated as
-\begin{code}
-  App : FORALL a:* b:*. FORALL co: c ~ (a -> b). Lam c -> Lam a -> Lam b
-  Lam : FORALL a:* b:*. FORALL co. c ~ (a -> b). Lam a -> Lam b -> Lam c
-\end{code}
 
+Each GADT data constructor's type is elaborated with equality coercions as arguments in \SFC term.
+For example the data constructor !App! from \pref{fig:gadt-example} is elaborated as:
+\begin{code}
+  App : FORALL a:* b:*. FORALL c:*. FORALL co: c ~ (a -> b). Lam c -> Lam a -> Lam b
+\end{code}
+A type directed translation converts a source level GADT into \SFC as shown in \pref{fig:encoding-gadts}
+The source level types are stratified into three groups
+\begin{figure}[ht]
+  \centering
+  \begin{syntax}
+    \text{Polytypes}         && \pi   &\bnfeq \eta \bnfor \Forall\alpha.\pi\\
+    \text{Constrained Types} && \eta  &\bnfeq \tau \bnfor \tau\sim\tau \then \eta\\
+    \text{Monotypes}         && v,\tau  &\bnfeq \alpha \bnfor \tau\to\tau \bnfor T\App\many\tau\\
+    \text{Constraints}       && C     &\bnfeq \empt \bnfor C, c\co\tau\sim\tau'
+  \end{syntax}
+  \caption{GADT Surface level type syntax}
+  \label{fig:gadt-type-syntax}
+\end{figure}
+The type directed translation $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level term $\Tm$ of type $\pi$, it is compiled to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the translation is that the type equality constraints, $\tau\sim\tau'$, are compiled to coercions in \SFC. The constraint C is a collection of named type equalities.
+
+
+\newcommand\GADTVar{
+  \ib{\irule[\trule{g-var}]
+    {x\co\pi \in \TEnv};
+    {\GTranslate C \TEnv x {\pi} x}
+  }
+}
+\newcommand\GADTEq{
+  \ib{\irule[\trule{g-eq}]
+    {\GTranslate C \TEnv \Tm \tau \Tm'}
+    {\CoKinding C \Co {\tau \sim \tau'}};
+    {\GTranslate C \TEnv \Tm {\tau} {\Cast {\Tm'} \Co}}
+  }
+}
+\newcommand\GADTForallI{
+  \ib{\irule[\trule{g-$\I\forall$}]
+    {\GTranslate C \TEnv \Tm \pi \Tm'}
+    {\fresh \alpha {C, \TEnv}};
+    {\GTranslate C \TEnv \Tm {\Forall {\alpha\co\star} \pi} {\TLam {\alpha\co\star} \Tm'}}
+  }
+}
+\newcommand\GADTForallE{
+  \ib{\irule[\trule{g-$\E\forall$}]
+    {\GTranslate C \TEnv \Tm {\Forall {\alpha\co\star} \pi} \Tm'};
+    {\GTranslate C \TEnv \Tm {\Set{\alpha\mapsto\tau}\pi} {\Tm'\App \tau}}
+  }
+}
+\newcommand\GADTCI{
+  \ib{\irule[\trule{g-$\I C$}]
+    {\GTranslate {C,c:\tau\sim\tau'} \TEnv \Tm {\eta} \Tm'};
+    {\GTranslate C \TEnv \Tm {\tau\sim\tau'\then\eta} {\TLam {(c\co\tau\sim\tau')} \Tm'}}
+  }  
+}
+\newcommand\GADTCE{
+  \ib{\irule[\trule{g-$\E C$}]
+    {\GTranslate {C} \TEnv \Tm {\tau\sim\tau'\then\eta} \Tm'}
+    {\CoKinding C \Co \tau\sim\tau'};
+    {\GTranslate C \TEnv \Tm {\eta} {\Tm'\App\Co}}
+  }  
+}
+\newcommand\GADTAlt{
+  \ib{\irule[\trule{g-alt}]
+    {\LARGE\substack{
+        {H\co \Forall {\many\alpha} {\Forall {\many\beta} {\many{\tau'\sim\tau''} \then \many\tau \to T\many\alpha}}}\quad
+        {\many\alpha \cap \many\beta = \varnothing}\quad
+        {\fvs{\many\tau, \many{\tau'}, \many{\tau''}} = \fvs{\many\alpha, \many\beta}}\quad
+        {\Subst = \Set{\many{\alpha\mapsto v}}}\quad
+        {\fresh {\many{c}} {C, \TEnv}}\\
+        {\GTranslate {C,\many{c\co\Subst{\tau'}\sim\Subst\tau''}\,} {\,\TEnv,\many{x\co\Subst\tau}\,} \Tm {\tau'} \Tm'} }};
+    {\GTranslate C \TEnv {H\App\many x \to \Tm} {T\App\many v \to \tau'}
+                   {H\App(\many{\beta\co\star})\App(\many{c\co\Subst\tau'\sim\Subst\tau''})\App(\many{x\co\Subst\tau}) \to \Tm' }}
+  }
+}
+
+\begin{figure}[ht]
+  \centering
+  \caption[Encoding GADTs]{Type directed Translation of GADTs into \SFC}
+  \begin{gather*}
+    \fbox{$\GTranslate C \TEnv {\Tm} {\pi} {\Tm'}$}\\
+    \GADTVar \rsp \GADTEq\\
+    \GADTForallI \rsp \GADTForallE\\
+    \GADTCI \rsp \GADTCE
+  \end{gather*}
+  \begin{gather*}
+    \fbox{$\GTranslate C \TEnv {p \to \Tm} {\pi \to \pi} {p' \to e'}$}\\
+    \GADTAlt
+  \end{gather*}
+  \label{fig:encoding-gadts}
+\end{figure}
 \subsubsection{Newtypes}
 Newtypes introduce a new coercion axiom in the system. For the generative type !newtype Fun = MkFun (Fun -> Fun)!
 the associated coercion axiom will be !CoFun : Fun ~ (Fun -> Fun)!. In general, for any generative type declaration of the form !newtype T $\many\alpha$ = MkT $\tau$! will be of the form !CoT : T $\many\alpha$ ~ $\tau$! where $\tau$ may contain $\many\alpha$ as free type variables.
@@ -839,11 +939,11 @@ We want to promote datatypes to kinds. What does it take?
   \begin{syntax}
     \text{Type Vars} &&\alpha,\beta,\gamma \\
     \text{Term Vars} &&x,y          \\
-    \text{Kinds}     &&\kappa                  &::= \star \mid \kappa \to \kappa \mid \syntaxhl{\tau \sim \sigma}\\
-    \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \mid T \mid \syntaxhl{F} \mid \tau \to \tau \mid \Forall {\alpha\co\kappa} \tau\\
-    &&                        &\syntaxhl{\mid \sym \Co \mid \trans \nu \Co \mid \Co\At\tau \mid \Left \Co \mid \Right \Co} \\
-    &&                        &\syntaxhl{\mid  \Cast \Co \Co}\\
-    \text{Terms}     &&M,N                     &::= x \mid H \mid \Lam {x\co\tau} M \mid M\App N \mid \TLam{\tau\co\kappa} M \mid M\App \tau
+    \text{Kinds}     &&\kappa                  &::= \star \bnfor \kappa \to \kappa \bnfor \syntaxhl{\tau \sim \sigma}\\
+    \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \bnfor T \bnfor \syntaxhl{F} \bnfor \tau \to \tau \bnfor \Forall {\alpha\co\kappa} \tau\\
+    &&                        &\syntaxhl{\bnfor \sym \Co \bnfor \trans \nu \Co \bnfor \Co\At\tau \bnfor \Left \Co \bnfor \Right \Co} \\
+    &&                        &\syntaxhl{\bnfor  \Cast \Co \Co}\\
+    \text{Terms}     &&M,N                     &::= x \bnfor H \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau
   \end{syntax}
   \caption{Terms and Types of \SFP as an extension of \SFC}
   \label{fig:system-fcp-syntax}
@@ -873,11 +973,11 @@ So why not just squish types and kinds together, making it truly impredicative
   \begin{syntax}
     \text{Type Vars} &&\alpha,\beta,\gamma \\
     \text{Term Vars} &&x,y          \\
-    \text{Kinds}     &&\kappa                  &::= \star \mid \kappa \to \kappa \mid \syntaxhl{\tau \sim \sigma}\\
-    \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \mid T \mid \syntaxhl{F} \mid \tau \to \tau \mid \Forall {\alpha\co\kappa} \tau\\
-    &&                        &\syntaxhl{\mid \sym \Co \mid \trans \nu \Co \mid \Co\At\tau \mid \Left \Co \mid \Right \Co} \\
-    &&                        &\syntaxhl{\mid \Cast \Co \Co}\\
-    \text{Terms}     &&M,N                     &::= x \mid H \mid \Lam {x\co\tau} M \mid M\App N \mid \TLam{\tau\co\kappa} M \mid M\App \tau
+    \text{Kinds}     &&\kappa                  &::= \star \bnfor \kappa \to \kappa \bnfor \syntaxhl{\tau \sim \sigma}\\
+    \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \bnfor T \bnfor \syntaxhl{F} \bnfor \tau \to \tau \bnfor \Forall {\alpha\co\kappa} \tau\\
+    &&                        &\syntaxhl{\bnfor \sym \Co \bnfor \trans \nu \Co \bnfor \Co\At\tau \bnfor \Left \Co \bnfor \Right \Co} \\
+    &&                        &\syntaxhl{\bnfor \Cast \Co \Co}\\
+    \text{Terms}     &&M,N                     &::= x \bnfor H \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau
   \end{syntax}
   \caption{Terms and Types of \SFK as an extension of \SFC}
   \label{fig:system-fck-syntax}
