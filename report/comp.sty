@@ -124,7 +124,6 @@
 \newcommand\Preds{P}
 \newcommand\MorePreds{Q}
 
-\newcommand\KTyping[4]{#1;#2 \vdash #3 : #4}
 \newcommand\Typing[3]{#1 \vdash #2 : #3}
 \newcommand\CoKinding[3]{#1 \vdash_{c} #2 : #3}
 \newcommand\TyKinding[3]{#1 \vdash_{t} #2 : #3}
@@ -214,7 +213,9 @@
 
 % Compilation
 \def\compile#1{\llbracket#1\rrbracket}
-\newcommand\GTranslate[5]{#1;#2 \vdash_{\mathcal{G}} #3 : #4 \rightsquigarrow #5}
+\newcommand\GTranslate[5]{#1;#2 \vdash_{\mathcal{G}} \textcolor{blue}{#3 : #4} \Mapsto \textcolor{red}{#5}}
+\newcommand\DTranslate[3]{#1 \vdash_{\mathcal{D}} \textcolor{blue}{#2}
+  \Mapsto \textcolor{red}{#3}}
 % Haskell listings
 \usepackage{listings}
 \lstloadlanguages{Haskell}

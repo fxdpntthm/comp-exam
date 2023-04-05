@@ -467,25 +467,25 @@ The intension of this declaration is to make !Fun! and !Fun -> Fun! be isomorphi
     \text{Coercion Vars} &c & &
   \end{syntax}
   \begin{syntax}
-    \text{Kinds}     &&\kappa       &::= \star \bnfor \kappa \to \kappa \bnfor \sigma \sim \tau\\
-    \text{Types}     &&\tau,\sigma  &::= \alpha \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\alpha\co\kappa} \tau \bnfor F_n\\
-    \text{Coercions} &&\nu,\Co      &::= c \bnfor \refl\tau \bnfor \sym\Co \bnfor \trans\nu\Co % equiv relation
+    \text{Kinds}     &&\kappa       &\bnfeq \star \bnfor \kappa \to \kappa \bnfor \sigma \sim \tau\\
+    \text{Types}     &&\tau,\sigma  &\bnfeq \alpha \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\alpha\co\kappa} \tau \bnfor F_n\\
+    \text{Coercions} &&\nu,\Co      &\bnfeq c \bnfor \refl\tau \bnfor \sym\Co \bnfor \trans\nu\Co % equiv relation
                                         \bnfor \Forall {\alpha\co\kappa} \Co \bnfor \Co\At\tau % abstraction instanst
                                         \bnfor \nu\App\Co \bnfor \Left \Co \bnfor \Right \Co\\  % compose/decompose
-    \text{Types/Coercions} && \phi &::= \tau \bnfor \Co\\
-    \text{Patterns}  &&P    &::= H\App \many{\alpha\co\kappa}\App{\many{x\co\tau}} \\
-    \text{Terms}     &&M,N  &::= x \bnfor  \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau \bnfor H \bnfor \Case M \many{P \to M} \bnfor \Cast \Tm \Co\\
+    \text{Types/Coercions} && \phi &\bnfeq \tau \bnfor \Co\\
+    \text{Patterns}  &&P    &\bnfeq H\App \many{\alpha\co\kappa}\App{\many{x\co\tau}} \\
+    \text{Terms}     &&M,N  &\bnfeq x \bnfor  \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau \bnfor H \bnfor \Case M \many{P \to M} \bnfor \Cast \Tm \Co\\
 
     \end{syntax}
     \begin{syntax}
-    \text{Typing Context} &&\TEnv,\Delta &::= \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\alpha\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \gamma \co \tau\sim\sigma\\
-    \text{Substitutions}  &&\Subst       &::= \empt \bnfor \Set{\many{\alpha \mapsto \tau}}
+    \text{Typing Context} &&\TEnv,\Delta &\bnfeq \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\alpha\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \gamma \co \tau\sim\sigma\\
+    \text{Substitutions}  &&\Subst       &\bnfeq \empt \bnfor \Set{\many{\alpha \mapsto \tau}}
   \end{syntax}
 
   \begin{syntax}
-    \text{Program} &&P_{gm} &::= \many{D_{cl}} \mathrel{;} \many{\Tm}\\
-    \text{Declarations} &&D_{cl} &::= \textbf{\texttt{data}}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{where}}\App \many{C_{trs}(T)} \bnfor \textbf{\texttt{type}}\App F_n : \many\kappa^n \to \kappa \bnfor  \textbf{\texttt{axiom}}\App C\App \many{\alpha\co\kappa} : \sigma_1 \sim \sigma_2 \\
-    \text{Data Constructors} &&C_{trs}(T) &::= H : \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \many{(\tau \sim \tau)} \then \many\sigma \to T\many\alpha}
+    \text{Program} &&P_{gm} &\bnfeq \many{D_{cl}} \mathrel{;} \many{\Tm}\\
+    \text{Data Declarations} &&D_{cl} &\bnfeq \textbf{\texttt{data }}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{ where }}\App \many{C_{trs}(T)} \bnfor \textbf{\texttt{type }}\App F_n : \many\kappa^n \to \kappa \bnfor  \textbf{\texttt{axiom }}\App C\App \many{\alpha\co\kappa} : \sigma_1 \sim \sigma_2 \\
+    \text{Data Constructors} &&C_{trs}(T) &\bnfeq H : \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \many{(\tau \sim \tau)} \then \many\sigma \to T\many\alpha}\\
   \end{syntax}
   
   \caption{The Syntax of \SFC}
@@ -498,7 +498,7 @@ H \co \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa}} \many{\s
 $$
 Here the type variables $\many\alpha$ appear in the same order as in the algebraic datatype delcarations,  and type variables $\many\beta$ are the existential; they do not appear in the return type. This enforcement is necessary to avoid any type variable to escape its scope. The existential type variables play a crucial role in encoding GADTs. 
 
-The type equality coercion, $\gamma$, is the essential additional construct. Coercions are types and have a ``cannonical'' form of $\tau\sim\sigma$. They can be constructed, applied, passed around as arguments using the special coercion infrastructure at the level of types. They appear at term level in the form of casts $\Cast M \gamma$. For type theory enthusiasts, type coercions should be thought of as extensional type equality, meaning, if a term $M$ has a type $\tau$ and we have a type coercion $\tau\sim\sigma$, then the type cast $\Cast M  {\tau\sim\sigma}$ says that $M$ can be treated as if it has type $\sigma$. The soundness property of the type system guarantees that after the types (including casts) have been erased, the program will not crash or get stuck. Unlike other regular types, however, coercions do not classify values, i.e. there are no term level constructs that have a type $\tau\sim\sigma$. This is similar to how in \SFw there are no values of a type that has a kind $\STAR\to\STAR$.
+The type equality coercion, $\gamma$, is the essential additional construct. Coercions are types and have a ``cannonical'' form of $\tau\sim\sigma$. \AI{TODO: Are coercions types or are types coercions?}. They can be constructed, applied, passed around as arguments using the special coercion infrastructure at the level of types. They appear at term level in the form of casts $\Cast M \gamma$. For type theory enthusiasts, type coercions should be thought of as extensional type equality, meaning, if a term $M$ has a type $\tau$ and we have a type coercion $\tau\sim\sigma$, then the type cast $\Cast M  {\tau\sim\sigma}$ says that $M$ can be treated as if it has type $\sigma$. The soundness property of the type system guarantees that after the types (including casts) have been erased, the program will not crash or get stuck. Unlike other regular types, however, coercions do not classify values, i.e. there are no term level constructs that have a type $\tau\sim\sigma$. This is similar to how in \SFw there are no values of a type that has a kind $\STAR\to\STAR$.
 
 \SFC supports a full fledged coercion calculus where each syntactic construct corresponds to a logical equation. The most basic type of coercion can be produced by using the reflexivity construct $\refl\tau$. It says that the type $\tau$ witness the (obvious) fact that it is equal to itself. The other constructs on coercions are symmetry '$\sym\gamma$', transitivity '$\trans {\gamma_1}{\gamma_2}$', which together with $\refl\tau$, makes type equality an equivalence class. Coercions can also be composed and decomposed using the '$\Co_1\Co_2$', and '$\Left\Co$' and '$\Right\Co$' constructs respectively. Finally, coercion abstraction '$\Forall {\alpha\co\kappa}\tau$' and coercion application '$\Co\At\tau$' aids equality reasoning on polytypes.
 
@@ -810,8 +810,8 @@ For example the data constructor !App! from \pref{fig:gadt-example} is elaborate
 \begin{code}
   App : FORALL a:* b:*. FORALL c:*. FORALL co: c ~ (a -> b). Lam c -> Lam a -> Lam b
 \end{code}
-A type directed translation converts a source level GADT into \SFC as shown in \pref{fig:encoding-gadts}
-The source level types are stratified into three groups
+A type directed elaboration converts a source level GADT into \SFC as shown in \pref{fig:encoding-gadts}
+The source level types are stratified into three groups: polytypes, constrained types and monotypes.
 \begin{figure}[ht]
   \centering
   \begin{syntax}
@@ -823,8 +823,7 @@ The source level types are stratified into three groups
   \caption{GADT Surface level type syntax}
   \label{fig:gadt-type-syntax}
 \end{figure}
-The type directed translation $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level term $\Tm$ of type $\pi$, it is compiled to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the translation is that the type equality constraints, $\tau\sim\tau'$, are compiled to coercions in \SFC. The constraint C is a collection of named type equalities.
-
+The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level term $\Tm$ of type $\pi$, it is elaborated to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the elaboration is that the type equality constraints, $\tau\sim\tau'$, are elaborated to coercions in \SFC. The constraint C is a collection of named type equalities. The rules \trule{g-var}, \trule{g-$\I\forall$} and \trule{g-$\E\forall$} are standard rules used for elaborating Hindley-Milner System to \SF while \trule{g-$\I C$} and \trule{g-$\E C$} reminescent of elaborating typeclass constraints. The complex looking \trule{g-alt} elaborates case statements into \SFC. Each surface data constructor is elaborated to the \SFC data constructor with explicit coercions as arguments. The \trule{g-eq} is the same as \trule{cast} rule. The important detail here is that the coercion, $\Co$, is inferred from the constraint context $C$. Constructing the appropriate $\Co$ algorithmically is possible by using a simple unification algorithm based on \cite{lassez_unification_1988}.
 
 \newcommand\GADTVar{
   \ib{\irule[\trule{g-var}]
@@ -836,7 +835,7 @@ The type directed translation $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given
   \ib{\irule[\trule{g-eq}]
     {\GTranslate C \TEnv \Tm \tau \Tm'}
     {\CoKinding C \Co {\tau \sim \tau'}};
-    {\GTranslate C \TEnv \Tm {\tau} {\Cast {\Tm'} \Co}}
+    {\GTranslate C \TEnv \Tm {\tau'} {\Cast {\Tm'} \Co}}
   }
 }
 \newcommand\GADTForallI{
@@ -894,12 +893,67 @@ The type directed translation $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given
   \end{gather*}
   \label{fig:encoding-gadts}
 \end{figure}
+
+\begin{lemma}[Type Preservation]
+  If $\GTranslate C \empt \Tm \tau {\Tm'}$ then $\Typing C {\Tm'} \tau$
+\end{lemma}
+Type preservation is an important sanity check for the elaborations. It says that the the elaborated terms have the same type that was inferred at surface level.
+
+\begin{theorem}[GADT Consistency]
+  If $\dom\TEnv$ is type variable and coercion constant free, and $\CoKinding \TEnv \Co {\tau\sim\tau'}$ then $\tau = \tau'$ i.e. they are syntactically identical.
+\end{theorem}
+
+All GADT programs are sound in \SFC.
+
+\begin{theorem}[GADT Soundess]
+  If $\GTranslate \empt \empt \Tm \tau \Tm'$, then $\manystepsto {\Tm'} \Val$ iff $\manystepsto {\compile\Tm} \Val$ where $\Val$ is some value of ground type and $\compile\Tm$ is type erased term.
+\end{theorem}
+
+\subsubsection{Associated Types}
+Elaborating associated types to \SFC is very similar to translating GADTs. The constraint context now contains class predicates along with equality predicates. This extension is also needed if GADT data constructors need to constrain certain type parameters. The equality constraints can now appear not only in the context of GADT data constructors but any term type.
+
+\begin{figure}[ht]
+  \centering
+  \begin{syntax}
+    \text{Class Declarations} &&C_{ls} &\bnfeq \textbf{\texttt{class }} D\App\many\alpha \textbf{\texttt{ where }} \many{dsigs}; \many{sigs}\\
+    \text{Instance Declarations} &&I_{nts} &\bnfeq \textbf{\texttt{instance }} D\App\many\tau \textbf{\texttt{ where }} \many{adata}; \many{val}\\
+    \text{Associated types} &&dsigs &\bnfeq \textbf{\texttt{type }} \tau\\
+    \text{Method signatures} &&vsigs &\bnfeq x\co\tau\\
+    \text{Assoicated type instance} &&asigs &\bnfeq \tau = \sigma\\
+    \text{Method bindings} &&asigs &\bnfeq x = \Tm
+  \end{syntax}
+  \caption[Class Syntax]{Class and Associated Types Surface Syntax}
+  \label{fig:assoc-types-syntax}
+\end{figure}
+
+
+The judgement $\DTranslate C {D\App\tau} d$ elaborates the predicate $D\App\tau$ to a dictonary $d$ in \SFC.
+The \trule{subst} allows replacing type class parameters with equal types. This is necessary to account for associated types that appear in the type class signature. $D\App\tau$ may contain an associated type, and depending on the instantiation of the free type variables in $\tau$ an appropriate coercion can be used to justify casting the dictonary $d$ to the corresponding actual type.
+
+$$
+\ib{\irule[\trule{subst}]
+  {\DTranslate C {D\App\tau} d}
+  {\CoKinding C \Co {D\App\tau \sim D\App\tau'}};
+  {\DTranslate C {D\App\tau'} {\Cast d \Co}}
+}
+$$
+
+Reconsider the !Coll c! typeclass and a function !sumColl :: (Coll c, Num (Elem c)) => c -> Elem c!, which sums up all the elements of the collection !c!. The predicate !Num (Elem c)! constraints the elements of the collection so that they can be summed up. A resonable use of !sumColl! would be at type ![Int]!, as integers can indeed be summed up. This would result in instantiating the type parameter !c! with ![Int]!. The rule \trule{subst} in this case justifies the use of !Num Int! dictonary as if it was a !Num (Elem [Int])! dictonary.
+
+Each class declaration introduces a new class predicate name in the type environment along with its method names. With associated types, a new ``type function'' name---!Elem c! in the case of !Coll c!---is also added to the type environment.
+Each instance introduces a new axiom into the typing environment. For the !Coll c! typeclass the instance !Coll [Int]! introduces the coercion !CoColl : Elem [Int] ~ Int!. In general, each instance generates an axiom of the form !co: (FORALL $\many{\alpha\co\star}$. F $\sigma$) $\sim$ (FORALL $\many{\alpha\co\star}$. $\sigma'$)! where $\fvs\sigma = \many\alpha$
+and $\fvs{\sigma'} \subseteq \many\alpha$. These axioms induce a rewrite function on types and are also called as rewrite axioms.
+
+
+\begin{theorem}[Associated Type Consistency]
+If $\TEnv$ contains type rewrite axioms that are confluent and terminating, then $\TEnv$ is consistent.
+\end{theorem}
+
+
 \subsubsection{Newtypes}
 Newtypes introduce a new coercion axiom in the system. For the generative type !newtype Fun = MkFun (Fun -> Fun)!
 the associated coercion axiom will be !CoFun : Fun ~ (Fun -> Fun)!. In general, for any generative type declaration of the form !newtype T $\many\alpha$ = MkT $\tau$! will be of the form !CoT : T $\many\alpha$ ~ $\tau$! where $\tau$ may contain $\many\alpha$ as free type variables.
 
-\subsubsection{Associated Types}
-Each instance introduces a new axiom into the type system. For the !Coll c! typeclass the instance !Coll [Int]! introduces the coercion !CoColl : Elem [Int] ~ Int!
 
 \subsubsection{Open Type Functions}
 Each type family instance directly translates to axioms. Thus for !Add m n! type function, the two associated instances would introduce the following axioms !CoAddZ : Add Z n ~ n! and !CoAddSmn : Add (S m) n ~ S (Add m n)!
@@ -1009,6 +1063,8 @@ So why not just squish types and kinds together, making it truly impredicative
 \end{figure}
 
 \section{Conclusion and Future work}\label{sec:conclusion}
+Using non-parametric features in a context that assumes parmetricity is a root cause of type unsoundess ``bugs''.
+
 % \begin{figure}[ht]
 %   \centering
 %   \begin{tabular}[ht]{c | c | c | c | c | c | c}
@@ -1026,6 +1082,7 @@ So why not just squish types and kinds together, making it truly impredicative
 %%%% Bibliography
 \newpage
 \bibliography{comp}
+
 
 \end{document}
 
