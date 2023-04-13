@@ -21,156 +21,159 @@
 % \keywords{typeclass, type family}
 
 \begin{document}
+
 \begin{abstract}
-The following report is a juxtaposition of the series of extensions to \SFC and its theoretical developments. We begin with a brief description of \SF in a type intrinsic setting and give some context about its importance and its meta-theoretic properties. We then move on to describe the first extension to \SF, \SFC, that enriches the calculus with explicit type equalities. The repercussions of this extension is extensive as it enables arbitrary type level computation. \SFC is then extended to \SFP with an expressive kind---the type of types---system that enables an even more expressive type level computation. Finally, we discuss \SFK which enables expressing kind level equalities along with existing type level equalities in the system by effectively squashing the distinction between types and kinds.
+  This report is a juxtaposition of \SFC and its extensions with its theoretical developments.
+  We begin with some standard features of a strongly typed functional programming language, followed by a formalization of \SFC, which is in essense is \SF with explicit type equalities. The repercussions of this extension is extensive as it enables arbitrary type level computation. \SFC is then extended to \SFP with an expressive kind---the type of types---system that enables an even more expressive type level computation. Finally, we discuss \SFK which enables expressing kind level equalities along with existing type level equalities in the system by effectively squashing the distinction between types and kinds.
 
-While the theoretical aspects of each of these systems are of academic importance, for these systems to be useful as a practical programming language, we want to expose this power to the programmers---the end users of these systems---, without compromising on saftey and a usability. We describe a framework \HMX that parameterizes over the feature domain X such that for each of the systems described above we get a type inference algorithm for free, meaning, we do not have to redesign and reimplement them.
+  While the theoretical aspects of each of these systems are of academic importance, for these systems to be useful as a practical programming language, we want to expose this power to the programmers---the end users of these systems---, without compromising on saftey and a usability. We describe a framework \HMX that parameterizes over the feature domain X such that for each of the systems described above we get a type inference algorithm for free, meaning, we do not have to redesign and reimplement them.
 
-We conclude the report with some open problems in the area.
+  We conclude the report with some open problems in the area.
 \end{abstract}
+
 \maketitle
 
 % \pagestyle{plain}
 
-\newcommand\STLC{\textbf{STLC}\xspace}
-\newcommand\cy[1]{[\citeyear{#1}]}
-\section{\SF}
-\subsection{History and Inception}
-Simply typed lambda calculus (\STLC) was devised by \citet{church_formulation_1940} to avoid the paradoxes that are possible in untyped lambda calculus. \STLC, in its bare form has three constructs: Variables, lambda abstractions and applications. Lambda abstractions and applications are devices to model functions and function calls respectively. Simple types, however, makes the system too restrictive. Consider an identity function that takes an argument of some base type, say $i$, and returns it unchanged.
-$$
-id_\alpha = \Lam {x\co \alpha} x
-$$
-In \STLC, although the function behavior is the same at each base type, there would be a different identity function for each such base type. Further, if a new base type is introduced in the system, we would have to define a new identity function for it. Functions, such as identity, are said to be parametrically polymorphic\cite{strachey_fundamental_2000} when their behavior does not change depending on the type of the arguments.
+% \newcommand\STLC{\textbf{STLC}\xspace}
+% \newcommand\cy[1]{[\citeyear{#1}]}
+% \section{\SF}
+% \subsection{History and Inception}
+% Simply typed lambda calculus (\STLC) was devised by \citet{church_formulation_1940} to avoid the paradoxes that are possible in untyped lambda calculus. \STLC, in its bare form has three constructs: Variables, lambda abstractions and applications. Lambda abstractions and applications are devices to model functions and function calls respectively. Simple types, however, makes the system too restrictive. Consider an identity function that takes an argument of some base type, say $i$, and returns it unchanged.
+% $$
+% id_\alpha = \Lam {x\co \alpha} x
+% $$
+% In \STLC, although the function behavior is the same at each base type, there would be a different identity function for each such base type. Further, if a new base type is introduced in the system, we would have to define a new identity function for it. Functions, such as identity, are said to be parametrically polymorphic\cite{strachey_fundamental_2000} when their behavior does not change depending on the type of the arguments.
 
-To give a better account for such parametric functions, \citet{reynolds_towards_1974} proposed an extension of \STLC which later famously became \SF. Reynolds extension to \STLC is straightforward. It contains two extra syntactic constructs: type abstractions and type applications. This extension is simple enough to express parametric functions. For example, the identity function will be expressed as follows:
-$$
-id = \TLam \alpha \Lam {x\co\alpha}. x
-$$
-\begin{figure}[ht]
-  \centering
-  \begin{syntax}
-    \text{Type Vars} &&\alpha,\beta,\gamma \\
-    \text{Term Vars} &&x,y          \\
-  \end{syntax}
-  \begin{syntax}
-    \text{Kinds}     &&\kappa       &::= \star \bnfor \kappa \to \kappa\\
-    \text{Types}     &&\tau,\sigma  &::= \alpha \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \syntaxhl{\Forall {\alpha\co\kappa} \tau}\\
-    \text{Terms}     &&\Tm,N          &::= x \bnfor  H \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \syntaxhl{\TLam{\tau\co\kappa} M \bnfor M\App \tau}\\
-  \end{syntax}
-  \begin{syntax}
-    \text{Typing Context} &&\TEnv &::= \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\alpha\co\kappa \bnfor \TEnv,H\co T\\
-    \text{Substitutions}  &&\Subst
-  \end{syntax}
-  \caption{\SF as an extension of \STLC with kinds}
-  \label{fig:system-f-syntax}
-\end{figure}
+% To give a better account for such parametric functions, \citet{reynolds_towards_1974} proposed an extension of \STLC which later famously became \SF. Reynolds extension to \STLC is straightforward. It contains two extra syntactic constructs: type abstractions and type applications. This extension is simple enough to express parametric functions. For example, the identity function will be expressed as follows:
+% $$
+% id = \TLam \alpha \Lam {x\co\alpha}. x
+% $$
+% \begin{figure}[ht]
+%   \centering
+%   \begin{syntax}
+%     \text{Type Vars} &&\alpha,\beta,\gamma \\
+%     \text{Term Vars} &&x,y          \\
+%   \end{syntax}
+%   \begin{syntax}
+%     \text{Kinds}     &&\kappa       &::= \star \bnfor \kappa \to \kappa\\
+%     \text{Types}     &&\tau,\sigma  &::= \alpha \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \syntaxhl{\Forall {\alpha\co\kappa} \tau}\\
+%     \text{Terms}     &&\Tm,N          &::= x \bnfor  H \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \syntaxhl{\TLam{\tau\co\kappa} M \bnfor M\App \tau}\\
+%   \end{syntax}
+%   \begin{syntax}
+%     \text{Typing Context} &&\TEnv &::= \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\alpha\co\kappa \bnfor \TEnv,H\co T\\
+%     \text{Substitutions}  &&\Subst
+%   \end{syntax}
+%   \caption{\SF as an extension of \STLC with kinds}
+%   \label{fig:system-f-syntax}
+% \end{figure}
 
-\newcommand\KVar{
-  \ib{\irule[\trule{k-var}]
-    {\alpha\co\kappa \in \TEnv};
-    {\Kinding \TEnv \alpha \kappa}}
-}
+% \newcommand\KVar{
+%   \ib{\irule[\trule{k-var}]
+%     {\alpha\co\kappa \in \TEnv};
+%     {\Kinding \TEnv \alpha \kappa}}
+% }
 
-\newcommand\KVarCo{
-  \ib{\irule[\trule{co-var}]
-    {c \co \sigma\sim\tau \in \TEnv};
-    {\Kinding \TEnv c \sigma\sim\tau}}
-}
-
-
-\newcommand\KConst{
-  \ib{\irule[\trule{k-const}]
-    {T\co\kappa \in \TEnv};
-    {\Kinding \TEnv T \kappa}}
-}
-
-\newcommand\KTApp{
-  \ib{\irule[\trule{k-tapp}]
-    {\Kinding \TEnv {\tau_1} {\kappa_1 \to \kappa}}
-    {\Kinding \TEnv {\tau_2} {\kappa_1}};
-    {\Kinding \TEnv {\tau_1\App \tau_2} \kappa}}
-}
+% \newcommand\KVarCo{
+%   \ib{\irule[\trule{co-var}]
+%     {c \co \sigma\sim\tau \in \TEnv};
+%     {\Kinding \TEnv c \sigma\sim\tau}}
+% }
 
 
-\newcommand\TVar{
-  \ib{\irule[\trule{var}]
-    {x\co\tau \in \TEnv}
-    {\Kinding \TEnv \tau \kappa};
-    {\Typing \TEnv x \tau}}
-}
+% \newcommand\KConst{
+%   \ib{\irule[\trule{k-const}]
+%     {T\co\kappa \in \TEnv};
+%     {\Kinding \TEnv T \kappa}}
+% }
 
-\newcommand\TConst{
-  \ib{\irule[\trule{const}]
-    {H\co T \in \TEnv};
-    {\Typing \TEnv H T}}
-}
+% \newcommand\KTApp{
+%   \ib{\irule[\trule{k-tapp}]
+%     {\Kinding \TEnv {\tau_1} {\kappa_1 \to \kappa}}
+%     {\Kinding \TEnv {\tau_2} {\kappa_1}};
+%     {\Kinding \TEnv {\tau_1\App \tau_2} \kappa}}
+% }
 
-\newcommand\TAbs{
-  \ib{\irule[\trule{$\I\to$}]
-    {\Typing {\TEnv, x\co\tau_1} {\Tm} {\tau_2}};
-    {\Typing \TEnv {\Lam x \Tm} {\tau_1 \to \tau_2}}}
-}
 
-\newcommand\TApp{
-  \ib{\irule[\trule{$\E\to$}]
-    {\Typing \TEnv {\Tm_1} {\tau_2 \to \tau}}
-    {\Typing \TEnv {\Tm_2} {\tau_2}};
-    {\Typing \TEnv {\Tm_1\App\Tm_2} {\tau}}}
-}
+% \newcommand\TVar{
+%   \ib{\irule[\trule{var}]
+%     {x\co\tau \in \TEnv}
+%     {\Kinding \TEnv \tau \kappa};
+%     {\Typing \TEnv x \tau}}
+% }
 
-\newcommand\TForallI{
-  \ib{\irule[\trule{$\I\forall$}]
-    {\Typing {\TEnv,\alpha\co\kappa} \Tm \tau}
-    {\alpha \not\in \dom\TEnv};
-    {\Typing \TEnv {\TLam {\alpha\co\kappa} \Tm} {\Forall{\alpha\co\kappa}\tau}}
-  }
-}
+% \newcommand\TConst{
+%   \ib{\irule[\trule{const}]
+%     {H\co T \in \TEnv};
+%     {\Typing \TEnv H T}}
+% }
 
-\newcommand\TForallE{
-  \ib{\irule[\trule{$\E\forall$}]
-    {\Typing \TEnv \Tm {\Forall{\alpha\co\kappa}\sigma}}
-    {\Kinding \TEnv \tau \kappa}
-    {\Subst = \Sub \alpha \tau};
-    {\Typing \TEnv {\Tm\App\tau} {\Subst\sigma}}
-  }
-}
+% \newcommand\TAbs{
+%   \ib{\irule[\trule{$\I\to$}]
+%     {\Typing {\TEnv, x\co\tau_1} {\Tm} {\tau_2}};
+%     {\Typing \TEnv {\Lam x \Tm} {\tau_1 \to \tau_2}}}
+% }
 
-\begin{figure}[ht]
-  \begin{gather*}
-    \fbox{$\Kinding \KEnv \tau \kappa$}\\
-    \KVar \rsp \KConst \rsp \KTApp
-  \end{gather*}
+% \newcommand\TApp{
+%   \ib{\irule[\trule{$\E\to$}]
+%     {\Typing \TEnv {\Tm_1} {\tau_2 \to \tau}}
+%     {\Typing \TEnv {\Tm_2} {\tau_2}};
+%     {\Typing \TEnv {\Tm_1\App\Tm_2} {\tau}}}
+% }
 
-  \centering
-  \begin{gather*}
-    \fbox{$\Typing \TEnv \Tm \tau$}\\
-    \TVar \rsp \TConst\\
-    \TAbs \rsp \TApp\\
-    \TForallI \rsp \TForallE
-  \end{gather*}
+% \newcommand\TForallI{
+%   \ib{\irule[\trule{$\I\forall$}]
+%     {\Typing {\TEnv,\alpha\co\kappa} \Tm \tau}
+%     {\alpha \not\in \dom\TEnv};
+%     {\Typing \TEnv {\TLam {\alpha\co\kappa} \Tm} {\Forall{\alpha\co\kappa}\tau}}
+%   }
+% }
 
-  \caption{Static Semantics of \SF}
-  \label{fig:sf-typing}
-\end{figure}
+% \newcommand\TForallE{
+%   \ib{\irule[\trule{$\E\forall$}]
+%     {\Typing \TEnv \Tm {\Forall{\alpha\co\kappa}\sigma}}
+%     {\Kinding \TEnv \tau \kappa}
+%     {\Subst = \Sub \alpha \tau};
+%     {\Typing \TEnv {\Tm\App\tau} {\Subst\sigma}}
+%   }
+% }
 
-\newcommand{\SOPL}{P$_2$\xspace}
-This extension from \STLC makes the semantics extremely powerful. \citet{girard_interpretation_1972}, about two years before Reynolds, proved the Representation theorm ($\mathcal{G}$), that says: all total functions on natural numbers in the second order propositional logic (\SOPL) can be expressed in \SF. \citet{reynolds_types_1983} formulated the Abstraction theorem ($\mathcal{R}$) that proves \SF is an embedding of \SOPL and \citet{wadler_girard-reynolds_2001} later showed that the abstraction followed by embedding is an identity transformation.
+% \begin{figure}[ht]
+%   \begin{gather*}
+%     \fbox{$\Kinding \KEnv \tau \kappa$}\\
+%     \KVar \rsp \KConst \rsp \KTApp
+%   \end{gather*}
 
-\begin{figure}[ht]
-  \centering
-    \begin{tikzpicture}
-    \draw (0, 0) circle [x radius=0.5, y radius=1];
-    \node [label=above:\SF] (f2) at (0, 2) {};
+%   \centering
+%   \begin{gather*}
+%     \fbox{$\Typing \TEnv \Tm \tau$}\\
+%     \TVar \rsp \TConst\\
+%     \TAbs \rsp \TApp\\
+%     \TForallI \rsp \TForallE
+%   \end{gather*}
 
-    \begin{scope}[xshift=3cm]
-      \draw (0, 0) circle [x radius=0.7, y radius=1.5];
-      \draw[dotted] (0, 0) circle [x radius=0.5, y radius=1];
-      \node [label=above:\SOPL] (p2) at (0, 2) {};
-    \end{scope}
-  \end{tikzpicture}
-  \caption{Relationship between \SF and \SOPL}
-  \label{fig:sf-p2-relation}
-\end{figure}
+%   \caption{Static Semantics of \SF}
+%   \label{fig:sf-typing}
+% \end{figure}
+
+% \newcommand{\SOPL}{P$_2$\xspace}
+% This extension from \STLC makes the semantics extremely powerful. \citet{girard_interpretation_1972}, about two years before Reynolds, proved the Representation theorm ($\mathcal{G}$), that says: all total functions on natural numbers in the second order propositional logic (\SOPL) can be expressed in \SF. \citet{reynolds_types_1983} formulated the Abstraction theorem ($\mathcal{R}$) that proves \SF is an embedding of \SOPL and \citet{wadler_girard-reynolds_2001} later showed that the abstraction followed by embedding is an identity transformation.
+
+% \begin{figure}[ht]
+%   \centering
+%     \begin{tikzpicture}
+%     \draw (0, 0) circle [x radius=0.5, y radius=1];
+%     \node [label=above:\SF] (f2) at (0, 2) {};
+
+%     \begin{scope}[xshift=3cm]
+%       \draw (0, 0) circle [x radius=0.7, y radius=1.5];
+%       \draw[dotted] (0, 0) circle [x radius=0.5, y radius=1];
+%       \node [label=above:\SOPL] (p2) at (0, 2) {};
+%     \end{scope}
+%   \end{tikzpicture}
+%   \caption{Relationship between \SF and \SOPL}
+%   \label{fig:sf-p2-relation}
+% \end{figure}
 
 
 \section{Features of Typed Functional Programming Languages}\label{sec:language-features}
@@ -187,36 +190,36 @@ Algebraic Datatypes (ADT) can be viewed as a composite datatype. They are compos
 The keyword \lstinline{data} introduces a user defined type with name \lstinline{Tree} parameterized over any type !c!. A value of type !Tree c! can be defined using either a !Leaf! or a !Branch!, and in the case of !Branch!, it consists of a pair of !Tree!s. !Leaf! and !Branch! are called as data constructors, while !Tree! is called as a type constructor. It is important to observe that the structure the datatype does not dependent on the type parameter !c!, i.e. it is used parametrically. More specifically, the structure of !Tree Int! and !Tree Float! will be the same.
 
 \subsubsection{Generalized Algebraic Datatypes}
-As the name suggests, they are generalizations of algebraic datatypes where the structure of the type can depend on the type arguments. We use the term type index for GADTs rather than type parameter in algebraic datatype. They were first introduced by \citep{cheney_first-class_2003} as first class phantom types and later studied under different name such as guarded recursive datatypes\cite{xi_guarded_2003}. Such Their utility is in modelling domain specific languages where certain constraints can be enforced by the type checker. Consider an example to model a generic !Trie k v! datatype that represents a finite mapping from keys of type !k! to values of type !v!.
+As the name suggests, they are generalizations of algebraic datatypes where the structure of the type can depend on the type arguments. We use the term type index for GADTs rather than type parameter in algebraic datatype. They were first introduced by \citep{cheney_first-class_2003} as first class phantom types and later studied under different name such as guarded recursive datatypes\cite{xi_guarded_2003}. Their utility is in modelling domain specific languages where certain constraints can be enforced by the type checker. Consider an example to model simply typed lambda calculus.
 
-\begin{figure}[ht]
-  \centering
-  \begin{minipage}[ht]{0.4\linewidth}
-    \begin{code}
-      data Trie k v where
-          TSingle :: Maybe v -> Trie () v
-          TSum    :: Trie k1 v -> Trie k2 v
-                  -> Trie (Either k1 k2) v
-          TProd   :: Trie k1 (Trie k2 v)
+% \begin{figure}[ht]
+%   \centering
+%   \begin{minipage}[ht]{0.4\linewidth}
+%     \begin{code}
+%       data Trie k v where
+%           TSingle :: Maybe v -> Trie () v
+%           TSum    :: Trie k1 v -> Trie k2 v
+%                   -> Trie (Either k1 k2) v
+%           TProd   :: Trie k1 (Trie k2 v)
 
 
 
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.5\linewidth}
-    \begin{code}
-      lookup :: Trie k v -> k -> Maybe v
-      lookup (TSingle m) ()         = m
-      lookup (TSum ta tb) (Left a)  = lookup ta a
-      lookup (TSum ta tb) (Right b) = lookup tb b
-      lookup (TProd ta) (a, b)      = case (lookup ta a) of
-                                         Nothing -> Nothing
-                                         Just b -> lookup tb b
-    \end{code}
-  \end{minipage}
-  \caption{Trie datatype as GADT}
-  \label{fig:gadt-example}
-\end{figure}
+%     \end{code}
+%   \end{minipage}%
+%   \begin{minipage}[ht]{0.5\linewidth}
+%     \begin{code}
+%       lookup :: Trie k v -> k -> Maybe v
+%       lookup (TSingle m) ()         = m
+%       lookup (TSum ta tb) (Left a)  = lookup ta a
+%       lookup (TSum ta tb) (Right b) = lookup tb b
+%       lookup (TProd ta) (a, b)      = case (lookup ta a) of
+%                                          Nothing -> Nothing
+%                                          Just b -> lookup tb b
+%     \end{code}
+%   \end{minipage}
+%   \caption{Trie datatype as GADT}
+%   \label{fig:gadt-example}
+% \end{figure}
 
 
 \begin{figure}[ht]
@@ -242,7 +245,37 @@ data LamTm a where
 \end{figure}
 Writing an !eval! function for a !LamTm a! would be impossible if it were not for the constrainted type arguments of data constructors !Lam! and !App!. The only way of 
 
-\subsubsection{Generative Types}
+\subsubsection{Generative Abstract Types}
+Generative types enable code modularity. It provides a mechanism for the programmer to confine the visibility of the representation details of a type exclusively within a module. External to the module the client program cannot know how the type is represented or in other words, representation of the generative types is opaqaue to the client module. In ML generative types are defined by hiding the type declarations in the signatures. Consider an HTML module defined in ML as shown in \pref{fig:ml-generative-type}.
+
+\begin{figure}[ht]
+  \centering
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      signature HTML = sig
+          type Html
+          mkHtml : String -> HTML
+          unMkHtml : HTML -> String
+      end
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      structure HTMLImpl :> HTML = struct
+          type Html = String
+          mkHtml s = escapeSpecialChars s
+          unMkHtml s = s
+      end
+    \end{code}
+  \end{minipage}
+  \caption{HTML Signature and Structure in ML}
+  \label{fig:ml-generative-type}
+\end{figure}
+
+Inside !HTMLImpl! the types !String! and !HTML! are synonymous, however any client using !HTML! will not be able to directly manipulate a value of type !Html!---unless of course by using the specific functions exposed in the signature. Inhibiting manipulations and views of the data representation can be useful for avoiding leaking information in secure computation contexts. This (naive) abstraction however comes with a runtime cost. !Html! and !String!, need to be explicitly converted from one form into another, albiet have same representation in memory.
+
+Haskell also provides generative types by the means of declaring a data type using a !newtype! keyword. Hiding the default data constructors of the newtype, would in effect declare a generative abstract type.
+
 \subsection{From Parametric Polymorphism to Ad-hoc Polymorphism}
 In contrast to the term \lstinline{id}, consider the following two terms:
 \begin{code}
@@ -252,7 +285,7 @@ In contrast to the term \lstinline{id}, consider the following two terms:
 
 In the first case we see that the operator \lstinline{+} is applied to two integers, but in the second case it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of each of the programs is completely different. One adds two \lstinline{Int} and returns an \lstinline{Int} while the other adds two \lstinline{Float} and returns a \lstinline{Float}. Further, the compiled code for each would also be different. The runtime code would make a call to two different built in constructs. Such kind of function reuse, which is dependent on the context or the type of arguments, is called as ad-hoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to impliment ad-hoc polymorphism where the compiler resolves the overloaded operator to the actual operator.
 
-To make implicit overloading practical \citet{wadler_polymorphism_1989} proposed a dictonary passing style by using a mechanism. This technique became the foundation for Haskell\cite{haskell_2010} typeclasses. Kaes\cy{kaes_parametric_1988} had similar ideas related to implimentation aspects of ad-hoc polymorphism before Wadler et al. ML and its varients\cite{milner_definition_1997,leroy_ocaml_2023} takes a more restricted approach and refuses to allow operator overloading by design.
+To make implicit overloading practical \citet{wadler_polymorphism_1989} proposed a dictonary passing style by using a mechanism. This technique became the foundation for Haskell\cite{haskell_2010} typeclasses. \cite{kaes_parametric_1988} had similar ideas related to implimentation aspects of ad-hoc polymorphism before Wadler et al. ML and its varients\cite{milner_definition_1997,leroy_ocaml_2023} takes a more restricted approach and refuses to allow operator overloading by design.
 
 Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for users to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot figure out the right option or when the user wants to force the typechecker to resolve it to a specific instance.
 
@@ -371,41 +404,20 @@ Using our previous !Coll c e! example, if !c ~> e! then, it would be more obviou
 \end{figure}
 
 In \pref{fig:type-fam}, the typeclass !Coll! has an associated type function !Elem! that depends on the type parameter !c! of the typeclass. 
-
-\subsubsection{Open Type Functions}
-There is nothing special about type functions to only be associated with classes. Type functions are able to express complex type level computations. Further, they are also open, meaning, just like class instances, the open type functions can be extended. An example of how type computations is expressed by type functions that define addition of naturals at type level, shown in \pref{fig:open-type-fun-add}
-\begin{figure}[ht]
-  \begin{minipage}[ht]{0.4\linewidth}
-    \begin{code}
-      data Z
-      data S n
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.4\linewidth}
-    \begin{code}
-      type family Add m n
-      type instance Add Z n = n
-      type instance Add (S m) n = S (Add m n)
-    \end{code}
-  \end{minipage}
-  \caption{Addition with type functions}
-  \label{fig:open-type-fun-add}
-\end{figure}
-Open type functions thus give type computation a flavor of rewrite rules.
-\subsubsection{Closed Type Functions}
-There maybe cases where the type functions have to be restricted extensions. For example The previously defined
-!Add! type function is supposed to be defined only on !Z! and !S n! types. Closed type families help in this situtation. 
-\begin{figure}[ht]
-  \begin{minipage}[ht]{0.4\linewidth}
-    \begin{code}
-      type family Add m n where
-          Add Z n = n
-          Add (S m) n = S (Add m n)
-    \end{code}
-  \end{minipage}
-  \caption{Addition with type functions}
-  \label{fig:closed-type-fun-add}
-\end{figure}
+% \subsubsection{Closed Type Functions}
+% There maybe cases where the type functions have to be restricted extensions. For example The previously defined
+% !Add! type function is supposed to be defined only on !Z! and !S n! types. Closed type families help in this situtation. 
+% \begin{figure}[ht]
+%   \begin{minipage}[ht]{0.4\linewidth}
+%     \begin{code}
+%       type family Add m n where
+%           Add Z n = n
+%           Add (S m) n = S (Add m n)
+%     \end{code}
+%   \end{minipage}
+%   \caption{Addition with type functions}
+%   \label{fig:closed-type-fun-add}
+% \end{figure}
 
 \subsection{Modules and Packages}
 Modularity in code is essential to maintain separation of concerns. It is a good sofware practice organize related things together, while unrelated things separate. Modules are a way to do that. 
@@ -484,7 +496,9 @@ The intension of this declaration is to make !Fun! and !Fun -> Fun! be isomorphi
 
   \begin{syntax}
     \text{Program} &&P_{gm} &\bnfeq \many{D_{cl}} \mathrel{;} \many{\Tm}\\
-    \text{Data Declarations} &&D_{cl} &\bnfeq \textbf{\texttt{data }}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{ where }}\App \many{C_{trs}(T)} \bnfor \textbf{\texttt{type }}\App F_n : \many\kappa^n \to \kappa \bnfor  \textbf{\texttt{axiom }}\App C\App \many{\alpha\co\kappa} : \sigma_1 \sim \sigma_2 \\
+    \text{Data Declarations} &&D_{cl} &\bnfeq \textbf{\texttt{data }}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{ where }}\App \many{C_{trs}(T)} \\
+                             &&       &\bnfor \textbf{\texttt{type }}\App F_n : \many\kappa^n \to \kappa\\
+                             &&       &\bnfor  \textbf{\texttt{axiom }}\App C\App \many{\alpha\co\kappa} : \sigma_1 \sim \sigma_2\\
     \text{Data Constructors} &&C_{trs}(T) &\bnfeq H : \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \many{(\tau \sim \tau)} \then \many\sigma \to T\many\alpha}\\
   \end{syntax}
   
@@ -492,7 +506,7 @@ The intension of this declaration is to make !Fun! and !Fun -> Fun! be isomorphi
   \label{fig:system-fc-syntax}
 \end{figure}
 
-\SFC is impredicative; there is no stratification between polytypes and monotypes. Unlike \SFw, there are no lambdas at type level this makes the type level calculus less expressive by disallowing certain types such as $\Lam a (a, a)$. The system does allow higher kinded types---either built or user defined---that can be used by the type application form $\tau\App\tau$. \AI{what is the difference between $\Forall a (a, a)$ and $\Lam a. (a, a)$?} The value type constructors $T$ ranges over built-in types such as !Int! and user defined types such as algebraic datatypes. Declaration of algebraic datatypes introduces data constructors $H$, the types of which are of the form:
+\SFC is impredicative; there is no stratification between polytypes and monotypes. Unlike \SFw, there are no lambdas at type level this makes the type level calculus less expressive by disallowing certain types such as $\Lam a {T\App a\App Int}$. The system does allow higher kinded types---either built or user defined---that can be used by the type application form $\tau\App\tau$. \AI{what is the difference between $\Forall a (a, a)$ and $\Lam a. (a, a)$?} The value type constructors $T$ ranges over built-in types such as !Int! and user defined types such as algebraic datatypes. Declaration of algebraic datatypes introduces data constructors $H$, the types of which are of the form:
 $$
 H \co \Forall {\many{\alpha\co\kappa}} {\Forall {\many{\beta\co\kappa}} \many{\sigma} \to T \many\alpha}
 $$
@@ -594,17 +608,23 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
   }
 }
 \newcommand{\KTyApp}{
-  \ib{\irule[\trule{ty-app}]
-    {\TyKinding \TEnv \tau \kappa'}
-    {\TyKinding \TEnv \sigma {\kappa' \to \kappa}};
+  \ib{\irule[\trule{ty-app}]    
+    {\TyKinding \TEnv \sigma {\kappa' \to \kappa}}
+    {\TyKinding \TEnv \tau \kappa'};
     {\TyKinding \TEnv {\sigma\App\tau} \kappa}
+  }
+}
+\newcommand{\KFCon}{
+  \ib{\irule[\trule{ty-fcon}]
+    {F_n \co \many \kappa^n \to \kappa' \in \TEnv}
+    {\many {\TyKinding \TEnv {\sigma} {\kappa}}^n};
+    {\TyKinding \TEnv {F_n \many\sigma^n} {\kappa'}}
   }
 }
 \newcommand{\KTyCon}{
   \ib{\irule[\trule{ty-con}]
-    {F_n \co \many \kappa^n \to \kappa' \in \TEnv}
-    {\many {\TyKinding \TEnv {\sigma} {\kappa}}^n};
-    {\TyKinding \TEnv {F_n \many\sigma^n} {\kappa'}}
+    {T \co \kappa \in \TEnv};
+    {\TyKinding \TEnv {T} {\kappa}}
   }
 }
 \newcommand{\KTyAll}{
@@ -616,8 +636,7 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
 }
 
 \begin{figure}[t]
-  \centering
-  
+
   \begin{gather*}
     \fbox{$\Typing \TEnv M \tau$}\\
     \TCast
@@ -625,7 +644,8 @@ The type equality coercion, $\gamma$, is the essential additional construct. Coe
 
 \begin{gather*}
   \fbox{$\TyKinding \TEnv \tau \kappa$}\\
-  \KTyVar \rsp \KTyApp \rsp \KTyCon \rsp \KTyAll
+  \KTyVar \rsp \KTyApp \\
+  \KTyCon \rsp \KFCon \rsp \KTyAll
   \end{gather*}
   
   \begin{gather*}
@@ -657,7 +677,7 @@ It captures the intuitive idea that given equal sub-parts, an equality between w
   % \begin{itemize}
   % \item[\trule{ty-var}] Either the type variable is $\alpha$ and we are done, or it is not and we use \trule{co-refl}.
   % \item[\trule{ty-app}] By induction hypothesis and using \trule{co-comp}.
-  % \item[\trule{ty-con}] 
+  % \item[\trule{ty-fcon}] 
   % \item[\trule{ty-all}]
   % \end{itemize}
   % we have a derivation $\Typing {\TEnv, \alpha\co\kappa'} \phi \kappa$. Then using \trule{co-refl} we obtain $\Typing {\TEnv, \alpha\co\kappa} {\refl\phi} {\phi \sim \phi}$.
@@ -744,7 +764,8 @@ We will use call by name semantics as GHC uses lazy evaluation. Adjusting the op
 \begin{figure}[ht]
   \centering
   \begin{syntax}
-    \text{Plain Values} && \Val  &::= \Lam {x\co\tau} M \bnfor \Forall {\alpha\co\kappa} M \bnfor H\\
+    \text{Value Types}  && T\Val &::= T \bnfor \tau \to \tau \bnfor \Forall {\alpha\co\kappa}\\
+    \text{Plain Values} && \Val  &::= H \bnfor \Lam {x\co\tau} M \bnfor \TLam {\alpha\co\kappa} M \\
     \text{CValues}      && C\Val &::= \Val \bnfor \Cast \Val \Co\\
 
     \text{Evaluation Contexts} &&  \EvalCtxt &::= \EvalCtxtHole{-} \bnfor \EvalCtxt\App M \bnfor \EvalCtxt \tau \bnfor \Cast \EvalCtxt \Co \bnfor \Case \EvalCtxt {\many{P}}\\
@@ -764,9 +785,9 @@ We will use call by name semantics as GHC uses lazy evaluation. Adjusting the op
 The unusual feature of the system is that the values are stratified into normal values ($\Val$) and cvalues ($C\Val$) that are values with coercion casts respectively. Cvalues are needed to maintain type preservation, which would otherwise break in the presense of casts. The cvalues can step in one of the four ways \trule{push}, \trule{ty-push}, \trule{co-push} or \trule{h-push}. In \trule{push}, the coercion $\Co$, applied to the lambda term, is split so that it is applied to the argument ($\Co_1$) and to the redux reduction ($\Co_2$). Applying this rule exposes a \trule{$\beta$} redux. The rule \trule{ty-push} for type application that moves the coercion inside a type abstraction instantiated at the type variable.
 The rule \trule{co-push} is just like \trule{push} but for moving coercions.
 
-The most complex rule is \trule{h-push} which makes more sense with an example in hand. Consider the case scrutinee $\Cast {(Cons\App \texttt{Int}\App x\App y)} \Co$ where, !Cons : FORALL a. a -> [a] -> [a]! and $\Co : [Int] \sim [S\App Bool]$ where !S! is a type constructor. The cast transforms the scrutee into a type $[S\App Bool]$ by pushing the coercion into its subcomponents.
+The most complex rule is \trule{h-push} which makes more sense with an example in hand. Consider the case scrutinee $\Cast {(Cons\App \texttt{Int}\App x\App y)} \Co$ where, !Cons : FORALL a. a -> [a] -> [a]!, !$\Co$ : [Int] \sim [T Bool]! and !T! is a type constructor. The cast transforms the scrutee into a type ![T Bool]! by pushing the coercion into its subcomponents.
 $$
-\stepsto {\Cast {(\texttt{Cons}\App \texttt{Int}\App x\App y)} \Co} {\texttt{Cons} \App (S\App Bool) (\Cast x \Right\Co) (\Cast y {(\refl{[]}\Right\Co)})}
+\stepsto {\Cast {(\texttt{Cons}\App \texttt{Int}\App \texttt{x}\App \texttt{y})} \Co} {\texttt{Cons} \App (\texttt{T}\App \texttt{Bool}) (\Cast {\texttt{x}} \Right\Co) (\Cast {\texttt{y}} {(\refl{[]}\Right\Co)})}
 $$
 Coercion lifting plays an important role here to make sure that the term subcomponents $\Cast M_i {\Subst}\rho_i$ is of the appropriate type. Each rule is derived in a systematic way by making sure the type of the term does not change after moving the cast.
 
@@ -782,7 +803,8 @@ However this is not entirely correct. If our system has a top level axiom such a
 \begin{definition}[\Good $\TEnv$]
   A $\TEnv$ is \Good $\TEnv$ when
   \begin{itemize}
-  \item If $\CoKinding \TEnv \Co {T \many\sigma \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $T\many\sigma'$
+  \item If $\CoKinding \TEnv \Co {T \many\sigma \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $T\App\many\sigma'$
+  \item If $\CoKinding \TEnv \Co {(\sigma' \to \sigma) \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $\tau' \to \tau''$
   \item If $\CoKinding \TEnv \Co {\Forall {\alpha\co\kappa} \sigma \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $\Forall {\alpha\co\kappa} \sigma'$
   \end{itemize}
 \end{definition}
@@ -795,8 +817,6 @@ However this is not entirely correct. If our system has a top level axiom such a
 
 \subsection{Soundness}
 So do the static semantics effectively weed out all the programs that may fail at runtime?
-  
-
 
 
 \subsection{Encoding Language Features}
@@ -823,7 +843,7 @@ The source level types are stratified into three groups: polytypes, constrained 
   \caption{GADT Surface level type syntax}
   \label{fig:gadt-type-syntax}
 \end{figure}
-The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level term $\Tm$ of type $\pi$, it is elaborated to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the elaboration is that the type equality constraints, $\tau\sim\tau'$, are elaborated to coercions in \SFC. The constraint C is a collection of named type equalities. The rules \trule{g-var}, \trule{g-$\I\forall$} and \trule{g-$\E\forall$} are standard rules used for elaborating Hindley-Milner System to \SF while \trule{g-$\I C$} and \trule{g-$\E C$} reminescent of elaborating typeclass constraints. The complex looking \trule{g-alt} elaborates case statements into \SFC. Each surface data constructor is elaborated to the \SFC data constructor with explicit coercions as arguments. The \trule{g-eq} is the same as \trule{cast} rule. The important detail here is that the coercion, $\Co$, is inferred from the constraint context $C$. Constructing the appropriate $\Co$ algorithmically is possible by using a simple unification algorithm based on \cite{lassez_unification_1988}.
+The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level term $\Tm$ of type $\pi$, it is elaborated to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the elaboration is that the type equality constraints, $\tau\sim\tau'$, are elaborated to coercions in \SFC. The constraint C is a collection of named type equalities. The rules \trule{g-var}, \trule{g-$\I\forall$} and \trule{g-$\E\forall$} are standard rules used for elaborating Hindley-Milner System to \SF while \trule{g-$\I C$} and \trule{g-$\E C$} reminescent of elaborating typeclass constraints. The complex looking \trule{g-alt} elaborates case statements into \SFC. Each surface data constructor is elaborated to the \SFC data constructor with explicit coercions as arguments. The rule \trule{g-eq} is the same as \trule{cast} rule. The important detail here is that the coercion, $\Co$, is inferred from the constraint context $C$. Constructing the appropriate $\Co$ algorithmically is possible by using a simple unification algorithm based on \cite{lassez_unification_1988}.
 
 \newcommand\GADTVar{
   \ib{\irule[\trule{g-var}]
@@ -880,7 +900,6 @@ The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level
 
 \begin{figure}[ht]
   \centering
-  \caption[Encoding GADTs]{Type directed Translation of GADTs into \SFC}
   \begin{gather*}
     \fbox{$\GTranslate C \TEnv {\Tm} {\pi} {\Tm'}$}\\
     \GADTVar \rsp \GADTEq\\
@@ -892,6 +911,7 @@ The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level
     \GADTAlt
   \end{gather*}
   \label{fig:encoding-gadts}
+  \caption[Encoding GADTs]{GADTs' Type-directed Translation in \SFC}  
 \end{figure}
 
 \begin{lemma}[Type Preservation]
@@ -900,8 +920,9 @@ The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level
 Type preservation is an important sanity check for the elaborations. It says that the the elaborated terms have the same type that was inferred at surface level.
 
 \begin{theorem}[GADT Consistency]
-  If $\dom\TEnv$ is type variable and coercion constant free, and $\CoKinding \TEnv \Co {\tau\sim\tau'}$ then $\tau = \tau'$ i.e. they are syntactically identical.
+  If $\dom\TEnv$ does not contain type variables and coercion constants, and $\CoKinding \TEnv \Co {\tau\sim\tau'}$ then, $\tau$ and $\tau'$ are syntactically identical.
 \end{theorem}
+GADT consistency says that if two types are provably equal, then they must be syntactically identical. This is very similar to 
 
 All GADT programs are sound in \SFC.
 
@@ -928,7 +949,7 @@ Elaborating associated types to \SFC is very similar to translating GADTs. The c
 
 
 The judgement $\DTranslate C {D\App\tau} d$ elaborates the predicate $D\App\tau$ to a dictonary $d$ in \SFC.
-The \trule{subst} allows replacing type class parameters with equal types. This is necessary to account for associated types that appear in the type class signature. $D\App\tau$ may contain an associated type, and depending on the instantiation of the free type variables in $\tau$ an appropriate coercion can be used to justify casting the dictonary $d$ to the corresponding actual type.
+The rule \trule{subst} allows replacing type class parameters with equal types. This is necessary to account for associated types that appear in the type class signature. $D\App\tau$ may contain an associated type, and depending on the instantiation of the free type variables in $\tau$ an appropriate coercion can be used to justify casting the dictonary $d$ to the corresponding actual type.
 
 $$
 \ib{\irule[\trule{subst}]
@@ -938,39 +959,132 @@ $$
 }
 $$
 
-Reconsider the !Coll c! typeclass and a function !sumColl :: (Coll c, Num (Elem c)) => c -> Elem c!, which sums up all the elements of the collection !c!. The predicate !Num (Elem c)! constraints the elements of the collection so that they can be summed up. A resonable use of !sumColl! would be at type ![Int]!, as integers can indeed be summed up. This would result in instantiating the type parameter !c! with ![Int]!. The rule \trule{subst} in this case justifies the use of !Num Int! dictonary as if it was a !Num (Elem [Int])! dictonary.
+Reconsider the !Coll c! typeclass and a function !sumColl :: (Coll c, Num (Elem c)) => c -> Elem c!, which sums up all the elements of the collection !c!. The predicate !Num (Elem c)! asserts that the elements of the collection can be summed up. A resonable use of !sumColl! would be at type ![Int]!, as integers can indeed be summed up. This would result in instantiating the type parameter !c! with ![Int]!. The rule \trule{subst} in this case justifies the use of !Num Int! dictonary as if it was a !Num (Elem [Int])! dictonary.
 
 Each class declaration introduces a new class predicate name in the type environment along with its method names. With associated types, a new ``type function'' name---!Elem c! in the case of !Coll c!---is also added to the type environment.
-Each instance introduces a new axiom into the typing environment. For the !Coll c! typeclass the instance !Coll [Int]! introduces the coercion !CoColl : Elem [Int] ~ Int!. In general, each instance generates an axiom of the form !co: (FORALL $\many{\alpha\co\star}$. F $\sigma$) $\sim$ (FORALL $\many{\alpha\co\star}$. $\sigma'$)! where $\fvs\sigma = \many\alpha$
+Each instance introduces a new axiom into the typing environment. For the !Coll c! typeclass the instance !Coll [Int]! introduces the coercion !CoColl : Elem [Int] ~ Int!. In general, each instance generates an axiom of the form !co: (FORALL $\many{\alpha\co\star}$. F $\sigma$ $\sim$ $\sigma'$)! where $\fvs\sigma = \many\alpha$
 and $\fvs{\sigma'} \subseteq \many\alpha$. These axioms induce a rewrite function on types and are also called as rewrite axioms.
 
 
 \begin{theorem}[Associated Type Consistency]
 If $\TEnv$ contains type rewrite axioms that are confluent and terminating, then $\TEnv$ is consistent.
 \end{theorem}
-
-
-\subsubsection{Newtypes}
-Newtypes introduce a new coercion axiom in the system. For the generative type !newtype Fun = MkFun (Fun -> Fun)!
-the associated coercion axiom will be !CoFun : Fun ~ (Fun -> Fun)!. In general, for any generative type declaration of the form !newtype T $\many\alpha$ = MkT $\tau$! will be of the form !CoT : T $\many\alpha$ ~ $\tau$! where $\tau$ may contain $\many\alpha$ as free type variables.
-
+In the case of non-overlapping instances, it is indeed the case that the rewrite axioms are confluent and terminating.
 
 \subsubsection{Open Type Functions}
+An unusual feature of the system, which also makes the type system expressive is the ability to write open type functions. The intension is to generalize associated types to be independent of typeclasses. Type functions are able to express complex type level computations. Further, they are also open, meaning, just like class instances, the open type functions can be extended. An example of how type computations are expressed by type functions that define addition of naturals at type level, shown in \pref{fig:open-type-fun-add}
+\begin{figure}[ht]
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      data Z
+      data S n
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      type family Add m n
+      type instance Add Z n = n
+      type instance Add (S m) n = S (Add m n)
+    \end{code}
+  \end{minipage}
+  \caption{Addition with type functions}
+  \label{fig:open-type-fun-add}
+\end{figure}
+Open type functions thus give type computation a flavor of rewrite rules.
 Each type family instance directly translates to axioms. Thus for !Add m n! type function, the two associated instances would introduce the following axioms !CoAddZ : Add Z n ~ n! and !CoAddSmn : Add (S m) n ~ S (Add m n)!
 
 
+% \subsubsection{Generative Abstract Types}
+
 \section{\SFR}\label{sec:sfr} % R for roles
+\subsection{Generative types}
+GHC uses the keyword newtype to declare generative types. For the type declaration !newtype Fun = MkFun (Fun -> Fun)!, its translation to \SFC amounts to an introduction of a coercion axiom !CoFun : Fun ~ (Fun -> Fun)! where !Fun! is a type constant. In general, for any generative type declaration of the form !newtype T $\many\alpha$ = MkT $\tau$! will be of the form !CoT : T $\many\alpha$ ~ $\tau$! where $\tau$ may contain $\many\alpha$ as free type variables. The advantage of introducing coercion axioms for newtype declarations is that they provide abstraction with zero runtime cost. However,
+a naive translation can result in a type soundess bug\cite{TODO}.
 
-Feature of type safe generative types aka newtypes
 
-The problem is mixing parametricity and type level dispatch.
+Consider two modules: !AgeLib! where the library writer defines a newtype !Age! and the other, !AgeClient!, a client module that uses the library module !AgeLib!. The !AgeLib! module does not expose the newtype constructor !MkAge! and forces the client module to use the smart constructors !mkAge! to create values of the type !Age! instead.
 
-Type families don't mix well with newtypes as type families make a distinction between types
-even if they have the same representations.
+\begin{figure}[ht]
+  \centering
+  \begin{minipage}[ht]{0.5\linewidth}
+    \begin{code}
+      module AgeLib (Age, mkAge, addAge) where
+      newtype Age = MkAge Int
+
+      mkAge :: Int -> Age
+      mkAge n = MkAge n
+
+      addAge :: Age -> Int -> Age
+      addAge (MkAge n) p = MkAge (n + p)
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      module Client where
+      import Lib (Age, mkAge, addAge)
+
+      a1, a2 :: Age
+      a1 = mkAge 3
+      a2 = addAge a1 4
+
+
+    \end{code}
+  \end{minipage}
+  \caption{Newtype Module: Definition and Use}
+  \label{fig:newtype-modules}
+\end{figure}
+While on the surface level the functions \lstinline{mkAge} and \lstinline{addAge} seem to pack and unpack
+the \lstinline{Int} value stored in the \lstinline{Age} type, the compiler generates code where all the packing and unpacking of the values are removed using explicit type casts. Further during runtime, the explicit casts are completely removed. This optimization step is not performed on types declared using \lstinline{data} keyword. So the runtime cost characteristics of types declared using  \lstinline{newtype}s and \lstinline{data} are different. Due to the newtype definition
+we know that \lstinline{Age} \emph{is} \lstinline{Int} as \lstinline{Int} is the concrete runtime representation of \lstinline{Age}. This means that we should not pay any runtime cost for coercing \lstinline{Age} to \lstinline{Int} and vice versa. We notionally represent this type equality as \lstinline{Age ~ Int}.
+\begin{figure}[ht]
+  \centering
+  \begin{minipage}[h]{0.4\linewidth}
+    \begin{code}
+      co :: Int ~ Age
+      mkAge :: Int -> Age
+      mkAge x = x /> co
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      addAge x a :: Int -> Age -> Age
+      addAge x a = (x + a /> (sym co)) /> co
+    \end{code}
+  \end{minipage}
+  \caption{\lstinline{AgeLib} compiled}
+  \label{fig:compiled-code}
+\end{figure}
+
+The compiled code of !AgeLib! is shown in \pref{fig:compiled-code}. The coercion !co! introduced by the newtype definition asserts that !Int! is the same as !Age!. !x /> co! casts the type of !x! from !Int! to !Age! and !sym co! reverses the type equality to !Age ~ Int!.
+
+Now, consider an indexed type family !F! that maps !Age! to !Bool! and !Int! to !Char!. This declaration adds two new type equalities namely !F Age ~ Bool! and !F Int ~ Char!. But in the presense of the equality !Age ~ Int!, we can make type unsound coercions by deriving !Char ~ Bool!. The reasoning would be that !Char ~ F Int!, then !F Int ~ F Age! (as !Int ~ Age!), and finally, obtaining !Char ~ Bool! (by using !F Age ~ Bool!).
+
+\begin{code}
+  type family F a :: *
+  type instance F Age = Bool
+  type instance F Int = Char
+\end{code}
+
+What went wrong? The problem stems from the fact that we are using unconstrained coercion lifting; the use non-parametric features of the language in the context that assumes parametricity. Type functions interacting with newtypes is just one case where seemingly innocuous features interacting with each other causes type unsoundess. Just limiting the use of type funcions is not enough; similar bugs can be cooked up by using GADTs as well.
+
+\SFC needs to be extended to ensure that no runtime cost generative types without introducing type unsoundness.
+There are 2 main changes in extended \SFR: (i) The equality is a type and not a kind as in \SFC, and (ii) The equality type is indexed by a role which captures how the two types are equal. The strictest role of equality is nominal equality that says that two types are equal only if they are syntactically identical in names. A more relaxed version of equality is if the the types are representationaly equal where they have the same runtime representation. The reason for 
+
+\subsection{Syntax}
+
+% Feature of type safe generative types aka newtypes
+
+% The problem is mixing parametricity and type level dispatch.
+
+% Type families don't mix well with newtypes as type families make a distinction between types
+% even if they have the same representations.
 
 
 \begin{figure}[ht]
   \caption{Terms and Types of \SFR as an extension of \SFC}
+  \begin{syntax}
+    
+  \end{syntax}
   \label{fig:system-fcr-syntax}
 \end{figure}
 
@@ -990,16 +1104,7 @@ even if they have the same representations.
 We want to promote datatypes to kinds. What does it take?
 \begin{figure}[ht]
   \centering
-  \begin{syntax}
-    \text{Type Vars} &&\alpha,\beta,\gamma \\
-    \text{Term Vars} &&x,y          \\
-    \text{Kinds}     &&\kappa                  &::= \star \bnfor \kappa \to \kappa \bnfor \syntaxhl{\tau \sim \sigma}\\
-    \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \bnfor T \bnfor \syntaxhl{F} \bnfor \tau \to \tau \bnfor \Forall {\alpha\co\kappa} \tau\\
-    &&                        &\syntaxhl{\bnfor \sym \Co \bnfor \trans \nu \Co \bnfor \Co\At\tau \bnfor \Left \Co \bnfor \Right \Co} \\
-    &&                        &\syntaxhl{\bnfor  \Cast \Co \Co}\\
-    \text{Terms}     &&M,N                     &::= x \bnfor H \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau
-  \end{syntax}
-  \caption{Terms and Types of \SFP as an extension of \SFC}
+    \caption{Terms and Types of \SFP as an extension of \SFC}
   \label{fig:system-fcp-syntax}
 \end{figure}
 
@@ -1018,21 +1123,105 @@ We want to promote datatypes to kinds. What does it take?
 
 
 \section{\SFK}\label{sec:sfk} % K for kind eq
-We have type equalities, why not kind equalities?
-But we would then have two kinds of equalities: type and kind.
-So why not just squish types and kinds together, making it truly impredicative
+% We have type equalities, why not kind equalities?
+% But we would then have two kinds of equalities: type and kind.
+% So why not just squish types and kinds together, making it truly impredicative
+GADTs are expressed using explicit type equality predicates in the type system. For example, consider the following GADT that encodes type representations:
+
+\begin{minipage}[ht]{0.5\linewidth}
+  \begin{lstlisting}
+  data TypeRep : * -> * where
+    TyInt  : TypeRep Int
+    TyBool : TypeRep Bool
+  \end{lstlisting}
+\end{minipage}%
+\begin{minipage}[ht]{0.5\linewidth}
+  \begin{lstlisting}
+  data TypeRep : * -> * where
+    TyInt  : a ~ Int => TypeRep a
+    TyBool : a ~ Bool => TypeRep a
+  \end{lstlisting}
+\end{minipage}
+
+The right hand side is just an elaborated version of the left hand side with explicit type equalities equalities.
+Now, we can use local type equalities to pattern match on the different values of \lstinline{TypeRep} to produce appropriate values. The function \lstinline{zero} computes a default value for each type representation.
+
+\begin{minipage}{0.5\linewidth}
+  \begin{codef}
+    zero : forall a. TypeRep a -> a
+    zero TyInt = 0
+    zero TyBool = False
+  \end{codef}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+  \begin{codef}
+    zero : forall a. TypeRep a -> a
+    zero (TyInt (co : a ~ Int))   = 0 /> sym co
+    zero (TyBool (co : a ~ Bool)) = False /> sym co
+  \end{codef}
+\end{minipage}
+
+The operator \lstinline|sym| reverses the direction of the type equality \lstinline|co : a ~ Int| to \lstinline|Int ~ a| and then the cast operator, \lstinline{/>}, uses the flipped coercion to justify the return type of the function.
+
+It may be tempting to extend \lstinline{TypeRep} datatype to represent more complex types such as lists. However, System FC is not expressive enough to achieve this without auxiliary definitions. The type system is not expressive enough allow higher kinded types. Consider a new definition of \lstinline{TypeRep} extended with two new data constructors \lstinline{TyList}, which represents a list type, and \lstinline{TyApp} which represents type application.
+
+\begin{minipage}[ht]{0.4\linewidth}
+  \begin{lstlisting}
+    data TypeRep :: forall k. k -> * where
+      TyInt  :: TypeRep Int
+      TyBool :: TypeRep Bool
+      TyList :: TypeRep []      
+      TyApp  ::
+                TypeRep a -> TypeRep b
+             -> TypeRep (a b)
+  \end{lstlisting}
+\end{minipage}%
+\begin{minipage}[ht]{0.5\linewidth}
+  \begin{lstlisting}
+    data TypeRep :: forall k. k -> * where
+      TyInt  :: (k ~ *) => (a : k) ~ Int  => TypeRep k Int
+      TyBool :: (k ~ *) => (a : k) ~ Bool => TypeRep k Bool
+      TyList :: (k ~ * -> *) => (a : k) ~ [] =>  TypeRep k []      
+      TyApp  :: (k1 ~ * -> *) => (k2 ~ *)
+             => TypeRep k1 a -> TypeRep k2 b
+             -> TypeRep k2 (a b)
+  \end{lstlisting}
+\end{minipage}
+
+The new \lstinline{TypeRep} accepts two parameters, the first is the kind and the second is the type that has the kind of the first parameter. Pattern matching on the data constructor now exposes kind equalities along with type equalities. The new \lstinline{zero} function that now also returns the zero case for list would look as follows:
+% \begin{minipage}[ht]{0.5\linewidth}
+\begin{codef}
+  zero : forall (a:*). TypeRep a -> a
+  zero TyInt            = 0
+  zero TyBool           = False
+  zero (TyApp TyList _) = []
+\end{codef}
+% \end{minipage}%
+% \begin{minipage}[ht]{0.5\linewidth}
+%   \begin{codef}
+%     zero : forall (a:*). TypeRep a -> a
+%     zero TyInt (kco : k ~ *) (co : (a:k) ~ Int)
+%         = 0 /> sym co
+%     zero TyBool (kco : k ~ *) (co : (a:k) ~ Bool)
+%         = False /> sym co
+%     zero TyApp (kco1 : k1 ~ * -> *) (kco2 : k2 ~ *) (a:k1) (b:k2)
+%                (TyList kco1 (co:(a:k1 ~ []))) _
+%         = [] /> sym co
+%   \end{codef}
+% \end{minipage}
+With explicit kind equalities allowed in the system, while the case for \lstinline{TyInt} and \lstinline{TyBool} in \lstinline{zero} is the same as in System FC, the case for \lstinline{TyApp} can now be allowed and type checked. The first argument to \lstinline{TyApp} is inferred to have kind \lstinline{* -> *} and the second argument is inferred to have kind \lstinline{*}, making the result to be of kind \lstinline{*}. As a side note, because we have constrained the kind of the type parameter to \lstinline{zero} to be a \lstinline{*}, we cannot write \lstinline{zero (TyApp ty b) = zero ty} as \lstinline{ty} would be inferred to have kind \lstinline{k -> *}.
+
+Adding kind equalities to the system is non-trivial owing to its interaction with type equalities. A few challenges are:
+\begin{itemize}
+\item \SFK squashes the types and kinds to be the same by adding the axiom \lstinline{* : *}, or ``type is of kind type''. This necessitates a new formalism that proves that the metatheoritic properties of \SFK are carried over from System FC. In dependently type languages \lstinline{* : *} axiom amounts to adding inconsistency, however this is not a problem in Haskell as all kinds are already inhabited;
+\item in System FC, equalities could only exist between types of the same kind, but now, due to explicit kind equalities, it is possible to construct equalities between heterogenous types. The matters get more complicated with polymorphic types;
+\item coercions should not interfere with the operational semantics of the language;
+\item Kind indexed GADTs need to be able to abstract over coercions and use them in the types, a feature missing in System FC. 
+\end{itemize}
+
 
 \begin{figure}[ht]
   \centering
-  \begin{syntax}
-    \text{Type Vars} &&\alpha,\beta,\gamma \\
-    \text{Term Vars} &&x,y          \\
-    \text{Kinds}     &&\kappa                  &::= \star \bnfor \kappa \to \kappa \bnfor \syntaxhl{\tau \sim \sigma}\\
-    \text{Types}     &&\tau,\sigma,\gamma,\nu  &::= \alpha \bnfor T \bnfor \syntaxhl{F} \bnfor \tau \to \tau \bnfor \Forall {\alpha\co\kappa} \tau\\
-    &&                        &\syntaxhl{\bnfor \sym \Co \bnfor \trans \nu \Co \bnfor \Co\At\tau \bnfor \Left \Co \bnfor \Right \Co} \\
-    &&                        &\syntaxhl{\bnfor \Cast \Co \Co}\\
-    \text{Terms}     &&M,N                     &::= x \bnfor H \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau
-  \end{syntax}
   \caption{Terms and Types of \SFK as an extension of \SFC}
   \label{fig:system-fck-syntax}
 \end{figure}
@@ -1064,6 +1253,8 @@ So why not just squish types and kinds together, making it truly impredicative
 
 \section{Conclusion and Future work}\label{sec:conclusion}
 Using non-parametric features in a context that assumes parmetricity is a root cause of type unsoundess ``bugs''.
+Using roles to define a nuanced way to describe equality between types was a way to separate out non-parametric behavior from parametric one. The non-parametric behaviour in this case arose from the fact that type functions can behave differently on types that may have the same run time representation. 
+A sound type system design for typeclasses with modules without crippling the expressiveness of the system is still an active area of research. 
 
 % \begin{figure}[ht]
 %   \centering
@@ -1082,6 +1273,7 @@ Using non-parametric features in a context that assumes parmetricity is a root c
 %%%% Bibliography
 \newpage
 \bibliography{comp}
+
 
 
 \end{document}

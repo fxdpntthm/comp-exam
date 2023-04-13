@@ -209,8 +209,6 @@
 \newcommand\tystepsto[3]{#1 \vdash \stepsto{#2}{#3}}
 \newcommand\manytystepsto[3]{#1 \vdash \manystepsto{#2}{#3}}
 
-
-
 % Compilation
 \def\compile#1{\llbracket#1\rrbracket}
 \newcommand\GTranslate[5]{#1;#2 \vdash_{\mathcal{G}} \textcolor{blue}{#3 : #4} \Mapsto \textcolor{red}{#5}}
@@ -237,6 +235,7 @@
     {\\\\}{{\char`\\\char`\\}}1 {\\"}{{\char`\\"}}2
     {->}{{$\to$}}2 {-@}{{$\lto$}}2 {>=}{{$\geq$}}2 {<-}{{$\leftarrow$}}2
     {<=}{{$\leq$}}2 {=>}{{$\Rightarrow$}}2
+    {/>}{{$\blacktriangleright$}}2
     {\ .\ }{{$\circ$}}3
     {>>}{{$>\!\!>$}}2 {>>=}{{$>\!\!>\!=$}}3 {>>>}{{$>\!\!>\!\!>$}}3
     {|}{{$\mid$}}1
