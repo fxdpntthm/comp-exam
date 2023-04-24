@@ -118,6 +118,7 @@
 \newcommand\TEnv{\Gamma} % Type env
 \newcommand\KEnv{\Delta} % Kind env
 \newcommand\GEnv{\Sigma} % huh?
+\newcommand\REnv{\mathcal{R}}
 \newcommand\Ty{\tau}
 \newcommand\GTy{\omega}
 
@@ -151,21 +152,20 @@
 \def\refl#1{\langle#1\rangle}
 \def\trans#1#2{#1 \circ #2}
 \def\refl#1{\langle#1\rangle}
-\def\sym#1{\texttt{sym}~{#1}}
-\def\Axiom{\xi}
-\def\At{\texttt{@}}
+\newcommand\sym[1]{\textbf{sym}\App{#1}}
+\newcommand\Axiom{\xi}
+\newcommand\At{\texttt{@}}
 \def\branch#1#2{\Axiom_{#1}~{#2}}
 \def\qbranch#1#2#3{\Axiom_{#1}~{#2}~{#3}}
-\def\nth#1#2{\text{nth}^{#1}\App{#2}}
-\def\Left#1{\texttt{left}~#1}
-\def\Right#1{\texttt{right}~#1}
-% \def\leftc#1{\texttt{leftc}~#1}
-% \def\rightc#1{\texttt{rightc}~#1}
-\def\Co{\gamma}
-\def\MoreCo{\nu}
-\def\Prop{C}
-\def\AxiomEq{\Phi}
-\def\AxiomTy{\Psi}
+\newcommand\nth[2]{\textbf{nth}^{#1}\App{#2}}
+\newcommand\sub[1]{\textbf{sub}\App{#1}}
+\newcommand\Left[1]{\textbf{left}~#1}
+\newcommand\Right[1]{\textbf{right}~#1}
+\newcommand\Co{\gamma}
+\newcommand\MoreCo{\nu}
+\newcommand\Prop{C}
+\newcommand\AxiomEq{\Phi}
+\newcommand\AxiomTy{\Psi}
 
 %% Types and Term Syntax
 \newcommand\Tm{M}
