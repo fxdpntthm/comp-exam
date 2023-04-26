@@ -13,7 +13,7 @@
 \DeclareFontFamily{U}{tipa}{}
 \DeclareFontShape{U}{tipa}{m}{n}{<->tipa10}{}
 
-\newcommand*{\syntaxhl}{%
+\newcommand*{\shl}{%
   \tcboxmath[colback=Ivory3, colframe=white, size=fbox, arc=3pt, boxrule=0.8pt]%
 }
 \newcommand{\arc@char}{{\usefont{U}{tipa}{m}{n}\symbol{62}}}%
@@ -41,12 +41,12 @@
 
 %% Names for systems
 \newcommand\SF{System \textbf{F}\xspace}
-\newcommand\SFC{System \textbf{F$_C$}\xspace} % C for corecions
-\newcommand\SFR{System \textbf{F$^R_C$}\xspace} % R for roles
-\newcommand\SFP{System \textbf{F$^\uparrow_C$}\xspace} % P for promotions
-\newcommand\SFK{System \textbf{F$^\kappa_C$}\xspace} % K for kind coercions
+\newcommand\SFC{System \textbf{F\texorpdfstring{$_C$}{\_c}}\xspace} % C for corecions
+\newcommand\SFR{System \textbf{F\texorpdfstring{$^R_C$}{r\_c}}\xspace} % R for roles
+\newcommand\SFP{System \textbf{F\texorpdfstring{$^\uparrow_C$}{up\_c}}\xspace} % P for promotions
+\newcommand\SFK{System \textbf{F\texorpdfstring{$^{\kappa}_C$}{k\_c}}\xspace} % K for kind coercions
 
-\newcommand\SFw{System \textbf{F$_\omega$}\xspace} % F \omega
+\newcommand\SFw{System \textbf{F\texorpdfstring{$_\omega$}{\_w}}\xspace} % F \omega
 
 \newcommand\HMX{\textbf{HM(X)}\xspace}
 
@@ -125,21 +125,6 @@
 \newcommand\Preds{P}
 \newcommand\MorePreds{Q}
 
-\newcommand\Typing[3]{#1 \vdash #2 : #3}
-\newcommand\CoKinding[3]{#1 \vdash_{c} #2 : #3}
-\newcommand\TyKinding[3]{#1 \vdash_{t} #2 : #3}
-\newcommand\Kinding[3]{\Typing{#1}{#2}{#3}}
-\newcommand\ResTyping[3]{#1 \vdash_{res} #2 : #3}
-\newcommand\ValidGCtx[1]{\vdash_{gnd}#1}
-\newcommand\ValidVCtx[2]{#1\vdash_{var}#2}
-\newcommand\ValidCtx[1]{\vdash_{ctx}#1}
-
-\newcommand\ValidType[2]{#1 \vdash #2~\text{type}}
-\newcommand\ValidProp[2]{#1 \vdash #2~\text{prop}}
-\newcommand\ValidAssmp[2]{#1 \vdash #2~\text{asmp}}
-\newcommand\fresh[2]{#1 \# #2}
-\newcommand\fvs[1]{\texttt{fvs}(#1)}
-
 \newcommand{\bnfeq}{\mathrel{{:}{:}{=}}}
 \newcommand{\bnfor}{\mathrel{\mid}}
 \newcommand{\empt}{\epsilon}
@@ -152,7 +137,9 @@
 \def\refl#1{\langle#1\rangle}
 \def\trans#1#2{#1 \circ #2}
 \def\refl#1{\langle#1\rangle}
-\newcommand\sym[1]{\textbf{sym}\App{#1}}
+\newcommand\Sym[1]{\textbf{sym}\App{#1}}
+\newcommand\Kind[1]{\textbf{kind}\App{#1}}
+\newcommand\Contra[1]{\textbf{contra}\App{#1}}
 \newcommand\Axiom{\xi}
 \newcommand\At{\texttt{@}}
 \def\branch#1#2{\Axiom_{#1}~{#2}}
@@ -162,11 +149,11 @@
 \newcommand\Left[1]{\textbf{left}~#1}
 \newcommand\Right[1]{\textbf{right}~#1}
 \newcommand\Co{\gamma}
-\newcommand\MoreCo{\nu}
-\newcommand\Prop{C}
+\newcommand\MCo{\nu}
+\newcommand\Prop{p}
 \newcommand\AxiomEq{\Phi}
 \newcommand\AxiomTy{\Psi}
-
+\newcommand\Telescope{\psi}
 %% Types and Term Syntax
 \newcommand\Tm{M}
 \newcommand\val{V}
@@ -176,6 +163,7 @@
 \newcommand{\Let}[3]{\mathsf{let}\;#1 = #2\;\mathsf{in}\;#3}
 \newcommand{\Case}[2]{\mathsf{case}\;#1\;\mathsf{of}\;#2}
 \newcommand\Forall[2]{\forall#1.~#2}
+\newcommand\ForallC[3]{\forall_{#1}#2.~#3}
 \newcommand\tassume[2]{\texttt{assume}~{#1}~\texttt{in}~{#2}}
 \newcommand{\ClassCtrs}{\texttt{C}}
 \newcommand{\TypeCtrs}{\texttt{T}}
@@ -195,6 +183,23 @@
 \def\match#1#2{\texttt{match}(#1, #2)}
 \def\flatten#1{\texttt{flatten}(#1)}
 \def\Good#1{\texttt{Good }#1}
+
+
+\newcommand\Typing[3]{#1 \vdash #2 : #3}
+\newcommand\CoKinding[3]{#1 \vdash_{c} #2 : #3}
+\newcommand\TyKinding[3]{#1 \vdash_{t} #2 : #3}
+\newcommand\Kinding[3]{\Typing{#1}{#2}{#3}}
+\newcommand\ResTyping[3]{#1 \vdash_{res} #2 : #3}
+\newcommand\ValidGCtx[1]{\vdash_{gnd}#1}
+\newcommand\ValidVCtx[2]{#1\vdash_{var}#2}
+\newcommand\ValidCtx[1]{\vdash_{ctx}#1}
+
+\newcommand\ValidType[2]{#1 \vdash #2~\text{type}}
+\newcommand\ValidProp[2]{#1 \vdash_\Prop #2~\textbf{ok}}
+\newcommand\ValidAssmp[2]{#1 \vdash #2~\text{asmp}}
+\newcommand\fresh[2]{#1 \# #2}
+\newcommand\fvs[1]{\texttt{fvs}(#1)}
+
 
 % Operational Semantics
 \def\steps{\mathrel{\rightsquigarrow}}
