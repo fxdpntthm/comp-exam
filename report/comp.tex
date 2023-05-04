@@ -1,7 +1,6 @@
 \newif\ifcomments\commentstrue
 
 \RequirePackage[svgnames,dvipsnames,prologue,x11names]{xcolor}
-\RequirePackage{fix-cm}
 
 \documentclass[manuscript,screen,nonacm]{acmart}
 
@@ -566,10 +565,10 @@ We will use call by name semantics as GHC uses lazy evaluation. Adjusting the op
 
 \newcommand{\CoPush}{
   \ib{\irule[\trule{co-push}]
-    {\substack {\nu\co \sigma_1' \sim \sigma_2'\\
-                      \Co_1 : \sigma_1 \sim \sigma_1' = \Left {(\Left \Co)}}}
-    {\LARGE\substack {\Co\co (\sigma_1 \sim \sigma_2 \then \sigma_3) \sim (\sigma_1' \sim \sigma_2' \then \sigma_3')\\
-                     {\Co_2: \sigma_2 \sim \sigma_2' = \Right{(\Left\Co)}\quad{\Co_3:\sigma_3\sim\sigma_3' = \Right\Co}}}};
+    {\substack {\mathlarger{\nu\co \sigma_1' \sim \sigma_2'}\\
+                      \mathlarger{\Co_1 : \sigma_1 \sim \sigma_1' = \Left {(\Left \Co)}}}}
+    {\substack {\mathlarger{\Co\co (\sigma_1 \sim \sigma_2 \then \sigma_3) \sim (\sigma_1' \sim \sigma_2' \then \sigma_3')}\\
+                \mathlarger{{\Co_2: \sigma_2 \sim \sigma_2' = \Right{(\Left\Co)}\quad{\Co_3:\sigma_3\sim\sigma_3' = \Right\Co}}}}};
     {$\stepsto {(\Cast{\TLam {\TyVar\co(\sigma_1\sim\sigma_2)} M}\Co)\App \nu} {\Cast {(\TLam {\TyVar\co(\sigma_1\sim\sigma_2)} M)\App (\Co_1 \circ \nu \circ \Sym \Co_2)} {\Co_3}} $}
   }
 }
@@ -585,10 +584,10 @@ We will use call by name semantics as GHC uses lazy evaluation. Adjusting the op
 
 \newcommand{\HPush}{
   \ib{\irule[\trule{h-push}]
-    {\LARGE\substack{\Co : T\App\many\sigma \sim T\App\many\tau\\
-        H : \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \rho \to T\App\many\TyVar^n}}}
-    {\LARGE\substack{{\Subst = \Set{\many{\TyVar_i \mapsto \Co_i}, \many{\beta_i \mapsto \phi_i}}}\\
-        {\Tm'_i = \Cast {\Tm_i} \Subst\rho_i}}}
+    {\substack{\mathlarger{\Co : T\App\many\sigma \sim T\App\many\tau}\\
+        \mathlarger{H : \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \rho \to T\App\many\TyVar^n}}}}
+    {\substack{\mathlarger{{\Subst = \Set{\many{\TyVar_i \mapsto \Co_i}, \many{\beta_i \mapsto \phi_i}}}}\\
+        \mathlarger{\Tm'_i = \Cast {\Tm_i} \Subst\rho_i}}}
     {\Co_i = \Right (\Left^{i-1}\Co) }
     {\phi' =
       \begin{cases}
@@ -717,13 +716,13 @@ Armed with the new coercion infrastructure, it is now possible to encode most of
 }
 \newcommand\GADTAlt{
   \ib{\irule[\trule{g-alt}]
-    {\LARGE\substack{
-        {H\co \Forall {\many\TyVar} {\Forall {\many\beta} {\many{\tau'\sim\tau''} \then \many\tau \to T\many\TyVar}}}\quad
-        {\many\TyVar \cap \many\beta = \varnothing}\quad
-        {\fvs{\many\tau, \many{\tau'}, \many{\tau''}} = \fvs{\many\TyVar, \many\beta}}\quad
-        {\Subst = \Set{\many{\TyVar\mapsto v}}}\quad
-        {\fresh {\many{c}} {C, \TEnv}}\\
-        {\GTranslate {C,\many{c\co\Subst{\tau'}\sim\Subst\tau''}\,} {\,\TEnv,\many{x\co\Subst\tau}\,} \Tm {\tau'} \Tm'} }};
+    {\substack{
+        \mathlarger{H\co \Forall {\many\TyVar} {\Forall {\many\beta} {\many{\tau'\sim\tau''} \then \many\tau \to T\many\TyVar}}}\quad
+        \mathlarger{\many\TyVar \cap \many\beta = \varnothing}\quad
+        \mathlarger{\fvs{\many\tau, \many{\tau'}, \many{\tau''}} = \fvs{\many\TyVar, \many\beta}}\quad
+        \mathlarger{\Subst = \Set{\many{\TyVar\mapsto v}}}\quad
+        \mathlarger{\fresh {\many{c}} {C, \TEnv}}\\
+        \mathlarger{\GTranslate {C,\many{c\co\Subst{\tau'}\sim\Subst\tau''}\,} {\,\TEnv,\many{x\co\Subst\tau}\,} \Tm {\tau'} \Tm'} }};
     {\GTranslate C \TEnv {H\App\many x \to \Tm} {T\App\many v \to \tau'}
                    {H\App(\many{\beta\co\star})\App(\many{c\co\Subst\tau'\sim\Subst\tau''})\App(\many{x\co\Subst\tau}) \to \Tm' }}
   }
@@ -1297,25 +1296,25 @@ Adding kind equalities to the system is non-trivial owing to its interaction wit
 
 \newcommand\KCAllT{
   \ib{\irule[\trule{co-$\I{\forall\tau}$}]
-    {\LARGE\substack{ {\CoKinding {\TEnv,\TyVar\co\kappa,\TyVar'\co\kappa',c\co\TyVar\sim\TyVar'} {\Co} {\tau\sim\tau'}}\\
-      {\Kinding \TEnv {\Forall {\TyVar\co\kappa} {\tau}} {\star}}}}
-    {\LARGE\substack{ {\CoKinding \TEnv \MCo {\kappa\sim\kappa'}}\\
-      {\Kinding \TEnv {\Forall {\TyVar'\co\kappa'} {\tau'}} {\star}}}};
+    {\substack{ \mathlarger{\CoKinding {\TEnv,\TyVar\co\kappa,\TyVar'\co\kappa',c\co\TyVar\sim\TyVar'} {\Co} {\tau\sim\tau'}}\\
+      \mathlarger{\Kinding \TEnv {\Forall {\TyVar\co\kappa} {\tau}} {\star}}}}
+    {\substack{ \mathlarger{\CoKinding \TEnv \MCo {\kappa\sim\kappa'}}\\
+      \mathlarger{\Kinding \TEnv {\Forall {\TyVar'\co\kappa'} {\tau'}} {\star}}}};
     {\CoKinding \TEnv {\ForallC\MCo{(\TyVar,\TyVar',c)}{\Co}} {\Forall {\TyVar\co\kappa}{\tau} \sim \Forall {\TyVar'\co\kappa'}{\tau'}}}
   }
 }
 
 \newcommand\KCAllC{
   \ib{\irule[\trule{co-$\I{\forall\Co}$}]
-    {\LARGE\substack{{\CoKinding {\TEnv,c\co\Prop,c'\co\Prop'} {\Co} {\tau\sim\tau'}} \\
-                     {\Kinding \TEnv {\Forall {c\co\Prop} {\tau}} \star}%
-                     ~~{\Kinding \TEnv {\Forall {c'\co\Prop'} {\tau'}} \star}
+    {\substack{\mathlarger{\CoKinding {\TEnv,c\co\Prop,c'\co\Prop'} {\Co} {\tau\sim\tau'}} \\
+                     \mathlarger{\Kinding \TEnv {\Forall {c\co\Prop} {\tau}} \star}%
+                     \quad\mathlarger{\Kinding \TEnv {\Forall {c'\co\Prop'} {\tau'}} \star}
                         }}
-    {\fresh {\Set{c, c'}}{\Erased\Co}}
-    {\LARGE\substack{{\CoKinding \TEnv {\MCo_1} {\sigma_1 \sim \sigma_1'}}\\
-                  {\CoKinding \TEnv {\MCo_2} {\sigma_2 \sim \sigma_2'} }}}
-    {\LARGE\substack{{p = \sigma_1\sim\sigma_2}\\
-                     {p' = \sigma_1'\sim\sigma_2'}}};
+    {\mathlarger{\fresh {\Set{c, c'}}{\Erased\Co}}}
+    {\substack{\mathlarger{\CoKinding \TEnv {\MCo_1} {\sigma_1 \sim \sigma_1'}}\\
+                  \mathlarger{\CoKinding \TEnv {\MCo_2} {\sigma_2 \sim \sigma_2'} }}}
+    {\substack{\mathlarger{p = \sigma_1\sim\sigma_2}\\
+                     \mathlarger{p' = \sigma_1'\sim\sigma_2'}}};
     {\CoKinding \TEnv {\ForallC{(\MCo_1,\MCo_2)}{(c, c')} {\Co}} {\Forall {c\co\Prop}{\tau} \sim \Forall {c'\co\Prop'}{\tau'}}}
   }
  }
@@ -1361,7 +1360,8 @@ Adding kind equalities to the system is non-trivial owing to its interaction wit
   \end{gather*}
   \begin{gather*}
     \fbox{$\CoKinding \TEnv \Co {\tau \sim \tau}$}\\
-    \KCAllT \rsp \KCAllC\\
+    \KCAllT\\
+    \KCAllC\\
     \KCAppCo \rsp \KCInstCo\\
     \KExtCo
   \end{gather*}
