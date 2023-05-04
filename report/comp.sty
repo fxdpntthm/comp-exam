@@ -1,5 +1,5 @@
 \usepackage{fontawesome,enumitem,ifthen,infer,mathwidth,mathtools,multicol,xspace,xy,xspace,tikz}
-\usepackage{parskip,tabularx,mathbbol,tcolorbox,hyphenat}
+\usepackage{parskip,tabularx,mathbbol,tcolorbox,hyphenat,fancybox}
 \usepackage{tikz}
 
 \tcbuselibrary{theorems}
@@ -12,6 +12,9 @@
 \makeatletter
 \DeclareFontFamily{U}{tipa}{}
 \DeclareFontShape{U}{tipa}{m}{n}{<->tipa10}{}
+\newenvironment{CenteredBox}{% 
+\begin{Sbox}}{% Save the content in a box
+\end{Sbox}\centerline{\parbox{\wd\@Sbox}{\TheSbox}}\vspace{-1.5em}}% And output it centered
 
 \newcommand*{\shl}{%
   \tcboxmath[colback=Ivory3, colframe=white, size=fbox, arc=3pt, boxrule=0.8pt]%
@@ -31,11 +34,8 @@
 %% Bibliography
 %% citation style and ACM nonsense
 \setcitestyle{sort&compress}
-% \citestyle{acmnumeric}
-%\citestyle{acmauthoryear}
 \citestyle{plainnat}
 \bibliographystyle{ACM-Reference-Format}
-% \bibliographystyle{unsrt}
 
 \setcopyright{none}
 

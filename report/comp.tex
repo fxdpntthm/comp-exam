@@ -1,6 +1,7 @@
 \newif\ifcomments\commentstrue
 
 \RequirePackage[svgnames,dvipsnames,prologue,x11names]{xcolor}
+\RequirePackage{fix-cm}
 
 \documentclass[manuscript,screen,nonacm]{acmart}
 
@@ -23,35 +24,33 @@
 \begin{document}
 
 \begin{abstract}
-  This report is a juxtaposition of \SFC and its extensions with its theoretical developments. We begin with some standard features of a strongly typed functional programming language, followed by a formalization of \SFC, which is in essense is \SF with explicit type equalities. The repercussions of this extension is extensive as it enables arbitrary type level computation. \SFC is then extended to \SFP with an expressive kind---the type of types---system that enables an even more expressive type level computation. Finally, we discuss \SFK which enables expressing kind level equalities along with existing type level equalities in the system by effectively squashing the distinction between types and kinds.
-
-  While the theoretical aspects of each of these systems are of academic importance, for these systems to be useful as a practical programming language, we want to expose this power to the programmers---the end users of these systems---, without compromising on saftey and usability. We describe a framework \HMX that parameterizes over the feature domain X such that for each of the systems we get a type inference algorithm for free, meaning, we do not have to redesign and reimplement them.
-
-  We conclude the report with some open problems in the area.
+  This report is a juxtaposition of \SFC and its extensions with its theoretical developments. We begin with some standard features of a strongly typed functional programming language, followed by a formalization of \SFC, which is in essense is \SF with explicit type equalities. The repercussions of this extension is extensive as it not only enables arbitrary computation at type level but also efficiently encodes a diverse set of language features. \SFC is then extended to \SFP with an expressive kind---the type of types---system that enables an even more expressive type level computation. Finally, we discuss \SFK which enables expressing kind level equalities by squashing the distinction between types and kinds.
 \end{abstract}
 
 \maketitle
 \pagestyle{plain}
 
 \section{Features of Typed Functional Programming Languages}\label{sec:language-features}
+%% The point to make here is type checker can enforce contraints!
 \subsection{User Defined Datatypes}
-Aiding organization of related data together is important aspect of a programming language. The structures, which store information, represent the domain elements. The transformations on the structures then models the program logic. Algebraic datatypes are a primary way to define such new structures in a functional programming language.
+Aiding organization of related data together is important feature of any programming language. The structures, which store information, represent the domain elements. The transformations on these structures then, models the program logic. Algebraic datatypes are a primary way to define such new structures in a functional programming language.
 
 \subsubsection{Algebraic Datatypes}
-Algebraic Datatypes (ADT) are composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. Allowing users to define a new agebraic data type in a declarative style was first introduced in the programming language HOPE\cite{burstall_hope_1980}. A balanced binary tree in Haskell can be declared as:
+Algebraic Datatypes (ADT) can be viewed as composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. A declarative style of defining new datatypes was first introduced in the programming language HOPE\cite{burstall_hope_1980}. A balanced binary tree in Haskell can be declared as:
 
-\begin{code}
-  data Tree c = Leaf c | Branch (Tree c, Tree c)
-\end{code}
-
-The keyword !data! introduces a user defined agebraic data type with name !Tree! parameterized over any type !c!. A value of type !Tree c! can be defined using either the data constructors, !Leaf! or !Branch!. A !Leaf! is a terminal node that contains the value of type !c! while a !Branch! contains a pair of sub trees. It is important to observe that the structure the datatype does not dependent on the type parameter !c!, i.e. it is used parametrically, or the shape of !Tree Int! and !Tree Float! will be the same. Parametricity allows programs to be general and hence reusable.
+\begin{CenteredBox}
+  \begin{code}
+      data Tree c = Leaf c | Branch (Tree c, Tree c)
+   \end{code}
+\end{CenteredBox}
+The keyword !data! introduces a new user defined agebraic datatype with name !Tree! parameterized over any type !c!. A value of type !Tree c! can be defined using either the data constructors, !Leaf! or !Branch!. A !Leaf! is a terminal node that contains the value of type !c! while a !Branch! contains a pair of sub trees. It is important to observe that the structure the datatype does not dependent on the type parameter !c!, i.e. it is used parametrically, or the shape of !Tree Int! and !Tree Float! will be the same. In a non-strongly typed programming language, a predicate is usually necessary to check that structural invariants hold: The !Branch! case does has two sub trees. In this setting the typechecker is able to automatically check for such invariants. Parametricity allows programs to be general and hence reusable.
 
 \subsubsection{Generalized Algebraic Datatypes}
-These are generalizations of algebraic datatypes where the structure of the type can depend on the type arguments. To distinguish the type arguments of ADTs, which are used parametrically, from a non-parametric use of type arguments we call them type indices for GADTs rather than type parameters. They were first introduced by \citep{cheney_first-class_2003} as first class phantom types and later studied under different name such as guarded recursive datatypes\cite{xi_guarded_2003}. Their utility is in modelling domain specific languages where certain constraints can be enforced by the type checker. Consider an example that models simply typed lambda calculus and a single step call by name evaluator as shown \pref{fig:gadt-example}.
+Reusablity due to parametricty however, comes at a cost of inexpressivity. Real world programs such as polymorphic serialization of data either requires the programmers to provide the cannonical forms of representation \cite{herlihy_value_1982} to be used during run-time or require runtime type analysis\cite{harper_compiling_1995}. Parametric algebraic datatypes are insufficent as they provide no facility to pass the type parameters at runtime. Generalized algebraic datatypes liberate this limitation by capturing type constraints with in the structure of the type. To distinguish parametric use of the type arguments of ADTs, we call them type indices for GADTs to emphasize non-parameric usage. They have been studied under various names such as first class phantom types\citep{cheney_first-class_2003}, guarded recursive datatypes\cite{xi_guarded_2003}, equality qualified types\cite{sheard_meta-programming_2008}. Consider an example that models simply typed lambda calculus and a single step call by name evaluator as shown \pref{fig:gadt-example}.
 \begin{figure}[ht]
   \centering
   \begin{minipage}[ht]{0.5\linewidth}
-    \begin{code}
+    \begin{code}[linemumbers=left]
 data LamTm a where
   Var :: String -> LamTm a
   Lam :: (LamTm a -> LamTm b) -> LamTm (a -> b)
@@ -133,27 +132,32 @@ Inside !HTMLImpl! the types !String! and !HTML! are synonymous, however any clie
 \subsection{Polymorphism}
 \subsubsection{Parametric Polymorphism}
 Certain functions behave uniformly on the data that they might receive. An archetypical example is that of an identity function $id$ that just takes an value and returns it unmodified.
-\begin{code}
-  id : FORALL a. a -> a
-  id a = a
-\end{code}
+
+\begin{CenteredBox}
+  \begin{code}
+    id : FORALL a. a -> a
+    id a = a
+  \end{code}
+\end{CenteredBox}
 Such functions are said to be parametrically polymorphic over their type arguments\cite{strachey_fundamental_2000}.
 Agebraic datatypes are also parametrically polymorphic over their type parameters.
 
 \subsubsection{Ad-hoc Polymorphism}
-In contrast to the term \lstinline{id}, consider the following two terms:
-\begin{code}
+In contrast to the term !id!, consider the following two terms:
+
+\begin{CenteredBox}
+  \begin{code}
     t1 : Int = 1 + 2
     t2 : Float = 1.1 + 2.3
-\end{code}
-
-In the first case we see that the operator \lstinline{+} is applied to two integers, but in the second case it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of each of the programs is completely different. One adds two \lstinline{Int} and returns an \lstinline{Int} while the other adds two \lstinline{Float} and returns a \lstinline{Float}. Further, the compiled code for each would also be different. The runtime code would make a call to two different built in constructs. Such kind of function reuse, which is dependent on the context or the type of arguments, is called as ad-hoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to impliment ad-hoc polymorphism where the compiler resolves the overloaded operator to the actual operator.
+  \end{code}
+\end{CenteredBox}
+In the first case we see that the operator !+! is applied to two integers, but in the second case it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of each of the programs is completely different. One adds two !Int! and returns an !Int! while the other adds two !Float! and returns a !Float!. Further, the compiled code for each would also be different. The runtime code would make a call to two different built in constructs. Such kind of function reuse, which is dependent on the context or the type of arguments, is called as ad-hoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to impliment ad-hoc polymorphism where the compiler resolves the overloaded operator to the actual operator.
 
 \subsection{Typeclasses}
 \subsubsection{Operator overoading}
 To make implicit overloading practical \citet{wadler_polymorphism_1989} proposed a dictonary passing style by using a mechanism. This technique became the foundation for Haskell\cite{haskell_2010} typeclasses. \cite{kaes_parametric_1988} had similar ideas related to implimentation aspects of ad-hoc polymorphism before Wadler et al. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for users to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot figure out the right option or when the user wants to force the typechecker to resolve it to a specific instance.
 
-Typeclasses can be viewed as relations over types and every instance declaration extends that relation. Consider a typeclass \lstinline{Ord a} shown in \pref{fig:tc-ord}. It represents a unary relation for the types whose values can be compared. Instances of the typeclass \lstinline{Ord} are written \lstinline{Ord Int} and \lstinline{Ord Float} say that \lstinline{Float} and \lstinline{Int} belong to the unary relation \lstinline{Ord}.
+Typeclasses can be viewed as relations over types and every instance declaration extends that relation. Consider a typeclass !Ord a! shown in \pref{fig:tc-ord}. It represents a unary relation for the types whose values can be compared. Instances of the typeclass !Ord! are written !Ord Int! and !Ord Float! say that !Float! and !Int! belong to the unary relation !Ord!.
 
 %% Something about methods
 
@@ -184,7 +188,7 @@ Typeclasses can be viewed as relations over types and every instance declaration
   \label{fig:tc-ord}
 \end{figure}
 \subsubsection{Multi-Parameter Typeclasses and Functional Dependencies}
-A straightforward generalization of single parameter typeclases is multiparameter typeclasses. It naturally extends the idea of having n-ary propositions or relations over types. Such relations can be useful to express properties such as containment relations. For example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under a single interface can be defined using a !Coll e c! typeclass, as shown in \pref{fig:tc-collection}. One can imagine having instances for such a typeclass as \lstinline{Coll Int [Int]}, \lstinline{Coll Float (BST Float)} etc. Speaking in terms of relations, we say that \lstinline{(Int, [Int]) $\in$ Coll} and similarly \lstinline{(Float, BST Float) $\in$ Coll}.
+A straightforward generalization of single parameter typeclases is multiparameter typeclasses. It naturally extends the idea of having n-ary propositions or relations over types. Such relations can be useful to express properties such as containment relations. For example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under a single interface can be defined using a !Coll e c! typeclass, as shown in \pref{fig:tc-collection}. One can imagine having instances for such a typeclass as \lstinline{Coll Int [Int]}, !Coll Float (BST Float)!, etc. Speaking in terms of relations, we say that !(Int, [Int]) $\in$ Coll! and similarly !(Float, BST Float) $\in$ Coll!.
 
 \begin{figure}[ht]
   \centering
@@ -216,16 +220,16 @@ A straightforward generalization of single parameter typeclases is multiparamete
   \label{fig:tc-collection}
 \end{figure}
 
-The use of \lstinline{empty} in a polymorphic setting however interferes with the compilation decision. It is not enough to determine what the type of \lstinline{e} should be just by knowing the type \lstinline{c}. Such types are called ambiguous types. Formally speaking, if a type variable only appears in the constraints of the type it is called an ambiguous type. The type of !empty!, !FORALL e c. Coll e c => c!, is ambiguous due to the occurance of !e! only the constraint. Such types do not have a well defined semantics as the compiler cannot make a unique choice of what the compiled code should be. The problem is here is that the typeclasses are relations and hence are too general for this use case. To make typeclasses behave in a more constrained way, Jones introduced functional dependencies\cite{jones_tcfd_2000}. The insight is to be able to specify the functional nature of relations, i.e. to be able to say if we \emph{know} certain type parameters of the typeclass, we can \emph{determine} the other type parameters as well.
+The use of !empty! in a polymorphic setting however interferes with the compilation decision. It is not enough to determine what the type of !e! should be just by knowing the type !c!. Such types are called ambiguous types. Formally, if a type variable only appears in the constraints of the type it is called an ambiguous type. The type of !empty!, !FORALL e c. Coll e c => c!, is ambiguous due to the occurance of !e! only the constraint. Such types do not have a well defined semantics as the compiler cannot make a unique choice of what the compiled code should be. The problem is here is that the typeclasses are relations and hence are too general for this use case. To make typeclasses behave in a more constrained way, Jones introduced functional dependencies\cite{jones_tcfd_2000}. The insight is to be able to specify the functional nature of relations, i.e. to be able to say if we \emph{know} certain type parameters of the typeclass, we can \emph{determine} the other type parameters as well.
 
 \begin{figure}[ht]
-  \begin{center}
+  \begin{CenteredBox}
     \begin{code}
       class Coll e c | c ~> e where
-          empty :: c
-          extend :: e -> c -> c
+      empty :: c
+      extend :: e -> c -> c
     \end{code}
-  \end{center}
+  \end{CenteredBox}
   \caption[Coll typeclass]{\lstinline{Coll} Typeclass with Functional Dependency}
   \label{fig:tc-collection-fd}
 \end{figure}
@@ -235,17 +239,6 @@ We call !c! to be the determiner and !e! to be the determinant of the functional
 
 % improvement, simplification
 %
-
-
-\subsection{Modules with Typeclasses}
-Modules and typeclasses are similar in certain ways
-
-They are however different.
-
-Their co-existence is incoherent
-
-Various attempts\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} have been made to enable a happy co-existence of parametric and implicit ad-hoc polymorphism together in a language by encoding typeclasses as modules and vice versa. However, in presense of modularity to support separate code compilation, it becomes impossible to avoid incoherence without cripling the language expressibility.
-ML and its varients\cite{milner_definition_1997,leroy_ocaml_2023} disallow allow operator overloading to enable modular compilation.
 
 \subsection{Type Functions}
 \subsubsection{Associated Types}
@@ -291,10 +284,13 @@ In \pref{fig:type-fam}, the typeclass !Coll! has an associated type function !El
 % \end{figure}
 
 \section{\SFC}\label{sec:sfc}
-The Glasgow Haskell Compiler (GHC)\cite{ghc_2020}, is a widely used Haskell\cite{haskell_2010} compiler. Its inception was a result of a lack of a test bed for lazy strongly typed functional programming languages. It is an industry grade compiler, meaning the compiler generated code can perform with efficiency comparable to other language compilers like Java or C++. The original core language of GHC was based on \SF. However, it soon became clear that with the addition of GADTs and generative types, using pure \SF would be too cumbersome, if not impossible to express in some constructs. For example consider a generative type declaration
-\begin{code}
-  newtype Fun = MkFun (Fun -> Fun)
-\end{code}
+The Glasgow Haskell Compiler (GHC)\cite{ghc_2020}, is a widely used Haskell\cite{haskell_2010} compiler. Its inception was a result of a lack of a test bed for lazy strongly typed functional programming languages. It is an industry grade compiler, meaning the compiler generated code can perform with efficiency comparable to other language compilers like Java or C++. The original core language of GHC was based on \SF. However, it soon became clear that with the addition of GADTs and generative types, using pure \SF would be too cumbersome, if not impossible to express in some constructs. For example consider a generative type declaration:
+
+\begin{CenteredBox}
+  \begin{code}
+    newtype Fun = MkFun (Fun -> Fun)
+  \end{code}
+\end{CenteredBox}
 The intension of this declaration is to make !Fun! and !Fun -> Fun! be isomorphic, however, it there was no good way to encode this in pure \SF. GHC relied on a hack to express this in the core language.
 \SFC\cite{sulzmann_system_2007} was desiged and implimented to solve this problem. In the following sections we take a look of the core language, followed by how it can be used to encode all the features discussed in \pref{sec:language-features}.
 % In one statment: \SFC is an intensional intrinsically typed programming language.
@@ -570,7 +566,7 @@ We will use call by name semantics as GHC uses lazy evaluation. Adjusting the op
 
 \newcommand{\CoPush}{
   \ib{\irule[\trule{co-push}]
-    {\LARGE\substack {\nu\co \sigma_1' \sim \sigma_2'\\
+    {\substack {\nu\co \sigma_1' \sim \sigma_2'\\
                       \Co_1 : \sigma_1 \sim \sigma_1' = \Left {(\Left \Co)}}}
     {\LARGE\substack {\Co\co (\sigma_1 \sim \sigma_2 \then \sigma_3) \sim (\sigma_1' \sim \sigma_2' \then \sigma_3')\\
                      {\Co_2: \sigma_2 \sim \sigma_2' = \Right{(\Left\Co)}\quad{\Co_3:\sigma_3\sim\sigma_3' = \Right\Co}}}};
@@ -888,9 +884,9 @@ Consider two modules: !AgeLib! where the library writer defines a newtype !Age! 
   \caption{Newtype Module: Definition and Use}
   \label{fig:newtype-modules}
 \end{figure}
-While on the surface level the functions \lstinline{mkAge} and \lstinline{addAge} seem to pack and unpack
-the \lstinline{Int} value stored in the \lstinline{Age} type, the compiler generates code where all the packing and unpacking of the values are removed using explicit type casts. Further during runtime, the explicit casts are completely removed. This optimization step is not performed on types declared using \lstinline{data} keyword. So the runtime cost characteristics of types declared using  \lstinline{newtype}s and \lstinline{data} are different. Due to the newtype definition
-we know that \lstinline{Age} \emph{is} \lstinline{Int} as \lstinline{Int} is the concrete runtime representation of \lstinline{Age}. This means that we should not pay any runtime cost for coercing \lstinline{Age} to \lstinline{Int} and vice versa. We notionally represent this type equality as \lstinline{Age ~ Int}.
+While on the surface level the functions !mkAge! and !AddAge! seem to pack and unpack
+the !Int! value stored in the !Age! type, the compiler generates code where all the packing and unpacking of the values are removed using explicit type casts. Further during runtime, the explicit casts are completely removed. This optimization step is not performed on types declared using !data! keyword. So the runtime cost characteristics of types declared using  !newtype!s and !data! are different. Due to the newtype definition
+we know that !Age! \emph{is} !Int! as !Int! is the concrete runtime representation of !Age!. This means that we should not pay any runtime cost for coercing !Age! to !Int! and vice versa. We notionally represent this type equality as !Age ~ Int!.
 \begin{figure}[ht]
   \centering
   \begin{minipage}[h]{0.4\linewidth}
@@ -1072,9 +1068,9 @@ Allowing user defined kinds, albeit more expressive, is just a half baked pie wi
   data TApp f a = MkTApp (f a)
 \end{code}
 
-The type argument !f! is defaulted to kind $\STAR \to \STAR$ making the kind of !TApp! to be $(\STAR \to \STAR) \to \STAR \to \STAR$. This limits encoding only only those type that have a kind $\STAR$. A more appropriate kind for !TApp! would be $\Forall k {(k\to\STAR) \to k \to \STAR}$, allowing a wider range of types to benefit from generic programming techniques.
+The type argument !f! is defaulted to kind $\STAR \to \STAR$ making the kind of !TApp! to be $(\STAR \to \STAR) \to \STAR \to \STAR$. This limits encoding only those types that have a kind $\STAR$. A more appropriate kind for !TApp! would be $\Forall k {(k\to\STAR) \to k \to \STAR}$, allowing a wider range of types to benefit from generic programming techniques.
 
-There are two birds to kill: allowing user defined kinds and kind polymorphism. An unimaginative solution for the former would involve adding a new syntax to the language that accepts kind definitions similar to the type definition. For example !kind Nat = Z | S Z!. An improvement, which the paper proposes, is by reusing the data type declaration syntax. For any algebraic datatype that the user defines, each of its data constructors will be promoted along with the type constructor. To encode type level naturals, the user declares the datatype, as they normally would, while the compiler automatically generates new type and kind level bindings. For example, in case of data type !Nat!, the data constructor !S : Nat -> Nat! gets promoted to the type level while !Nat! get promoted to the kind level. Kind polymorphism is straight forward by allowing kind quantification only in prenex form. For example for a datatype !T : FORALL $\many{a}$. $\many{k}$ -> *!, all the kind variables $\many{a}$ are quantified before the type arguments of kind $\many{k}$. This simplifies the semantics of the type constants.
+There are two birds to kill: allowing user defined kinds and kind polymorphism. An unimaginative solution for the former would involve adding a new syntax to the language that accepts kind definitions similar to the type definition. For example !kind Nat = Z | S Z!. An improvement, which the paper proposes, is by reusing the datatype declaration syntax. For any algebraic datatype that the user defines, each of its data constructors will be promoted along with the type constructor. To encode type level naturals, the user declares the datatype, as they normally would, while the compiler automatically generates new type and kind level bindings. For example, in case of datatype !Nat!, the data constructor !S : Nat -> Nat! gets promoted to the type level while !Nat! get promoted to the kind level. Kind polymorphism is straight forward by allowing kind quantification only in prenex form. For example for a datatype !T : FORALL $\many{a}$. $\many{k}$ -> *!, all the kind variables $\many{a}$ are quantified before the type arguments of kind $\many{k}$. This simplifies the semantics of the type constants.
 
 \subsubsection{Syntax}
 
@@ -1133,7 +1129,7 @@ The restriction on the promotion of type constructors is because promoting highe
 \subsection{Type and Kind Inference}
 The user is expected to provide minimal (if any) kind annotations to the programs. This necessitates changing the type inference algorithm. While instantiating a kind polymorphic term, fresh kind unification variables are generated, and during type unification, the kinds of the types are also unified. This is necessary due to the design decision: there are no kind equalities. The unification of kinds does not produce any evidences, unlike for type unification. This helps in solving kind unification on the fly in contrast to solving type unification where they are collected as equality constraints and then solved separately, generating coercion as evidences.
 
-The data type declaration is type checked in a manner very similar to mutually dependent terms:
+The datatype declaration is type checked in a manner very similar to mutually dependent terms:
 \begin{itemize}
 \item The type declarations are sorted into strongly connected components;
 \item The kind inference assigns a new unification kind variable to each of the type constructors and then walks over the definitions solving for kind constraints that may arise;
@@ -1141,7 +1137,7 @@ The data type declaration is type checked in a manner very similar to mutually d
 \end{itemize}
 
 
-In \SFP, there are no kind coercions nor there are kind equality constraints. This keep the design and implementation simple but at the expense of leaving out certain programs that can be well typed. For example, promotion of GADTs may be useful for generic programming.
+In \SFP, there are no kind coercions nor there are kind equality constraints. This keep the design and implementation simple but at the expense of leaving out certain programs that can be well typed. Promotion of GADTs is useful for generic programming.
 
 
 \begin{figure}[ht]
@@ -1373,182 +1369,192 @@ Adding kind equalities to the system is non-trivial owing to its interaction wit
   \label{fig:sfk-typing}
 \end{figure}
 
-\section{\HMX}
-\subsection{Absence of Principal Types}
-%% How is principality lost
-In the presence of GADTs terms can no longer have principal types. Consider a program fragment as shown below:
-\begin{minipage}[ht]{0.4\linewidth}
-\begin{codef}
-data Exp a where
-    Var :: String -> Exp String
-    Add :: Exp a -> Exp a -> Exp a
-\end{codef}
-\end{minipage}
-\begin{minipage}[ht]{0.3\linewidth}
-  \begin{codef}
-    qq (Var s) _ = s
-    qq (Add _ _) s = s
-  \end{codef}
-\end{minipage}%
-\begin{minipage}[ht]{0.3\linewidth}
-  \begin{codef}
-    qq2 (Var s) _ = s
-    qq2 (Add _ _) s = "exp" ++ s
-  \end{codef}
-\end{minipage}
-
-Now !qq! can be assigned two valid types:
-
-\begin{minipage}[ht]{0.5\linewidth}
-\begin{codef}
-qq :: $\forall$ a. Exp a -> a -> a             -- (1)
-qq :: $\forall$ a. Exp a -> String -> String   -- (2)
-\end{codef}
-\end{minipage}%
-\begin{minipage}[ht]{0.4\linewidth}
-    qq2 :: $\forall$ a. Exp a -> String -> String
-\end{minipage}
-
-Both of these types (1) and (2) are also incomparable; meaning, it is not the case that one of them is more general than the other. On the other hand, qq2 does have a principal type. The goal of the paper is to design a type system which when given a term---like !qq!---that does not have a principal type fails with an error while, a term that does have a principal type---like !qq2!---does not. Does this mean that this type system never accepts terms that do not have a principal type? No, in such cases, we want the users to specify the type that they expect the term to have and the system will check if the type annotation agrees with the definition. The challenge is to identify which definitions should be accepted and which definitions should be rejected.
-
-\subsection{Constraint Based Type Systems}
-Constraint based type systems are type systems where the constraints are part of the type system specification and the implementation generates and solves for the constraints. The implementations usually operate in two phases. In the first phase all the constraints are generated and then in the second phase they are solved. For example, consider a Haskell program as given below:
-% isPalindrome :: Eq a => [a] -> Bool
-\begin{codef}
-isPalindrome = \ xs -> xs == reverse xs
-\end{codef}
-The function !isPalindrome! accepts a list of type !a! and returns !True! if it is a palindrome. While checking the type of !isPalindrome!, the type system would emit a ``wanted'' constraint !Eq [a]! due to the use of !(==)! on the list xs. This ``wanted'' constraint then needs to be solved, (possibly) using the ``given'' constraint !Eq a!. For the constraint generation phase, we write
-\newcommand\GenConstraints[4]{#1 \vdash #2 : #3 \rightsquigarrow #4}
-$$
-\GenConstraints \TEnv e \tau C
-$$
-to denote that the constraints $C$ are generated when we infer the type $\tau$ for the expression $e$ in the type environment $\TEnv$. For example, for \lstinline{isPalindrome}, we would infer the type and generate the constraints from the body of the function as given below:
-$$
-\TEnv \vdash \text{(\lstinline {\\ xs -> xs == reverse xs})} : \TyVar \rightsquigarrow (\TyVar \sim (\Co \to Bool)) \land (\Co \sim [\Co_1]) \land (\text{\lstinline{Eq}}~ [\Co_1])
-$$
-where the type environment $\TEnv$ contains the bindings $\text{\lstinline{reverse}}\co\forall \TyVar. [\TyVar] \to [\TyVar]$ and $\text{\lstinline{(==)}}\co\forall \beta. Eq~\beta \then \beta \to Bool$.
-For an ML like language, that contains lambdas ($\Lam x e$), applications ($e \App e'$), variables ($x$) and pattern matching on algebraic data types ($\Case e {\Set{\overline{K \overline x \to e}}}$ ) the rules for constraint generation are given in \pref{fig:constraint-gen}.
-
-\newcommand\SubstMap[3]{\Set{#2 \mapsto #3}#1}
-\begin{figure}[ht]
-  \centering
-  \begin{gather*}
-    \fbox{$\GenConstraints \TEnv e \tau C$}\\
-    \ib{\irule[\trule{var}]{(x\co\forall a. Q \then \tau) \in \TEnv}
-      {\Subst= \Set{{\overline{a \mapsto \TyVar}}}}
-      {\fresh {\overline{\TyVar}} \TEnv};
-      {\GenConstraints \TEnv x {\Subst\tau} {\Subst Q}}}
-    \rsp
-    \ib{\irule[\trule{app}]
-      {\GenConstraints \TEnv e {\tau_1} {Q_1}}
-      {\GenConstraints \TEnv {e'} {\tau_2} {Q_2}}
-      {\fresh \TyVar \TEnv};
-      {\GenConstraints \TEnv {e \App e'} {\TyVar}  {Q_1 \land Q_2 \land (\tau_1 \sim \tau_2 \to \TyVar)}}}\\
-    \ib{\irule[\trule{abs}]
-      {\GenConstraints {\TEnv, x\co\TyVar} {e} {\tau} Q}
-      {\fresh \TyVar \TEnv};
-      {\GenConstraints \TEnv {\Lam x e} {\TyVar \to \tau} Q}}
-    \rsp
-    \ib{\irule[\trule{case}]
-      {\LARGE\substack{{\GenConstraints \TEnv {e} {\tau} Q} \quad {\fresh {\TyVar,\overline\Co} \TEnv} \quad {Q' = Q \land T\overline\Co \sim \tau}\\
-        {\text{For each } K_i\overline x_i \to e_i} \text{ do }\qquad\qquad\qquad\qquad\\
-        (K_i\co\forall\overline{a}.~\overline\sigma_i \to T\overline{a}) \in \TEnv \quad {\GenConstraints{\TEnv, \overline{x_i:\Set{\overline{a \mapsto \Co}}\sigma_i}} {e_i} {\tau_i} {C_i}}\\
-        {Q'_i = C_i \land \tau_i \sim \TyVar}
-      }};
-      {\GenConstraints \TEnv {\Case e {\Set{\overline{K \overline x \to e}}}} {\TyVar} (Q' \land (\land \overline{Q_i})) }}
-  \end{gather*}
-  \caption{Constraint Generation Rules}
-  \label{fig:constraint-gen}
-\end{figure}
-
-The rule \trule{var} says that for a variable $x$ with the type scheme $\forall \TyVar. Q \then \tau$ in the type environment $\TEnv$, all the meta type variables $\overline{a}$ are instantiated to fresh unification variables $\overline{\TyVar}$, ($\fresh {\overline{\TyVar}} \TEnv$). The rule \trule{app} says that for term application $e \App e'$ $Q_1$ are the generated constraints from $e$, $Q_2$ from $e_2$, and further, the type of $e$ should be of the shape $\tau_2 \to \TyVar$ where $\tau_2$ is the type of the argument, $e'$, and $\TyVar$ is a fresh unification variable. The rule \trule{abs} says that for a lambda term $\Lam x e$ the inferred type is $\TyVar \to \tau$, where $\TyVar$ is a fresh unification variable and the body of the lambda term $e$ with the extended binding for $x\co\TyVar$ returns the type $\tau$ and generates the constraints $Q$. For, the \texttt{case} statement, we first infer the the type ($\tau$) of the expression subject expression ($e$) and generate constraints ($C$) for it, we then infer types and generate constraints of each match statement with an additional constraint that the return type ($\TyVar$) should be the same for all the cases. The final constraint set is just a conjunction of the constraints generated by the main expression and the cases.
-
-\newcommand\SolConstraints[5]{\ensuremath{#1 ; #2 \vdash_{simp} #3 \rightsquigarrow #4 ; #5}}
-In the second phase, the type system solves the constraints generated by phase one. This solving, or simplification of the constraints, depends on the specific constraint system X. We write the simplification as given below:
-$$
-\SolConstraints {\mathcal Q} {Q_{given}} {Q_{wanted}} {Q_{residual}} \Subst
-$$
-This means that under some global constraints $\mathcal{Q}$ and ``given'' constraints $Q_{given}$ the constraint solver (or simplifier) reduces the ``wanted'' constraints $Q_{wanted}$ to ``residual'' constraints $Q_{residual}$, along with a substitution $\Subst$ that maps unification variables to types. The residual constraints are the constraints that could not be solved by the simplifier. The constraint solving is performed for each top level binding. For \lstinline{isPalindrome}, the generated constraints can be solved
-by having a global constraint $\forall a.~ Eq~ a \then Eq~ [a]$.
-$$
-\SolConstraints {\Set{\forall a.~ Eq~ a \then Eq~ [a]}} {\varepsilon} {(\TyVar \sim (\Co \to Bool)) \land (\Co \sim [\Co_1]) \land (\text{\lstinline{Eq}}~ [\Co_1])} {\Set{Eq~\Co_1}} {\Set{\TyVar \mapsto ([\Co_1] \to Bool)}}
-$$
-
-\newcommand\TopLevel[3]{\ensuremath{#1 ; #2 \vdash #3}}
-Both of these phases are orchestrated at the top level for each binding. It is denoted by,
-$$
-\TopLevel {\mathcal{Q}} \TEnv {prog}
-$$
-where the $prog$ is a collection of bindings, $\TEnv$ is the type environment, and $\mathcal Q$ are the global constraints. There are two rules, \trule{binda} and \trule{bind}, depending on whether the binding is accompanied by a type annotation or not respectively. They are shown in \pref{fig:top-level-rules}.
-
-\begin{figure}[ht]
-  \centering
-  \begin{gather*}
-    \fbox{\TopLevel {\mathcal{Q}} \TEnv {prog}}\\
-    \ib{\irule[\trule{empt}]
-      {};{\TopLevel {\mathcal{Q}} \TEnv \varepsilon}}\\
-%%
-    \ib{\irule[\trule{bind}]
-      {\LARGE
-        \substack{{\GenConstraints \TEnv e \tau {Q_{wanted}}} \qquad {\SolConstraints {\mathcal Q} \varepsilon {Q_{wanted}} {Q} \Subst}\\
-          \overline{\TyVar} = fv(\Subst\tau, Q) \qquad \fresh{\overline{a}}\TEnv \qquad \Subst' = \Set{\overline{\TyVar \mapsto a}}\\
-        {\TopLevel {\mathcal Q} {\TEnv, (f\co\forall\overline a.~ \Subst'Q \then \Subst\tau)} {prog}}}
-      };
-      {\TopLevel {\mathcal{Q}} \TEnv {f = e, prog}}}
-%%
-    \rsp
-%%
-    \ib{\irule[\trule{bindA}]
-      {\LARGE
-        \substack{{\GenConstraints \TEnv e \sigma {Q_{wanted}}} \qquad {\SolConstraints {\mathcal Q} Q {Q_{wanted} \land \sigma \sim \tau} {\varepsilon} \Subst}\\
-        {\TopLevel {\mathcal Q} {\TEnv, (f\co\forall a. Q \then \tau)} {prog}}}
-      };
-      {\TopLevel {\mathcal{Q}} \TEnv {(f\co\forall a. Q \then \tau) = e, prog}}}
-  \end{gather*}
-  \caption{Top Level Rules}
-  \label{fig:top-level-rules}
-\end{figure}
-The rule \trule{bind} takes in a top level binding $f = e$ of the program $prog$, infers a type $\tau$ and also generates constraints $Q_{wanted}$. The simplifier, then solves $Q_{wanted}$ using global quantified constraints to residual constraints $Q$. The type of the binding is then obtained by simply quantifying over all the free unification variables that appear in $\tau$ and $Q$. The simplifier is not provided with any given constraints as the binding is at top level. The rule \trule{binda} handles the case of a user provided type annotation for a binding. Here, the constraint generation phase is similar to the rule \trule{bind}, but the constraint simplification phase takes in an additional constraint $\sigma \sim \tau$ where $\sigma$ is the inferred type and $\tau$ is the user provided type. The simplifier should also be able to solve all the wanted constraints. If the simplifier cannot, it would mean that the user provided type annotation is under-specified which would be reported as an error.
-
-In the \lstinline{isPalindrome} example, the simplifier could, alternatively, have returned a $Eq~[\Co_1]$ instead of $Eq~\Co_1$ by not using the global constraint. But, this would mean that the function would not have had the most general, or principal type. Thus, it is necessary for the simplifier to be able to compute principal types so that the type inference algorithm can infer the most general type.
-
-\subsection{The Constraint System with Local Assumptions}
-The key feature of GADTs is that pattern matching on a GADT data constructor introduces local equality constraints into scope. For example, in the previous, example of \lstinline{Exp}. The data constructor \lstinline{Var} has the type $\forall a. (a \sim String). String \to Exp~ a$ where the constraint $a \sim String$ is local. When a value of type \lstinline{Exp} is constructed using \lstinline{Var}, this local constraint needs to be satisfied by providing an evidence along with the value level arguments. This evidence becomes available when the value is de-constructed in a pattern match. The type of the data constructor $K$ of a type $T$ in this full glory is given below:
-$$
-K \co \forall \overline{a}\overline{b}.~ Q \then \overline{\tau} \to T \overline{a}
-$$
-Here, $\overline{b}$ and $Q$ are the local type variables and the local assumptions respectively, which were previously absent from the type. These local variables have a flavor of existential types as they do not appear in the return type, $T \overline a$
-\begin{figure}[ht]
-  \centering
-  \begin{gather*}
-    \fbox{$\GenConstraints \TEnv e \tau C$}\\
-    \ib{\irule[\trule{casela}]
-      {\LARGE\substack{
-          {\GenConstraints \TEnv e \tau C} \quad \fresh {\TyVar,\overline\Co} \TEnv\\
-          {\text {For each } K_i \overline{x_i} \to e_i \text{ do }\qquad\qquad\qquad}\\
-          {(K_i\co\forall \overline{a}\overline{b}.~ Q \then \sigma_i \to T\overline{a}) \in \TEnv} \qquad {\fresh\beta\TEnv} \\
-          {\GenConstraints {\TEnv, \overline{(x_i\co\Set{\overline{\Co \mapsto a}}})} {e_i} {\tau_i} {C_i}} \qquad {\overline{\delta_i} =  fv(ruben sandwitch) - fv}
-        }};
-      {\GenConstraints {\TEnv} {\Case e {\overline{\Set{K_i\overline{x_i}\to e_i}}}} {\TyVar} {C \land \overline{C'_i}}}}
-  \end{gather*}
-\caption[Constraint Generation]{Constraint Generation with Local Assumptions}
-  \label{fig:constraint-gen-la}
-\end{figure}
-%% Local constraints
-
-%% Implication constraints
-
-% The typing judgements in constraint based type systems are of the form
-% $$
-% \QTyping {Q} {\TEnv} {e} {\Ty}
-% $$
-% which means that given a typing environment $\TEnv$ and some given constraints $Q$ the term $e$ has type $\Ty$.
-% The structure of !Q! here is flat; meaning it does not contain quantified schemes. However, in Haskell, the instance declarations are quantified constraints. For example, an instance declaration such as:
+% \section{\HMX}
+% \subsection{Absence of Principal Types}
+% %% How is principality lost
+% In the presence of GADTs terms can no longer have principal types. Consider a program fragment as shown below:
+% \begin{minipage}[ht]{0.4\linewidth}
 % \begin{codef}
-% instance Eq a => Eq [a] where {...}
+% data Exp a where
+%     Var :: String -> Exp String
+%     Add :: Exp a -> Exp a -> Exp a
 % \end{codef}
-% introduces a global top level constraint scheme: !$\forall$ a. Eq a => Eq [a]!.
-% To treat these kinds of global constraint schemes we need to rearrange the type system. We denote $\mathcal Q$ to contain all the top level constraint schemes that can be used by the solver to solve for wanted constraints.
+% \end{minipage}
+% \begin{minipage}[ht]{0.3\linewidth}
+%   \begin{codef}
+%     qq (Var s) _ = s
+%     qq (Add _ _) s = s
+%   \end{codef}
+% \end{minipage}%
+% \begin{minipage}[ht]{0.3\linewidth}
+%   \begin{codef}
+%     qq2 (Var s) _ = s
+%     qq2 (Add _ _) s = "exp" ++ s
+%   \end{codef}
+% \end{minipage}
+
+% Now !qq! can be assigned two valid types:
+
+% \begin{minipage}[ht]{0.5\linewidth}
+% \begin{codef}
+% qq :: $\forall$ a. Exp a -> a -> a             -- (1)
+% qq :: $\forall$ a. Exp a -> String -> String   -- (2)
+% \end{codef}
+% \end{minipage}%
+% \begin{minipage}[ht]{0.4\linewidth}
+%     qq2 :: $\forall$ a. Exp a -> String -> String
+% \end{minipage}
+
+% Both of these types (1) and (2) are also incomparable; meaning, it is not the case that one of them is more general than the other. On the other hand, qq2 does have a principal type. The goal of the paper is to design a type system which when given a term---like !qq!---that does not have a principal type fails with an error while, a term that does have a principal type---like !qq2!---does not. Does this mean that this type system never accepts terms that do not have a principal type? No, in such cases, we want the users to specify the type that they expect the term to have and the system will check if the type annotation agrees with the definition. The challenge is to identify which definitions should be accepted and which definitions should be rejected.
+
+% \subsection{Constraint Based Type Systems}
+% Constraint based type systems are type systems where the constraints are part of the type system specification and the implementation generates and solves for the constraints. The implementations usually operate in two phases. In the first phase all the constraints are generated and then in the second phase they are solved. For example, consider a Haskell program as given below:
+% % isPalindrome :: Eq a => [a] -> Bool
+% \begin{codef}
+% isPalindrome = \ xs -> xs == reverse xs
+% \end{codef}
+% The function !isPalindrome! accepts a list of type !a! and returns !True! if it is a palindrome. While checking the type of !isPalindrome!, the type system would emit a ``wanted'' constraint !Eq [a]! due to the use of !(==)! on the list xs. This ``wanted'' constraint then needs to be solved, (possibly) using the ``given'' constraint !Eq a!. For the constraint generation phase, we write
+% \newcommand\GenConstraints[4]{#1 \vdash #2 : #3 \rightsquigarrow #4}
+% $$
+% \GenConstraints \TEnv e \tau C
+% $$
+% to denote that the constraints $C$ are generated when we infer the type $\tau$ for the expression $e$ in the type environment $\TEnv$. For example, for \lstinline{isPalindrome}, we would infer the type and generate the constraints from the body of the function as given below:
+% $$
+% \TEnv \vdash \text{(\lstinline {\\ xs -> xs == reverse xs})} : \TyVar \rightsquigarrow (\TyVar \sim (\Co \to Bool)) \land (\Co \sim [\Co_1]) \land (\text{\lstinline{Eq}}~ [\Co_1])
+% $$
+% where the type environment $\TEnv$ contains the bindings $\text{\lstinline{reverse}}\co\forall \TyVar. [\TyVar] \to [\TyVar]$ and $\text{\lstinline{(==)}}\co\forall \beta. Eq~\beta \then \beta \to Bool$.
+% For an ML like language, that contains lambdas ($\Lam x e$), applications ($e \App e'$), variables ($x$) and pattern matching on algebraic datatypes ($\Case e {\Set{\overline{K \overline x \to e}}}$ ) the rules for constraint generation are given in \pref{fig:constraint-gen}.
+
+% \newcommand\SubstMap[3]{\Set{#2 \mapsto #3}#1}
+% \begin{figure}[ht]
+%   \centering
+%   \begin{gather*}
+%     \fbox{$\GenConstraints \TEnv e \tau C$}\\
+%     \ib{\irule[\trule{var}]{(x\co\forall a. Q \then \tau) \in \TEnv}
+%       {\Subst= \Set{{\overline{a \mapsto \TyVar}}}}
+%       {\fresh {\overline{\TyVar}} \TEnv};
+%       {\GenConstraints \TEnv x {\Subst\tau} {\Subst Q}}}
+%     \rsp
+%     \ib{\irule[\trule{app}]
+%       {\GenConstraints \TEnv e {\tau_1} {Q_1}}
+%       {\GenConstraints \TEnv {e'} {\tau_2} {Q_2}}
+%       {\fresh \TyVar \TEnv};
+%       {\GenConstraints \TEnv {e \App e'} {\TyVar}  {Q_1 \land Q_2 \land (\tau_1 \sim \tau_2 \to \TyVar)}}}\\
+%     \ib{\irule[\trule{abs}]
+%       {\GenConstraints {\TEnv, x\co\TyVar} {e} {\tau} Q}
+%       {\fresh \TyVar \TEnv};
+%       {\GenConstraints \TEnv {\Lam x e} {\TyVar \to \tau} Q}}
+%     \rsp
+%     \ib{\irule[\trule{case}]
+%       {\LARGE\substack{{\GenConstraints \TEnv {e} {\tau} Q} \quad {\fresh {\TyVar,\overline\Co} \TEnv} \quad {Q' = Q \land T\overline\Co \sim \tau}\\
+%         {\text{For each } K_i\overline x_i \to e_i} \text{ do }\qquad\qquad\qquad\qquad\\
+%         (K_i\co\forall\overline{a}.~\overline\sigma_i \to T\overline{a}) \in \TEnv \quad {\GenConstraints{\TEnv, \overline{x_i:\Set{\overline{a \mapsto \Co}}\sigma_i}} {e_i} {\tau_i} {C_i}}\\
+%         {Q'_i = C_i \land \tau_i \sim \TyVar}
+%       }};
+%       {\GenConstraints \TEnv {\Case e {\Set{\overline{K \overline x \to e}}}} {\TyVar} (Q' \land (\land \overline{Q_i})) }}
+%   \end{gather*}
+%   \caption{Constraint Generation Rules}
+%   \label{fig:constraint-gen}
+% \end{figure}
+
+% The rule \trule{var} says that for a variable $x$ with the type scheme $\forall \TyVar. Q \then \tau$ in the type environment $\TEnv$, all the meta type variables $\overline{a}$ are instantiated to fresh unification variables $\overline{\TyVar}$, ($\fresh {\overline{\TyVar}} \TEnv$). The rule \trule{app} says that for term application $e \App e'$ $Q_1$ are the generated constraints from $e$, $Q_2$ from $e_2$, and further, the type of $e$ should be of the shape $\tau_2 \to \TyVar$ where $\tau_2$ is the type of the argument, $e'$, and $\TyVar$ is a fresh unification variable. The rule \trule{abs} says that for a lambda term $\Lam x e$ the inferred type is $\TyVar \to \tau$, where $\TyVar$ is a fresh unification variable and the body of the lambda term $e$ with the extended binding for $x\co\TyVar$ returns the type $\tau$ and generates the constraints $Q$. For, the \texttt{case} statement, we first infer the the type ($\tau$) of the expression subject expression ($e$) and generate constraints ($C$) for it, we then infer types and generate constraints of each match statement with an additional constraint that the return type ($\TyVar$) should be the same for all the cases. The final constraint set is just a conjunction of the constraints generated by the main expression and the cases.
+
+% \newcommand\SolConstraints[5]{\ensuremath{#1 ; #2 \vdash_{simp} #3 \rightsquigarrow #4 ; #5}}
+% In the second phase, the type system solves the constraints generated by phase one. This solving, or simplification of the constraints, depends on the specific constraint system X. We write the simplification as given below:
+% $$
+% \SolConstraints {\mathcal Q} {Q_{given}} {Q_{wanted}} {Q_{residual}} \Subst
+% $$
+% This means that under some global constraints $\mathcal{Q}$ and ``given'' constraints $Q_{given}$ the constraint solver (or simplifier) reduces the ``wanted'' constraints $Q_{wanted}$ to ``residual'' constraints $Q_{residual}$, along with a substitution $\Subst$ that maps unification variables to types. The residual constraints are the constraints that could not be solved by the simplifier. The constraint solving is performed for each top level binding. For \lstinline{isPalindrome}, the generated constraints can be solved
+% by having a global constraint $\forall a.~ Eq~ a \then Eq~ [a]$.
+% $$
+% \SolConstraints {\Set{\forall a.~ Eq~ a \then Eq~ [a]}} {\varepsilon} {(\TyVar \sim (\Co \to Bool)) \land (\Co \sim [\Co_1]) \land (\text{\lstinline{Eq}}~ [\Co_1])} {\Set{Eq~\Co_1}} {\Set{\TyVar \mapsto ([\Co_1] \to Bool)}}
+% $$
+
+% \newcommand\TopLevel[3]{\ensuremath{#1 ; #2 \vdash #3}}
+% Both of these phases are orchestrated at the top level for each binding. It is denoted by,
+% $$
+% \TopLevel {\mathcal{Q}} \TEnv {prog}
+% $$
+% where the $prog$ is a collection of bindings, $\TEnv$ is the type environment, and $\mathcal Q$ are the global constraints. There are two rules, \trule{binda} and \trule{bind}, depending on whether the binding is accompanied by a type annotation or not respectively. They are shown in \pref{fig:top-level-rules}.
+
+% \begin{figure}[ht]
+%   \centering
+%   \begin{gather*}
+%     \fbox{\TopLevel {\mathcal{Q}} \TEnv {prog}}\\
+%     \ib{\irule[\trule{empt}]
+%       {};{\TopLevel {\mathcal{Q}} \TEnv \varepsilon}}\\
+% %%
+%     \ib{\irule[\trule{bind}]
+%       {\LARGE
+%         \substack{{\GenConstraints \TEnv e \tau {Q_{wanted}}} \qquad {\SolConstraints {\mathcal Q} \varepsilon {Q_{wanted}} {Q} \Subst}\\
+%           \overline{\TyVar} = fv(\Subst\tau, Q) \qquad \fresh{\overline{a}}\TEnv \qquad \Subst' = \Set{\overline{\TyVar \mapsto a}}\\
+%         {\TopLevel {\mathcal Q} {\TEnv, (f\co\forall\overline a.~ \Subst'Q \then \Subst\tau)} {prog}}}
+%       };
+%       {\TopLevel {\mathcal{Q}} \TEnv {f = e, prog}}}
+% %%
+%     \rsp
+% %%
+%     \ib{\irule[\trule{bindA}]
+%       {\LARGE
+%         \substack{{\GenConstraints \TEnv e \sigma {Q_{wanted}}} \qquad {\SolConstraints {\mathcal Q} Q {Q_{wanted} \land \sigma \sim \tau} {\varepsilon} \Subst}\\
+%         {\TopLevel {\mathcal Q} {\TEnv, (f\co\forall a. Q \then \tau)} {prog}}}
+%       };
+%       {\TopLevel {\mathcal{Q}} \TEnv {(f\co\forall a. Q \then \tau) = e, prog}}}
+%   \end{gather*}
+%   \caption{Top Level Rules}
+%   \label{fig:top-level-rules}
+% \end{figure}
+% The rule \trule{bind} takes in a top level binding $f = e$ of the program $prog$, infers a type $\tau$ and also generates constraints $Q_{wanted}$. The simplifier, then solves $Q_{wanted}$ using global quantified constraints to residual constraints $Q$. The type of the binding is then obtained by simply quantifying over all the free unification variables that appear in $\tau$ and $Q$. The simplifier is not provided with any given constraints as the binding is at top level. The rule \trule{binda} handles the case of a user provided type annotation for a binding. Here, the constraint generation phase is similar to the rule \trule{bind}, but the constraint simplification phase takes in an additional constraint $\sigma \sim \tau$ where $\sigma$ is the inferred type and $\tau$ is the user provided type. The simplifier should also be able to solve all the wanted constraints. If the simplifier cannot, it would mean that the user provided type annotation is under-specified which would be reported as an error.
+
+% In the \lstinline{isPalindrome} example, the simplifier could, alternatively, have returned a $Eq~[\Co_1]$ instead of $Eq~\Co_1$ by not using the global constraint. But, this would mean that the function would not have had the most general, or principal type. Thus, it is necessary for the simplifier to be able to compute principal types so that the type inference algorithm can infer the most general type.
+
+% \subsection{The Constraint System with Local Assumptions}
+% The key feature of GADTs is that pattern matching on a GADT data constructor introduces local equality constraints into scope. For example, in the previous, example of \lstinline{Exp}. The data constructor \lstinline{Var} has the type $\forall a. (a \sim String). String \to Exp~ a$ where the constraint $a \sim String$ is local. When a value of type \lstinline{Exp} is constructed using \lstinline{Var}, this local constraint needs to be satisfied by providing an evidence along with the value level arguments. This evidence becomes available when the value is de-constructed in a pattern match. The type of the data constructor $K$ of a type $T$ in this full glory is given below:
+% $$
+% K \co \forall \overline{a}\overline{b}.~ Q \then \overline{\tau} \to T \overline{a}
+% $$
+% Here, $\overline{b}$ and $Q$ are the local type variables and the local assumptions respectively, which were previously absent from the type. These local variables have a flavor of existential types as they do not appear in the return type, $T \overline a$
+% \begin{figure}[ht]
+%   \centering
+%   \begin{gather*}
+%     \fbox{$\GenConstraints \TEnv e \tau C$}\\
+%     \ib{\irule[\trule{casela}]
+%       {\LARGE\substack{
+%           {\GenConstraints \TEnv e \tau C} \quad \fresh {\TyVar,\overline\Co} \TEnv\\
+%           {\text {For each } K_i \overline{x_i} \to e_i \text{ do }\qquad\qquad\qquad}\\
+%           {(K_i\co\forall \overline{a}\overline{b}.~ Q \then \sigma_i \to T\overline{a}) \in \TEnv} \qquad {\fresh\beta\TEnv} \\
+%           {\GenConstraints {\TEnv, \overline{(x_i\co\Set{\overline{\Co \mapsto a}}})} {e_i} {\tau_i} {C_i}} \qquad {\overline{\delta_i} =  fv(ruben sandwitch) - fv}
+%         }};
+%       {\GenConstraints {\TEnv} {\Case e {\overline{\Set{K_i\overline{x_i}\to e_i}}}} {\TyVar} {C \land \overline{C'_i}}}}
+%   \end{gather*}
+% \caption[Constraint Generation]{Constraint Generation with Local Assumptions}
+%   \label{fig:constraint-gen-la}
+% \end{figure}
+% %% Local constraints
+
+% %% Implication constraints
+
+% % The typing judgements in constraint based type systems are of the form
+% % $$
+% % \QTyping {Q} {\TEnv} {e} {\Ty}
+% % $$
+% % which means that given a typing environment $\TEnv$ and some given constraints $Q$ the term $e$ has type $\Ty$.
+% % The structure of !Q! here is flat; meaning it does not contain quantified schemes. However, in Haskell, the instance declarations are quantified constraints. For example, an instance declaration such as:
+% % \begin{codef}
+% % instance Eq a => Eq [a] where {...}
+% % \end{codef}
+% % introduces a global top level constraint scheme: !$\forall$ a. Eq a => Eq [a]!.
+% % To treat these kinds of global constraint schemes we need to rearrange the type system. We denote $\mathcal Q$ to contain all the top level constraint schemes that can be used by the solver to solve for wanted constraints.
+\section{Related Work}
+\subsection{Modules with Typeclasses}
+Modules and typeclasses are similar in certain ways
+
+They are however different.
+
+Their co-existence is incoherent
+
+Various attempts\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} have been made to enable a happy co-existence of parametric and implicit ad-hoc polymorphism together in a language by encoding typeclasses as modules and vice versa. However, in presense of modularity to support separate code compilation, it becomes impossible to avoid incoherence without cripling the language expressibility.
+ML and its varients\cite{milner_definition_1997,leroy_ocaml_2023} disallow allow operator overloading to enable modular compilation.
 
 \section{Conclusion and Future work}\label{sec:conclusion}
 \begin{figure}[ht]
