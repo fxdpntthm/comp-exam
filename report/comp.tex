@@ -23,7 +23,7 @@
 \begin{document}
 
 \begin{abstract}
-  This report is a juxtaposition of \SFC and its extensions with its theoretical developments. We begin with some standard features of a strongly typed functional programming language, followed by a formalization of \SFC, which is in essense is \SF with explicit type equalities. The repercussions of this extension is extensive as it not only enables arbitrary computation at type level but also efficiently encodes a diverse set of language features. \SFC is then extended to \SFP with an expressive kind---the type of types---system that enables an even more expressive type level computation. Finally, we discuss \SFK which enables expressing kind level equalities by squashing the distinction between types and kinds.
+  This report is a juxtaposition of \SFC and its extensions with its theoretical developments. We begin with some standard features of a strongly typed functional programming language, followed by a formalization of \SFC, which is in essense is \SF with explicit type equalities. The repercussions of adding type equalities as a core language feature is extensive as  it can efficiently encode a diverse set of language features which were previously not possible in \SF. We then study some extensions of \SFC: \SFR which makes type equality finer grained, \SFP which makes the kind system more expressive and finally, we discuss \SFK which enables expressing kind level equalities by squashing the distinction between types and kinds.
 \end{abstract}
 
 \maketitle
@@ -35,21 +35,100 @@
 Aiding organization of related data together is important feature of any programming language. The structures, which store information, represent the domain elements. The transformations on these structures then, models the program logic. Algebraic datatypes are a primary way to define such new structures in a functional programming language.
 
 \subsubsection{Algebraic Datatypes}
-Algebraic Datatypes (ADT) can be viewed as composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. A declarative style of defining new datatypes was first introduced in the programming language HOPE\cite{burstall_hope_1980}. A balanced binary tree in Haskell can be declared as:
+Algebraic Datatypes (ADT) can be viewed as composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. A declarative style of defining new datatypes was first introduced in the programming language HOPE\cite{burstall_hope_1980}. As an example, a binary tree in Haskell can be declared as:
 
 \begin{CenteredBox}
-  \begin{code}
-      data Tree c = Leaf c | Branch (Tree c, Tree c)
-   \end{code}
+\begin{code}
+data Tree c = Leaf c
+            | Branch (Tree c, Tree c)
+\end{code}
 \end{CenteredBox}
-The keyword !data! introduces a new user defined agebraic datatype with name !Tree! parameterized over any type !c!. A value of type !Tree c! can be defined using either the data constructors, !Leaf! or !Branch!. A !Leaf! is a terminal node that contains the value of type !c! while a !Branch! contains a pair of sub trees. It is important to observe that the structure the datatype does not dependent on the type parameter !c!, i.e. it is used parametrically, or the shape of !Tree Int! and !Tree Float! will be the same. In a non-strongly typed programming language, a predicate is usually necessary to check that structural invariants hold: The !Branch! case does has two sub trees. In this setting the typechecker is able to automatically check for such invariants. Parametricity allows programs to be general and hence reusable.
+
+The keyword !data! introduces a new user defined agebraic datatype with name !Tree! parameterized over any type !c!. A value of type !Tree c! can be defined using the data constructors, !Leaf! and !Branch!. A !Leaf! is a terminal node that contains the value of type !c!, while a !Branch! contains a pair of sub trees. The data constructors themselves can be used as functions with the type of\, !Leaf :: FORALL a. a -> Tree a! and\, !Branch :: FORALL a. (Tree a, Tree a) -> Tree a!. It is important to observe that the structure the datatype does not dependent on the type parameter !c!, i.e. it is used parametrically, or the shape of !Tree Int! and !Tree Float! is the same. Parametricity allows programs to be general and hence reusable. In an untyped programming language, a predicate is necessary to check that certain structural invariants hold: The !Branch! case has two sub trees. In a typed setting the typechecker can check such invariants and reject ill-structured data: the term !Branch (Tree c)! is ill-typed. An alternative syntax to write the !Tree c! data type would be by type signature explication for each of the data constructors.
+
+\begin{CenteredBox}
+\begin{code}
+data Tree c where
+    Leaf   :: c                -> Tree c
+    Branch :: (Tree c, Tree c) -> Tree c
+\end{code}
+\end{CenteredBox}
+
+ADTs open avenues for writing a clean domain specific application. For example, consider a simple calculator application that performs addition operation on integers. In this case, the domain is the algebraic expression. One can declare an encoding for algrebraic expressions using an ADT as follows:
+
+\begin{CenteredBox}
+\begin{code}
+data AlgExp a where
+    Value  ::  a                        -> AlgExp a
+    Plus   ::  AlgExp Int -> AlgExp Int -> AlgExp a
+\end{code}
+\end{CenteredBox}
+
+The data constructor !Value! encodes values such as integers while !Plus! encodes the operation of adding the two expressions. Now, the function of the calculator, i.e. to compute algebraic expressions, is to evaluate the encoded expression. This can be perfromed by means of an !eval! funtion defined recursively as shown below.
+
+\begin{CenteredBox}
+\begin{code}
+eval :: AlgExp Int -> Int
+eval (Value i)  = i
+eval (Plus x y) = (eval x) + (eval y)
+\end{code}
+\end{CenteredBox}
+
+The declarative style of programming allows us to write the !eval! function on a case by case basis. The first case says that if we have a !Value!, we can deduce that it is an !Integer! and just return it unaltered. In the second case of !Plus! we first evaluate the expressions !x! and !y! and then return the addition of the evaluations. Another advantage of having a declarative style is that extending the calculator application, say to include more binary operations, such as multiplication and division operation, is a simple matter. It involves adding two new data constructors !Mult! and !Div!, similar to !Plus!, in the data declaration followed by extending the !eval! function with cases for !Mult!, which multiplies, and !Div! that divides.
+
 
 \subsubsection{Generalized Algebraic Datatypes}
-Reusablity due to parametricty however, comes at a cost of inexpressivity. Real world programs such as polymorphic serialization of data either requires the programmers to provide the cannonical forms of representation \cite{herlihy_value_1982} to be used during run-time or require runtime type analysis\cite{harper_compiling_1995}. Parametric algebraic datatypes are insufficent as they provide no facility to pass the type parameters at runtime. Generalized algebraic datatypes liberate this limitation by capturing type constraints with in the structure of the type. To distinguish parametric use of the type arguments of ADTs, we call them type indices for GADTs to emphasize non-parameric usage. They have been studied under various names such as first class phantom types\citep{cheney_first-class_2003}, guarded recursive datatypes\cite{xi_guarded_2003}, equality qualified types\cite{sheard_meta-programming_2008}. Consider an example that models simply typed lambda calculus and a single step call by name evaluator as shown \pref{fig:gadt-example}.
+Consider an extension of the previously defined !AlgExp! to include an explicit predicate that checks if the expression is equal to zero, !IsZero!.
+
+\begin{minipage}[ht]{0.6\linewidth}
+\begin{code}
+data AlgExp a where
+    Value  ::  a                    -> AlgExp a
+    Plus   ::  AlgExp a -> AlgExp a -> AlgExp a
+    IsZero ::  AlgExp Int           -> AlgExp a
+\end{code}
+\end{minipage}%
+\begin{minipage}[ht]{0.4\linewidth}
+\begin{code}
+eval :: AlgExp Int -> Int
+eval (Value i)  = i
+eval (Plus x y) = (eval x) + (eval y)
+eval (IsZero x) = (eval x) == 0 -- Type error!
+\end{code}
+\end{minipage}
+
+We also need to extend the !eval! function that evaluates the !IsZero! case. How should the !eval! function handle the !IsZero! case? Using the staight forward definition of !(eval x) == 0! fails to type check as the eval function requires the return type of the expression to be an !Int! but the expression is of type !Bool!. Another possible solution is to change the return type of the the !eval! function to instead be !Either Int Bool! which means that the evaluator either returns an !Int! or a !Bool!. While this would work as expected, it necesitates a complete rewrite of the !eval! function. The situation of maintaining this !eval! function would become even more cumbersome if later on we had the need to add a facility to store and use user defined functions. Addition of each such new construct would mean nesting of !Either! datatype and then checking at each recursive call which value is returned.
+
+All we really want is an evaluator that evaluates the expression. Ideally the type signature of the !eval! function
+should be agnostic of the expression type: !eval :: FORALL a. AlgExp a -> a!. The crux of the problem is that the current data constructors !AlgExp! all have a generic return type of !AlgExp a!. The problem would disappear if we were able to constraint the return type of each of the data constructors.
+
+\begin{minipage}[ht]{0.6\linewidth}
+\begin{code}
+data AlgExp a where
+    Value  ::  a                        -> AlgExp a
+    Plus   ::  AlgExp Int -> AlgExp Int -> AlgExp Int
+    IsZero ::  AlgExp Int               -> AlgExp Bool
+\end{code}
+\end{minipage}%
+\begin{minipage}[ht]{0.4\linewidth}
+\begin{code}
+eval :: AlgExp a -> a
+eval (Value i)  = i
+eval (Plus x y) = (eval x) + (eval y)
+eval (IsZero x) = (eval x) == 0 -- Okay!
+\end{code}
+\end{minipage}%
+
+
+Here we are able to not just constrain the structure of the data but also its return type.
+
+
+
+Reusablity due to parametricty however, comes at a cost of inexpressivity. Real world programs such as polymorphic serialization of data either requires the programmers to provide the cannonical forms of representation \cite{herlihy_value_1982} to be used during run-time or require runtime type analysis\cite{harper_compiling_1995}. Parametric algebraic datatypes are insufficent as they provide no facility to pass the type parameters at runtime. Generalized algebraic datatypes liberate this limitation by capturing type constraints with in the structure of the type. They have been studied under various names such as first class phantom types\citep{cheney_first-class_2003}, guarded recursive datatypes\cite{xi_guarded_2003}, equality qualified types\cite{sheard_meta-programming_2008}. Consider an example that models simply typed lambda calculus and a single step call by name evaluator as shown \pref{fig:gadt-example}.
 \begin{figure}[ht]
   \centering
   \begin{minipage}[ht]{0.5\linewidth}
-    \begin{code}[linemumbers=left]
+    \begin{code}
 data LamTm a where
   Var :: String -> LamTm a
   Lam :: (LamTm a -> LamTm b) -> LamTm (a -> b)
@@ -71,8 +150,8 @@ data LamTm a where
 \end{figure}
 Writing an !eval! function for a !LamTm a! would be cumbersome if it were not for the constrainted type arguments of data constructors !Lam! and !App!. The local type constraints on !Lam! are necessary to convince the type checker that the application term !fun arg! is well typed, with the type of !fun! being !LamTm a -> LamTm b! and the type of !arg! being !LamTm a!.
 
-\subsection{Modules and Data Abstraction}
-Code modularity aids writing bug free programs. Modules help in achieveing code modularity by allowing programmers write smallish independent programs. The complete program is then a composition of the modules. Modules were first implemented as extensions to Algol 68. They aid in maintaining separation of concerns by not just organizing related program units together, but by further allowing some definitions to be opaque to the programs that are not inside the module. A principled way of hiding certain subprograms aids in data abstraction and separate compilation.,
+% \subsection{Modules and Data Abstraction}
+% Code modularity aids writing bug free programs. Modules help in achieveing code modularity by allowing programmers write smallish independent programs. The complete program is then a composition of the modules. Modules were first implemented as extensions to Algol 68. They aid in maintaining separation of concerns by not just organizing related program units together, but by further allowing some definitions to be opaque to the programs that are not inside the module. A principled way of hiding certain subprograms aids in data abstraction and separate compilation.
 
 \subsubsection{Generative Abstract Types}
 Generative types provides a mechanism for the programmer to confine the visibility of the representation details of a type exclusively within a module. External to the module the client program cannot know how the type is represented or in other words, representation of the generative types is opaqaue to the client module. In ML generative types are defined by hiding the type declarations in the signatures. Consider an HTML module defined in ML as shown in \pref{fig:ml-generative-type}.
@@ -81,20 +160,30 @@ Generative types provides a mechanism for the programmer to confine the visibili
   \centering
   \begin{minipage}[ht]{0.4\linewidth}
     \begin{code}
-      signature HTML = sig
-          type Html
-          mkHtml : String -> HTML
-          unMkHtml : HTML -> String
-      end
+      module HTML (Html, mkHtml, unMkHtml)
+      where
+
+      data Html = Html String
+
+      mkHtml :: String -> HTML
+      mkHtml = Html . escapeString
+
+      unMkHtml :: HTML -> String
+      unMkHtml (Html s) = s
     \end{code}
   \end{minipage}%
   \begin{minipage}[ht]{0.4\linewidth}
     \begin{code}
-      structure HTMLImpl :> HTML = struct
-          type Html = String
-          mkHtml s = escapeSpecialChars s
-          unMkHtml s = s
-      end
+      module Client
+      where
+
+      import HTML
+
+      page :: HTML
+      page = mkHTML "<html><body>Text</body></html>"
+
+
+
     \end{code}
   \end{minipage}
   \caption{HTML Signature and Structure in ML}

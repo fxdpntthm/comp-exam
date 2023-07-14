@@ -12,9 +12,9 @@
 \makeatletter
 \DeclareFontFamily{U}{tipa}{}
 \DeclareFontShape{U}{tipa}{m}{n}{<->tipa10}{}
-\newenvironment{CenteredBox}{% 
+\newenvironment{CenteredBox}{%
 \begin{Sbox}}{% Save the content in a box
-\end{Sbox}\centerline{\parbox{\wd\@Sbox}{\TheSbox}}\vspace{-1.5em}}% And output it centered
+\end{Sbox}\centerline{\parbox{\wd\@Sbox}{\TheSbox}}}% And output it centered
 
 \newcommand*{\shl}{%
   \tcboxmath[colback=Ivory3, colframe=white, size=fbox, arc=3pt, boxrule=0.8pt]%
@@ -52,7 +52,7 @@
 \newcommand\HMX{\textbf{HM(X)}\xspace}
 
 
-% Math theorems 
+% Math theorems
 \newtheorem{theorem}{Theorem}
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{property}[theorem]{Property}
@@ -234,12 +234,16 @@
   xleftmargin=\parindent,
   basicstyle=\small\ttfamily,
   keepspaces=true,
-  keywordstyle=\bfseries,%\underbar,
+  keywordstyle=\color{black}\bfseries,%\underbar,
   numberstyle=\tiny,
+  numbers=left,
+  stepnumber=1,
   flexiblecolumns=false,
   basewidth={0.5em,0.45em},
-  morekeywords={instance, class, if, where, data, then, else, type, case, of, require, linear, primitive, newtype, family},
+  morekeywords={instance, class, if, where, data, then, else, type,
+    case, of, require, linear, primitive, newtype, family, module},
   morecomment=[l]{--},
+  commentstyle=\color{Gray},
   mathescape=true,
   literate={+}{{$+$}}1 {/}{{$/$}}1 {*}{{$\STAR$}}1
  % {=}{{$=$}}1
@@ -261,7 +265,7 @@
     {~~>}{{$\leadsto$}}2
     {TYPE}{{$\KType$}}1
     {CONSTRAINT}{{$\KPred$}}1
-    {FORALL}{{$\forall$}}1    
+    {FORALL}{{$\forall$}}1
     {_i}{{$\!_i$}}1
 }
 \lstnewenvironment{code}{}{}
