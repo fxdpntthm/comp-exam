@@ -35,7 +35,7 @@
 Aiding organization of related data together is important feature of any programming language. The structures, which store information, represent the domain elements. The transformations on these structures then, models the program logic. Algebraic datatypes are a primary way to define such new structures in a functional programming language.
 
 \subsubsection{Algebraic Datatypes}
-Algebraic Datatypes (ADT) can be viewed as composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. A declarative style of defining new datatypes was first introduced in the programming language HOPE\cite{burstall_hope_1980}. As an example, a binary tree in Haskell can be declared as:
+Algebraic Datatypes (ADT) can be viewed as composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. As an example, a binary tree in Haskell can be declared as follows.
 
 \begin{CenteredBox}
 \begin{code}
@@ -44,7 +44,7 @@ data Tree c = Leaf c
 \end{code}
 \end{CenteredBox}
 
-The keyword !data! introduces a new user defined agebraic datatype with name !Tree! parameterized over any type !c!. A value of type !Tree c! can be defined using the data constructors, !Leaf! and !Branch!. A !Leaf! is a terminal node that contains the value of type !c!, while a !Branch! contains a pair of sub trees. The data constructors themselves can be used as functions with the type of\, !Leaf :: FORALL a. a -> Tree a! and\, !Branch :: FORALL a. (Tree a, Tree a) -> Tree a!. It is important to observe that the structure the datatype does not dependent on the type parameter !c!, i.e. it is used parametrically, or the shape of !Tree Int! and !Tree Float! is the same. Parametricity allows programs to be general and hence reusable. In an untyped programming language, a predicate is necessary to check that certain structural invariants hold: The !Branch! case has two sub trees. In a typed setting the typechecker can check such invariants and reject ill-structured data: the term !Branch (Tree c)! is ill-typed. An alternative syntax to write the !Tree c! data type would be by type signature explication for each of the data constructors.
+The keyword !data! introduces a new user-defined agebraic datatype with the name !Tree! parameterized over any type !c!. A value of type !Tree c! can be constructed using the data constructors, !Leaf! and !Branch!. A !Leaf! is a terminal node that contains the value of type !c!, while a !Branch! contains a pair of sub-trees. The data constructors themselves can be used as functions with the type of\, !Leaf :: FORALL c. c -> Tree c! and\, !Branch :: FORALL c. (Tree c, Tree c) -> Tree c!. An important observation is that the structure the datatype does not dependent on the type !c!, i.e. it is used parametrically. In our context, this means that the shape of a binary tree containing integers, !Tree Int!, and a binary tree containing floats, !Tree Float!, is identical. or the memory layout for a value of type !Tree c! is independent of the actual type !c!. In an untyped programming language, a predicate is necessary to check that certain structural invariants hold: The !Branch! should always have two sub trees. In a typed setting the typechecker can check if the structural invariants hold and reject ill-structured data: the expression !Branch (Tree c)! is ill-typed. An alternative syntax to declare a data type is by type signature explication for each of the data constructors.
 
 \begin{CenteredBox}
 \begin{code}
@@ -64,7 +64,7 @@ data AlgExp a where
 \end{code}
 \end{CenteredBox}
 
-The data constructor !Value! encodes values such as integers while !Plus! encodes the operation of adding the two expressions. Now, the function of the calculator, i.e. to compute algebraic expressions, is to evaluate the encoded expression. This can be perfromed by means of an !eval! funtion defined recursively as shown below.
+The data constructor !Value! encodes values such as integers while !Plus! encodes the operation of adding the two expressions. Now, the function of the calculator, i.e. to compute algebraic expressions, is to evaluate the encoded expression, which performed by an !eval! funtion defined recursively as shown below:
 
 \begin{CenteredBox}
 \begin{code}
@@ -74,7 +74,7 @@ eval (Plus x y) = (eval x) + (eval y)
 \end{code}
 \end{CenteredBox}
 
-The declarative style of programming allows us to write the !eval! function on a case by case basis. The first case says that if we have a !Value!, we can deduce that it is an !Integer! and just return it unaltered. In the second case of !Plus! we first evaluate the expressions !x! and !y! and then return the addition of the evaluations. Another advantage of having a declarative style is that extending the calculator application, say to include more binary operations, such as multiplication and division operation, is a simple matter. It involves adding two new data constructors !Mult! and !Div!, similar to !Plus!, in the data declaration followed by extending the !eval! function with cases for !Mult!, which multiplies, and !Div! that divides.
+The declarative style of programming allows us to write the !eval! function on a case by case basis via pattern matching. There are only two ways in which we could have obtained a value of type !AlgExp Int!. The first case says that if we have a !Value!, we can deduce that it is an !Integer! and return it. In the second case, !Plus!, we first evaluate the expressions !x! and !y! and then return the addition of the evaluations. Another advantage of having a declarative style is that extending the calculator application, say to include operations such as multiplication and division operation, is straightforward. The code changes that a programmer needs to perform are involve adding two new data constructors !Mult! and !Div!, similar to !Plus!, in the datatype declaration followed by extending the !eval! function with cases for !Mult!, which multiplies, and !Div! that divides.
 
 
 \subsubsection{Generalized Algebraic Datatypes}
@@ -97,30 +97,54 @@ eval (IsZero x) = (eval x) == 0 -- Type error!
 \end{code}
 \end{minipage}
 
-We also need to extend the !eval! function that evaluates the !IsZero! case. How should the !eval! function handle the !IsZero! case? Using the staight forward definition of !(eval x) == 0! fails to type check as the eval function requires the return type of the expression to be an !Int! but the expression is of type !Bool!. Another possible solution is to change the return type of the the !eval! function to instead be !Either Int Bool! which means that the evaluator either returns an !Int! or a !Bool!. While this would work as expected, it necesitates a complete rewrite of the !eval! function. The situation of maintaining this !eval! function would become even more cumbersome if later on we had the need to add a facility to store and use user defined functions. Addition of each such new construct would mean nesting of !Either! datatype and then checking at each recursive call which value is returned.
+How should the !eval! function handle the !IsZero! case? The definition, !(eval x) == 0!, fails to typecheck as the !eval! function requires the return type of the expression to be an !Int! but it is of type !Bool!. Another possible solution is to change the return type of the the !eval! function to instead be !Either Int Bool!. which means that the evaluator either returns an !Int! or a !Bool!. While this would work as expected, it requires a complete rewrite of the !eval! function. The situation of maintaining this !eval! function would become even more cumbersome if later on we wanted to add a facility to store and use user defined functions. Extending !AlgExp! with new constructs would mean nesting of !Either! datatype and then checking at each recursive call which value is returned.
 
-All we really want is an evaluator that evaluates the expression. Ideally the type signature of the !eval! function
-should be agnostic of the expression type: !eval :: FORALL a. AlgExp a -> a!. The crux of the problem is that the current data constructors !AlgExp! all have a generic return type of !AlgExp a!. The problem would disappear if we were able to constraint the return type of each of the data constructors.
+All we really want was an evaluator that evaluates the expression compositionally. In full generality, the evaluation of the expression may not result in the same type. In our case, the !IsZero! evaluates an expression to a Boolean value, while the !Plus! operator evaluates to an Integer. Thus, the type signature of the !eval! function should be agnostic of the expression result type: !eval :: FORALL a. AlgExp a -> a!. The current data constructors of !AlgExp! all have a generic return type of !AlgExp a!. The problem would disappear if we were to constraint the return type of each of the data constructors.
 
 \begin{minipage}[ht]{0.6\linewidth}
 \begin{code}
-data AlgExp a where
-    Value  ::  a                        -> AlgExp a
-    Plus   ::  AlgExp Int -> AlgExp Int -> AlgExp Int
-    IsZero ::  AlgExp Int               -> AlgExp Bool
+data GAlgExp a where
+    Value  ::  a                          -> GAlgExp a
+    Plus   ::  GAlgExp Int -> GAlgExp Int -> GAlgExp Int
+    IsZero ::  GAlgExp Int                -> GAlgExp Bool
 \end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
-eval :: AlgExp a -> a
+eval :: GAlgExp a -> a
 eval (Value i)  = i
 eval (Plus x y) = (eval x) + (eval y)
 eval (IsZero x) = (eval x) == 0 -- Okay!
 \end{code}
 \end{minipage}%
 
+Now in each of the branch, the type of the right hand side of a pattern match agrees with the type constraint introduced by the pattern match. !Plus x y! is of type !GAlgExp Int! and so is the right hand side of the expression in the case that evaluates the addition. Similarly, the in case branch of !IsZero x!, the type of which is !AlgExp Bool! has a type !Bool! which agress with the type of its right hand side.
 
-Here we are able to not just constrain the structure of the data but also its return type.
+The type constraints can further help in identifying dead code. For example, consider the function !isZero! below:
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+isZero :: GAlgExp Int -> Bool
+isZero (Value i)  = i == 0
+isZero (Plus x y) = isZero x && isZero y
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{code}
+isZero :: AlgExp Int -> Bool
+isZero (Value i)  = i == 0
+isZero (Plus x y) = isZero x && isZero y
+isZero (IsZero x) = undefined "impossible case"
+\end{code}
+\end{minipage}
+
+The type checker has enough type information to identify that the case !IsZero x! is impossible as it has a type !GAlgExp Bool!. If we were to define the same function for !AlgExp Int!, the function would have to include it with a bogus right hand side resulting in unnecessary code clutter.
+
+GADTs also subsume existential datatypes. Existential datatypes are useful for data abstraction, by hiding implimentation details by disallowing
+
+
+Here we are able to not just constrain the structure of the data but also its return type. % In a way it is poor man's dependent types where the type is identified by the term.
 
 
 
@@ -137,12 +161,12 @@ data LamTm a where
   \end{minipage}%
   \begin{minipage}[ht]{0.5\linewidth}
     \begin{code}
-      eval :: LamTm a -> LamTm a
-      eval v@(Var _) = v
-      eval v@(Lam _) = v
-      eval (App (Lam fun) arg) = fun arg
-      eval (App fun arg) = let fun' = eval fun
-                           in App fun' arg
+eval :: LamTm a -> LamTm a
+eval v@(Var _) = v
+eval v@(Lam _) = v
+eval (App (Lam fun) arg) = fun arg
+eval (App fun arg) = let fun' = eval fun
+                     in App fun' arg
     \end{code}
   \end{minipage}
   \caption{Expressing Lambda Terms as GADT}
@@ -152,6 +176,7 @@ Writing an !eval! function for a !LamTm a! would be cumbersome if it were not fo
 
 % \subsection{Modules and Data Abstraction}
 % Code modularity aids writing bug free programs. Modules help in achieveing code modularity by allowing programmers write smallish independent programs. The complete program is then a composition of the modules. Modules were first implemented as extensions to Algol 68. They aid in maintaining separation of concerns by not just organizing related program units together, but by further allowing some definitions to be opaque to the programs that are not inside the module. A principled way of hiding certain subprograms aids in data abstraction and separate compilation.
+\subsubsection{Existential Types}
 
 \subsubsection{Generative Abstract Types}
 Generative types provides a mechanism for the programmer to confine the visibility of the representation details of a type exclusively within a module. External to the module the client program cannot know how the type is represented or in other words, representation of the generative types is opaqaue to the client module. In ML generative types are defined by hiding the type declarations in the signatures. Consider an HTML module defined in ML as shown in \pref{fig:ml-generative-type}.
@@ -222,10 +247,10 @@ Inside !HTMLImpl! the types !String! and !HTML! are synonymous, however any clie
 Certain functions behave uniformly on the data that they might receive. An archetypical example is that of an identity function $id$ that just takes an value and returns it unmodified.
 
 \begin{CenteredBox}
-  \begin{code}
-    id : FORALL a. a -> a
-    id a = a
-  \end{code}
+\begin{code}
+id : FORALL a. a -> a
+id a = a
+\end{code}
 \end{CenteredBox}
 Such functions are said to be parametrically polymorphic over their type arguments\cite{strachey_fundamental_2000}.
 Agebraic datatypes are also parametrically polymorphic over their type parameters.
@@ -234,10 +259,10 @@ Agebraic datatypes are also parametrically polymorphic over their type parameter
 In contrast to the term !id!, consider the following two terms:
 
 \begin{CenteredBox}
-  \begin{code}
-    t1 : Int = 1 + 2
-    t2 : Float = 1.1 + 2.3
-  \end{code}
+\begin{code}
+t1 : Int = 1 + 2
+t2 : Float = 1.1 + 2.3
+\end{code}
 \end{CenteredBox}
 In the first case we see that the operator !+! is applied to two integers, but in the second case it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of each of the programs is completely different. One adds two !Int! and returns an !Int! while the other adds two !Float! and returns a !Float!. Further, the compiled code for each would also be different. The runtime code would make a call to two different built in constructs. Such kind of function reuse, which is dependent on the context or the type of arguments, is called as ad-hoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to impliment ad-hoc polymorphism where the compiler resolves the overloaded operator to the actual operator.
 
@@ -372,15 +397,15 @@ In \pref{fig:type-fam}, the typeclass !Coll! has an associated type function !El
 % \end{figure}
 
 \section{\SFC}\label{sec:sfc}
-The Glasgow Haskell Compiler (GHC)\cite{ghc_2020}, is a widely used Haskell\cite{haskell_2010} compiler. Its inception was a result of a lack of a test bed for lazy strongly typed functional programming languages. It is an industry grade compiler, meaning the compiler generated code can perform with efficiency comparable to other language compilers like Java or C++. The original core language of GHC was based on \SF. However, it soon became clear that with the addition of GADTs and generative types, using pure \SF would be too cumbersome, if not impossible to express in some constructs. For example consider a generative type declaration:
+The Glasgow Haskell Compiler (GHC)\cite{ghc_2020}, is a widely used Haskell\cite{haskell_2010} compiler. Its inception was a result of a lack of a test bed for lazy strongly typed functional programming languages. The original core language of GHC was based on \SF. However, it soon became clear that with the addition of GADTs and generative types, using pure \SF would be too cumbersome, if not impossible to express some use cases. For example consider a generative type declaration:
 
 \begin{CenteredBox}
-  \begin{code}
-    newtype Fun = MkFun (Fun -> Fun)
-  \end{code}
+\begin{code}
+newtype Fun = MkFun (Fun -> Fun)
+\end{code}
 \end{CenteredBox}
 The intension of this declaration is to make !Fun! and !Fun -> Fun! be isomorphic, however, it there was no good way to encode this in pure \SF. GHC relied on a hack to express this in the core language.
-\SFC\cite{sulzmann_system_2007} was desiged and implimented to solve this problem. In the following sections we take a look of the core language, followed by how it can be used to encode all the features discussed in \pref{sec:language-features}.
+\SFC\cite{sulzmann_system_2007} was desiged and implimented to solve this problem. In the following sections we describe the formalization of the core language, followed by how it can be used to encode all the features discussed in the previous \pref{sec:language-features} in a straightforward way.
 % In one statment: \SFC is an intensional intrinsically typed programming language.
 % It is intensional, meaning each term encodes its typing derivation, and it is intrinsically typed, meaning all the terms are index by types.
 
