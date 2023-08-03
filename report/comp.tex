@@ -30,12 +30,135 @@
 \pagestyle{plain}
 
 \section{Features of Typed Functional Programming Languages}\label{sec:language-features}
+
+\subsection{Functions and Polymorphism}
+\subsubsection{Functions}
+Functions are one of the key building blocks of functional programming languages. They capture the essense of the program by encoding the logic via transformation of data. The most simple example of a function declared in Haskell syntax is that of an identity function, !id_I!, that accepts an argument and returns it unmodified.
+
+\begin{CenteredBox}
+\begin{code}
+id_I :: Int -> Int
+id_I i = i
+\end{code}
+\end{CenteredBox}
+
+In the above example, The type signature !id_I :: Int -> Int! specifies that the function !id_I! accepts an argument of type !Int! and returns a value of type !Int!. The function definition !id_I i = i! specifies what the function does: takes an argument !i! and returns it unaltered. The functions in functional programming languages resemble mathematical functions and abstract away the implementation details of how an operation is performed. A second thing to notice is that they are referentially transparent i.e. a call to the same function twice with the same arguments will always return the same result. Thus, !id_I 3! will always return or evaluate to !3!.
+
+\subsubsection{Parametric Polymorphism}
+Functions like !id_I!, while theoritically enough to build large programs, are too cumbersome in practice to program in. It is sometimes necessary to define the same functionality over different types. For example, an identity function over !Char!, the character type, will have the exact same definition as !id_I!. The functions that work on base types, such as !Int!, are called as monomorphic functions. To enhance reusability of programs, it is necessary to be able to abstract over types.
+
+\begin{CenteredBox}
+\begin{code}
+id : FORALL a. a -> a
+id a = a
+\end{code}
+\end{CenteredBox}
+Functions like !id! as shown above, that abstract over all types, are said to be parametrically polymorphic\cite{strachey_fundamental_2000}. ML\cite{milner_logic_1975, milner_theory_1978} was the first language to introduce parametric polymorphism where the compiler was smart enough to figure out which exact instance of the polymorhpic function is required. Imperative languages such as Java and C also allow user defined polymorphic functions but often require explicit pointer casts.
+
+\subsubsection{Ad-hoc Polymorphism}
+In contrast to the term !id!, consider the following two terms:
+
+\begin{CenteredBox}
+\begin{code}
+t1 : Int = 1 + 2
+t2 : Float = 1.1 + 2.3
+\end{code}
+\end{CenteredBox}
+In the first case we see that the operator !+! is applied to two integers, but in the second case it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of each of the programs is different. One adds two !Int! and returns an !Int! while the other adds two !Float! and returns a !Float!. Further, the compiled code for each would also be different. The runtime code would make a call to two different built in constructs. Such kind of function reuse, which is dependent on the context or the type of arguments, is called as ad-hoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to impliment ad-hoc polymorphism where the compiler resolves the overloaded operator to the actual operator.
+
+\subsubsection{Typeclasses and operator overloading}
+To make implicit overloading practical \citet{wadler_polymorphism_1989} proposed a dictonary passing style by using a mechanism. This technique became the foundation for Haskell\cite{haskell_2010} typeclasses. \cite{kaes_parametric_1988} had similar ideas related to implimentation aspects of ad-hoc polymorphism before Wadler et al. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for users to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot figure out the right option or when the user wants to force the typechecker to resolve it to a specific instance.
+
+Typeclasses can be viewed as relations over types and every instance declaration extends that relation. Consider a typeclass !Ord a! shown in \pref{fig:tc-ord}. It represents a unary relation for the types whose values can be compared. Instances of the typeclass !Ord! are written !Ord Int! and !Ord Float! say that !Float! and !Int! belong to the unary relation !Ord!.
+
+%% Something about methods
+
+\begin{figure}[ht]
+  \centering
+  \begin{minipage}[ht]{0.3\linewidth}
+    \begin{code}
+      class Ord a where
+         (<)  :: a -> a -> Bool
+         (<=) :: a -> a -> Bool
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.3\linewidth}
+    \begin{code}
+      class Ord Int where
+         (<)  = int_le
+         (<=) = int_leq
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.3\linewidth}
+    \begin{code}
+      class Ord Float where
+         (<)  = le_float
+         (<=) = leq_float
+    \end{code}
+  \end{minipage}
+  \caption{\lstinline{Ord} typeclass and instances}
+  \label{fig:tc-ord}
+\end{figure}
+
+
+\subsubsection{Multi-Parameter Typeclasses and Functional Dependencies}
+A straightforward generalization of single parameter typeclases is multiparameter typeclasses. It naturally extends the idea of having n-ary propositions or relations over types. Such relations can be useful to express properties such as containment relations. For example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under a single interface can be defined using a !Coll e c! typeclass, as shown in \pref{fig:tc-collection}. One can imagine having instances for such a typeclass as \lstinline{Coll Int [Int]}, !Coll Float (BST Float)!, etc. Speaking in terms of relations, we say that !(Int, [Int]) $\in$ Coll! and similarly !(Float, BST Float) $\in$ Coll!.
+
+\begin{figure}[ht]
+  \centering
+  \begin{minipage}[ht]{0.3\linewidth}
+    \begin{code}
+      class Coll e c
+      where
+         empty :: c
+         insert :: e -> c -> c
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.3\linewidth}
+    \begin{code}
+      class Coll Int [Int]
+      where
+         empty = ...
+         insert = ...
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.3\linewidth}
+    \begin{code}
+      class Coll Float (BST Float)
+      where
+         empty = ...
+         insert = ...
+    \end{code}
+  \end{minipage}
+  \caption[Coll typeclass]{\lstinline{Coll} typeclass and its instances}
+  \label{fig:tc-collection}
+\end{figure}
+
+The use of !empty! in a polymorphic setting however interferes with the compilation decision. It is not enough to determine what the type of !e! should be just by knowing the type !c!. Such types are called ambiguous types. Formally, if a type variable only appears in the constraints of the type it is called an ambiguous type. The type of !empty!, !FORALL e c. Coll e c => c!, is ambiguous due to the occurance of !e! only the constraint. Such types do not have a well defined semantics as the compiler cannot make a unique choice of what the compiled code should be. The problem is here is that the typeclasses are relations and hence are too general for this use case. To make typeclasses behave in a more constrained way, Jones introduced functional dependencies\cite{jones_tcfd_2000}. The insight is to be able to specify the functional nature of relations, i.e. to be able to say if we \emph{know} certain type parameters of the typeclass, we can \emph{determine} the other type parameters as well.
+
+\begin{figure}[ht]
+  \begin{CenteredBox}
+    \begin{code}
+      class Coll e c | c ~> e where
+      empty :: c
+      extend :: e -> c -> c
+    \end{code}
+  \end{CenteredBox}
+  \caption[Coll typeclass]{\lstinline{Coll} Typeclass with Functional Dependency}
+  \label{fig:tc-collection-fd}
+\end{figure}
+
+The extra annotation !c ~> e! on the typeclass !Coll e c! as shown in \pref{fig:tc-collection-fd} says that !e! can be uniquely determined for given a !c!.
+We call !c! to be the determiner and !e! to be the determinant of the functional dependency.
+
+% improvement, simplification
+%
+
+
 %% The point to make here is type checker can enforce contraints!
 \subsection{User Defined Datatypes}
-Aiding organization of related data together is important feature of any programming language. The structures, which store information, represent the domain elements. The transformations on these structures then, models the program logic. Algebraic datatypes are a primary way to define such new structures in a functional programming language.
-
 \subsubsection{Algebraic Datatypes}
-Algebraic Datatypes (ADT) can be viewed as composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. As an example, a binary tree in Haskell can be declared as follows.
+Aiding organization of related data together is important feature of any programming language. The structures store information, encode the domain elements. The transformations, or functions, on these structures then, models the program logic. Algebraic datatypes (ADT) are a primary way to define such new structures in a functional programming language. They are said to be algebraic becuase the can be viewed as composite datatypes of named sums of products. They enhance the expressivity of the language by allowing users to declare their own structures by possibly re-using the existing ones. As an example, a binary tree in Haskell can be declared as follows.
 
 \begin{CenteredBox}
 \begin{code}
@@ -76,6 +199,7 @@ eval (Plus x y) = (eval x) + (eval y)
 
 The declarative style of programming allows us to write the !eval! function on a case by case basis via pattern matching. There are only two ways in which we could have obtained a value of type !AlgExp Int!. The first case says that if we have a !Value!, we can deduce that it is an !Integer! and return it. In the second case, !Plus!, we first evaluate the expressions !x! and !y! and then return the addition of the evaluations. Another advantage of having a declarative style is that extending the calculator application, say to include operations such as multiplication and division operation, is straightforward. The code changes that a programmer needs to perform are involve adding two new data constructors !Mult! and !Div!, similar to !Plus!, in the datatype declaration followed by extending the !eval! function with cases for !Mult!, which multiplies, and !Div! that divides.
 
+This declarative style of defining algebraic datatypes was introduced in Hope\cite{burstall_hope_1980} and has become an essential feature of modern functional programming languages.
 
 \subsubsection{Generalized Algebraic Datatypes}
 Consider an extension of the previously defined !AlgExp! to include an explicit predicate that checks if the expression is equal to zero, !IsZero!.
@@ -99,14 +223,14 @@ eval (IsZero x) = (eval x) == 0 -- Type error!
 
 How should the !eval! function handle the !IsZero! case? The definition, !(eval x) == 0!, fails to typecheck as the !eval! function requires the return type of the expression to be an !Int! but it is of type !Bool!. Another possible solution is to change the return type of the the !eval! function to instead be !Either Int Bool!. which means that the evaluator either returns an !Int! or a !Bool!. While this would work as expected, it requires a complete rewrite of the !eval! function. The situation of maintaining this !eval! function would become even more cumbersome if later on we wanted to add a facility to store and use user defined functions. Extending !AlgExp! with new constructs would mean nesting of !Either! datatype and then checking at each recursive call which value is returned.
 
-All we really want was an evaluator that evaluates the expression compositionally. In full generality, the evaluation of the expression may not result in the same type. In our case, the !IsZero! evaluates an expression to a Boolean value, while the !Plus! operator evaluates to an Integer. Thus, the type signature of the !eval! function should be agnostic of the expression result type: !eval :: FORALL a. AlgExp a -> a!. The current data constructors of !AlgExp! all have a generic return type of !AlgExp a!. The problem would disappear if we were to constraint the return type of each of the data constructors.
+All we really wanted was a function that evaluates expression compositionally. In full generality, the evaluation of the expression may not result in the same type. In our case, the !IsZero! evaluates an expression to a Boolean value, while the !Plus! operator evaluates to an Integer. Thus, the type signature of the !eval! function should be agnostic of the expression result type: !eval :: FORALL a. AlgExp a -> a!. The current data constructors of !AlgExp! all have a generic return type of !AlgExp a!. The problem would disappear if we were to constrain the return type of each of the data constructors.
 
 \begin{minipage}[ht]{0.6\linewidth}
 \begin{code}
 data GAlgExp a where
-    Value  ::  a                          -> GAlgExp a
-    Plus   ::  GAlgExp Int -> GAlgExp Int -> GAlgExp Int
-    IsZero ::  GAlgExp Int                -> GAlgExp Bool
+  Value  ::  a                          -> GAlgExp a
+  Plus   ::  GAlgExp Int -> GAlgExp Int -> GAlgExp Int
+  IsZero ::  GAlgExp Int                -> GAlgExp Bool
 \end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
@@ -135,48 +259,82 @@ isZero (Plus x y) = isZero x && isZero y
 isZero :: AlgExp Int -> Bool
 isZero (Value i)  = i == 0
 isZero (Plus x y) = isZero x && isZero y
-isZero (IsZero x) = undefined "impossible case"
+isZero (IsZero x) = error "impossible"
 \end{code}
 \end{minipage}
 
-The type checker has enough type information to identify that the case !IsZero x! is impossible as it has a type !GAlgExp Bool!. If we were to define the same function for !AlgExp Int!, the function would have to include it with a bogus right hand side resulting in unnecessary code clutter.
+The type checker has enough information to identify that the case !IsZero x! is impossible as it has a type !GAlgExp Bool! while the function only expects an argument of type !GAlgExp Int!. If we were to define the same function for !AlgExp Int!, the function would have to include it with a bogus right hand side.
 
-GADTs also subsume existential datatypes. Existential datatypes are useful for data abstraction, by hiding implimentation details by disallowing
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{code}
+data GAlgExp a where
+...
+  Equals :: GAlgExp a -> GAlgExp a -> GAlgExp Bool
+\end{code}
+\end{minipage}%
+\begin{minipage}[ht]{0.4\linewidth}
+\begin{code}
+eval :: GAlgExp a -> a
+...
+eval (Equals x y) = (eval x) == (eval y) -- Type error!
+\end{code}
+\end{minipage}
+
+Consider a generalization of !IsZero x! namely, !Equals x y!. As shown in the above code block, the intension of !Equals x y! is to be able to encode comparing the arguments !x! and !y! and decide whether they are equal. The !eval! function case that evaluates !Equals x y! fails to typecheck. The problem is not that the return type does not match, it is indeed !Bool!, but there is no reason to believe that !eval x! and !eval y! can be compared using the !(==)! operator. The only information we can infer from the pattern match is that the type of !eval x! and !eval y! are of some generic type variable !a!. Such types are called existential as they not appear in the return type. We need to somehow contrain the types of the arguments to !Equal! to only those that can be compared. Fortunately, Haskell already supports such a mechanism via typeclasses. By constraining the type variable to only which satisfy the !Eq! typeclass, we are able to convinced the typechecker that the term  !(eval x) == (eval y)! is well typed.
+
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{code}
+data GAlgExp a where
+...
+  Equals :: Eq a => GAlgExp a -> GAlgExp a
+                 -> GAlgExp Bool
+\end{code}
+\end{minipage}%
+\begin{minipage}[ht]{0.4\linewidth}
+\begin{code}
+eval :: AlgExp Int -> Int
+...
+eval (Equals x y) = (eval x) == (eval y) -- Okay!
+\end{code}
+\end{minipage}
+
+To summarize, there are two ways in which GADTs genaralize the notion of algebraic datatypes:
+\begin{enumerate}
+\item Phantom types, the return type of the data constructor is no longer a generic type variable and it can be refined to be a fixed type;
+\item encoding existential types, where it is possible for the type variables that appear in the types of the arguments to the data constructors to not appear in the return type.
+\end{enumerate}
+
+While there is a rich literature of algebraic datatypes for dependently typed languages\cite{TODO}, the idea of GADTs for non-dependently typed languages first appeared under different names such as indexed types\cite{zenger_indexed_1997}, first class phantom types\cite{cheney_first-class_2003}, guarded recursive datatypes\cite{xi_guarded_2003}, equality qualified types\cite{sheard_meta-programming_2008}. GHC/Haskell was the only language compiler that supported GADTs\cite{TODO} until recently OCaml 4.0\cite{TODO} and Scala 3\cite{TODO} added their support.
 
 
-Here we are able to not just constrain the structure of the data but also its return type. % In a way it is poor man's dependent types where the type is identified by the term.
-
-
-
-Reusablity due to parametricty however, comes at a cost of inexpressivity. Real world programs such as polymorphic serialization of data either requires the programmers to provide the cannonical forms of representation \cite{herlihy_value_1982} to be used during run-time or require runtime type analysis\cite{harper_compiling_1995}. Parametric algebraic datatypes are insufficent as they provide no facility to pass the type parameters at runtime. Generalized algebraic datatypes liberate this limitation by capturing type constraints with in the structure of the type. They have been studied under various names such as first class phantom types\citep{cheney_first-class_2003}, guarded recursive datatypes\cite{xi_guarded_2003}, equality qualified types\cite{sheard_meta-programming_2008}. Consider an example that models simply typed lambda calculus and a single step call by name evaluator as shown \pref{fig:gadt-example}.
-\begin{figure}[ht]
-  \centering
-  \begin{minipage}[ht]{0.5\linewidth}
-    \begin{code}
-data LamTm a where
-  Var :: String -> LamTm a
-  Lam :: (LamTm a -> LamTm b) -> LamTm (a -> b)
-  App :: LamTm (a -> b) -> LamTm a -> LamTm b
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.5\linewidth}
-    \begin{code}
-eval :: LamTm a -> LamTm a
-eval v@(Var _) = v
-eval v@(Lam _) = v
-eval (App (Lam fun) arg) = fun arg
-eval (App fun arg) = let fun' = eval fun
-                     in App fun' arg
-    \end{code}
-  \end{minipage}
-  \caption{Expressing Lambda Terms as GADT}
-  \label{fig:gadt-example}
-\end{figure}
-Writing an !eval! function for a !LamTm a! would be cumbersome if it were not for the constrainted type arguments of data constructors !Lam! and !App!. The local type constraints on !Lam! are necessary to convince the type checker that the application term !fun arg! is well typed, with the type of !fun! being !LamTm a -> LamTm b! and the type of !arg! being !LamTm a!.
+% Reusablity due to parametricty however, comes at a cost of inexpressivity. Real world programs such as polymorphic serialization of data either requires the programmers to provide the cannonical forms of representation \cite{herlihy_value_1982} to be used during run-time or require runtime type analysis\cite{harper_compiling_1995}. Parametric algebraic datatypes are insufficent as they provide no facility to pass the type parameters at runtime. Generalized algebraic datatypes liberate this limitation by capturing type constraints with in the structure of the type. Consider an example that models simply typed lambda calculus and a single step call by name evaluator as shown \pref{fig:gadt-example}.
+% \begin{figure}[ht]
+%   \centering
+%   \begin{minipage}[ht]{0.5\linewidth}
+%     \begin{code}
+% data LamTm a where
+%   Var :: String -> LamTm a
+%   Lam :: (LamTm a -> LamTm b) -> LamTm (a -> b)
+%   App :: LamTm (a -> b) -> LamTm a -> LamTm b
+%     \end{code}
+%   \end{minipage}%
+%   \begin{minipage}[ht]{0.5\linewidth}
+%     \begin{code}
+% eval :: LamTm a -> LamTm a
+% eval v@(Var _) = v
+% eval v@(Lam _) = v
+% eval (App (Lam fun) arg) = fun arg
+% eval (App fun arg) = let fun' = eval fun
+%                      in App fun' arg
+%     \end{code}
+%   \end{minipage}
+%   \caption{Expressing Lambda Terms as GADT}
+%   \label{fig:gadt-example}
+% \end{figure}
+% Writing an !eval! function for a !LamTm a! would be cumbersome if it were not for the constrainted type arguments of data constructors !Lam! and !App!. The local type constraints on !Lam! are necessary to convince the type checker that the application term !fun arg! is well typed, with the type of !fun! being !LamTm a -> LamTm b! and the type of !arg! being !LamTm a!.
 
 % \subsection{Modules and Data Abstraction}
 % Code modularity aids writing bug free programs. Modules help in achieveing code modularity by allowing programmers write smallish independent programs. The complete program is then a composition of the modules. Modules were first implemented as extensions to Algol 68. They aid in maintaining separation of concerns by not just organizing related program units together, but by further allowing some definitions to be opaque to the programs that are not inside the module. A principled way of hiding certain subprograms aids in data abstraction and separate compilation.
-\subsubsection{Existential Types}
 
 \subsubsection{Generative Abstract Types}
 Generative types provides a mechanism for the programmer to confine the visibility of the representation details of a type exclusively within a module. External to the module the client program cannot know how the type is represented or in other words, representation of the generative types is opaqaue to the client module. In ML generative types are defined by hiding the type declarations in the signatures. Consider an HTML module defined in ML as shown in \pref{fig:ml-generative-type}.
@@ -242,145 +400,6 @@ Inside !HTMLImpl! the types !String! and !HTML! are synonymous, however any clie
 % Storing them as types has an advantage that we can erase the equality proofs before compiling it to a more efficient runtime representation. After all, type equalities are only really needed by the type checker to prove that nothing will go wrong at runtime. At runtime we don't need it.
 %  Intensional vs extensional % Intensional vs Extensional typing
 
-\subsection{Polymorphism}
-\subsubsection{Parametric Polymorphism}
-Certain functions behave uniformly on the data that they might receive. An archetypical example is that of an identity function $id$ that just takes an value and returns it unmodified.
-
-\begin{CenteredBox}
-\begin{code}
-id : FORALL a. a -> a
-id a = a
-\end{code}
-\end{CenteredBox}
-Such functions are said to be parametrically polymorphic over their type arguments\cite{strachey_fundamental_2000}.
-Agebraic datatypes are also parametrically polymorphic over their type parameters.
-
-\subsubsection{Ad-hoc Polymorphism}
-In contrast to the term !id!, consider the following two terms:
-
-\begin{CenteredBox}
-\begin{code}
-t1 : Int = 1 + 2
-t2 : Float = 1.1 + 2.3
-\end{code}
-\end{CenteredBox}
-In the first case we see that the operator !+! is applied to two integers, but in the second case it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of each of the programs is completely different. One adds two !Int! and returns an !Int! while the other adds two !Float! and returns a !Float!. Further, the compiled code for each would also be different. The runtime code would make a call to two different built in constructs. Such kind of function reuse, which is dependent on the context or the type of arguments, is called as ad-hoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to impliment ad-hoc polymorphism where the compiler resolves the overloaded operator to the actual operator.
-
-\subsection{Typeclasses}
-\subsubsection{Operator overoading}
-To make implicit overloading practical \citet{wadler_polymorphism_1989} proposed a dictonary passing style by using a mechanism. This technique became the foundation for Haskell\cite{haskell_2010} typeclasses. \cite{kaes_parametric_1988} had similar ideas related to implimentation aspects of ad-hoc polymorphism before Wadler et al. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for users to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot figure out the right option or when the user wants to force the typechecker to resolve it to a specific instance.
-
-Typeclasses can be viewed as relations over types and every instance declaration extends that relation. Consider a typeclass !Ord a! shown in \pref{fig:tc-ord}. It represents a unary relation for the types whose values can be compared. Instances of the typeclass !Ord! are written !Ord Int! and !Ord Float! say that !Float! and !Int! belong to the unary relation !Ord!.
-
-%% Something about methods
-
-\begin{figure}[ht]
-  \centering
-  \begin{minipage}[ht]{0.3\linewidth}
-    \begin{code}
-      class Ord a where
-         (<)  :: a -> a -> Bool
-         (<=) :: a -> a -> Bool
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.3\linewidth}
-    \begin{code}
-      class Ord Int where
-         (<)  = int_le
-         (<=) = int_leq
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.3\linewidth}
-    \begin{code}
-      class Ord Float where
-         (<)  = le_float
-         (<=) = leq_float
-    \end{code}
-  \end{minipage}
-  \caption{\lstinline{Ord} typeclass and instances}
-  \label{fig:tc-ord}
-\end{figure}
-\subsubsection{Multi-Parameter Typeclasses and Functional Dependencies}
-A straightforward generalization of single parameter typeclases is multiparameter typeclasses. It naturally extends the idea of having n-ary propositions or relations over types. Such relations can be useful to express properties such as containment relations. For example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under a single interface can be defined using a !Coll e c! typeclass, as shown in \pref{fig:tc-collection}. One can imagine having instances for such a typeclass as \lstinline{Coll Int [Int]}, !Coll Float (BST Float)!, etc. Speaking in terms of relations, we say that !(Int, [Int]) $\in$ Coll! and similarly !(Float, BST Float) $\in$ Coll!.
-
-\begin{figure}[ht]
-  \centering
-  \begin{minipage}[ht]{0.3\linewidth}
-    \begin{code}
-      class Coll e c
-      where
-         empty :: c
-         insert :: e -> c -> c
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.3\linewidth}
-    \begin{code}
-      class Coll Int [Int]
-      where
-         empty = ...
-         insert = ...
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.3\linewidth}
-    \begin{code}
-      class Coll Float (BST Float)
-      where
-         empty = ...
-         insert = ...
-    \end{code}
-  \end{minipage}
-  \caption[Coll typeclass]{\lstinline{Coll} typeclass and its instances}
-  \label{fig:tc-collection}
-\end{figure}
-
-The use of !empty! in a polymorphic setting however interferes with the compilation decision. It is not enough to determine what the type of !e! should be just by knowing the type !c!. Such types are called ambiguous types. Formally, if a type variable only appears in the constraints of the type it is called an ambiguous type. The type of !empty!, !FORALL e c. Coll e c => c!, is ambiguous due to the occurance of !e! only the constraint. Such types do not have a well defined semantics as the compiler cannot make a unique choice of what the compiled code should be. The problem is here is that the typeclasses are relations and hence are too general for this use case. To make typeclasses behave in a more constrained way, Jones introduced functional dependencies\cite{jones_tcfd_2000}. The insight is to be able to specify the functional nature of relations, i.e. to be able to say if we \emph{know} certain type parameters of the typeclass, we can \emph{determine} the other type parameters as well.
-
-\begin{figure}[ht]
-  \begin{CenteredBox}
-    \begin{code}
-      class Coll e c | c ~> e where
-      empty :: c
-      extend :: e -> c -> c
-    \end{code}
-  \end{CenteredBox}
-  \caption[Coll typeclass]{\lstinline{Coll} Typeclass with Functional Dependency}
-  \label{fig:tc-collection-fd}
-\end{figure}
-
-The extra annotation !c ~> e! on the typeclass !Coll e c! as shown in \pref{fig:tc-collection-fd} says that !e! can be uniquely determined for given a !c!.
-We call !c! to be the determiner and !e! to be the determinant of the functional dependency.
-
-% improvement, simplification
-%
-
-\subsection{Type Functions}
-\subsubsection{Associated Types}
-The main reason to have multiparameter type classes with functional dependencies was to enable the type system to express type functions. In other words, if the determiner type variables of the functional dependency determine the determinant type variables, then it would be syntactically pleasing to write them in a function form.
-Using our previous !Coll c e! example, if !c ~> e! then, it would be more obvious to the programmers to instead write !Elem c! instead of !e!, where !Elem c! is a special type function that takes in a type and returns a type. This effectively gives an alternative route to express functional dependencies.
-\begin{figure}[ht]
-  \begin{center}
-    \begin{minipage}[ht]{0.4\linewidth}
-      \begin{code}
-        class Coll c where
-           type Elem c
-           empty :: c
-           extend :: Elem c -> c -> c
-      \end{code}
-    \end{minipage}%
-    \begin{minipage}[ht]{0.4\linewidth}
-      \begin{code}
-        instance Coll [Int] where
-           type Elem [Int] = Int
-           empty = ...
-           extend = ...
-      \end{code}
-    \end{minipage}
-  \end{center}
-  \caption[Coll typeclass]{\lstinline{Coll} Typeclass with Type Function}
-  \label{fig:type-fam}
-\end{figure}
-
-In \pref{fig:type-fam}, the typeclass !Coll! has an associated type function !Elem! that depends on the type parameter !c! of the typeclass.
 % \subsubsection{Closed Type Functions}
 % There maybe cases where the type functions have to be restricted extensions. For example The previously defined
 % !Add! type function is supposed to be defined only on !Z! and !S n! types. Closed type families help in this situtation.
@@ -882,6 +901,58 @@ GADT consistency says that if two types are provably equal, then they must be sy
   If $\GTranslate \empt \empt \Tm \tau \Tm'$, then $\manystepsto {\Tm'} \Val$ iff $\manystepsto {\compile\Tm} \Val$ where $\Val$ is some value of ground type and $\compile\Tm$ is type erased term.
 \end{theorem}
 
+
+\subsection{Type Functions}
+\subsubsection{Open Type Functions}
+An unusual feature of the system, which also makes the type system expressive is the ability to write open type functions. The intension is to generalize associated types to be independent of typeclasses. Type functions are able to express complex type level computations. Further, they are also open, meaning, just like class instances, the open type functions can be extended. An example of how type computations are expressed by type functions that define addition of naturals at type level, shown in \pref{fig:open-type-fun-add}
+\begin{figure}[ht]
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      data Z
+      data S n
+    \end{code}
+  \end{minipage}%
+  \begin{minipage}[ht]{0.4\linewidth}
+    \begin{code}
+      type family Plus m n
+      type instance Plus Z n = n
+      type instance Plus (S m) n = S (Plus m n)
+    \end{code}
+  \end{minipage}
+  \caption{Addition with type functions}
+  \label{fig:open-type-fun-add}
+\end{figure}
+Open type functions thus give type computation a flavor of rewrite rules.
+Each type family instance directly translates to axioms. Thus for !Plus m n! type function, the two associated instances would introduce the following axioms !CoAddZ : Plus Z n ~ n! and !CoAddSmn : Plus (S m) n ~ S (Plus m n)!
+
+\subsubsection{Associated Types}
+The main reason to have multiparameter type classes with functional dependencies was to enable the type system to express type functions. In other words, if the determiner type variables of the functional dependency determine the determinant type variables, then it would be syntactically pleasing to write them in a function form.
+Using our previous !Coll c e! example, if !c ~> e! then, it would be more obvious to the programmers to instead write !Elem c! instead of !e!, where !Elem c! is a special type function that takes in a type and returns a type. This effectively gives an alternative route to express functional dependencies.
+\begin{figure}[ht]
+  \begin{center}
+    \begin{minipage}[ht]{0.4\linewidth}
+      \begin{code}
+        class Coll c where
+           type Elem c
+           empty :: c
+           extend :: Elem c -> c -> c
+      \end{code}
+    \end{minipage}%
+    \begin{minipage}[ht]{0.4\linewidth}
+      \begin{code}
+        instance Coll [Int] where
+           type Elem [Int] = Int
+           empty = ...
+           extend = ...
+      \end{code}
+    \end{minipage}
+  \end{center}
+  \caption[Coll typeclass]{\lstinline{Coll} Typeclass with Type Function}
+  \label{fig:type-fam}
+\end{figure}
+
+In \pref{fig:type-fam}, the typeclass !Coll! has an associated type function !Elem! that depends on the type parameter !c! of the typeclass.
+
 \subsubsection{Associated Types}
 Elaborating associated types to \SFC is very similar to translating GADTs. The constraint context now contains class predicates along with equality predicates. This extension is also needed if GADT data constructors need to constrain certain type parameters. The equality constraints can now appear not only in the context of GADT data constructors but any term type.
 
@@ -923,27 +994,7 @@ If $\TEnv$ contains type rewrite axioms that are confluent and terminating, then
 \end{theorem}
 For non-overlapping instances, it is indeed the case that the rewrite axioms are confluent and terminating.
 
-\subsubsection{Open Type Functions}
-An unusual feature of the system, which also makes the type system expressive is the ability to write open type functions. The intension is to generalize associated types to be independent of typeclasses. Type functions are able to express complex type level computations. Further, they are also open, meaning, just like class instances, the open type functions can be extended. An example of how type computations are expressed by type functions that define addition of naturals at type level, shown in \pref{fig:open-type-fun-add}
-\begin{figure}[ht]
-  \begin{minipage}[ht]{0.4\linewidth}
-    \begin{code}
-      data Z
-      data S n
-    \end{code}
-  \end{minipage}%
-  \begin{minipage}[ht]{0.4\linewidth}
-    \begin{code}
-      type family Plus m n
-      type instance Plus Z n = n
-      type instance Plus (S m) n = S (Plus m n)
-    \end{code}
-  \end{minipage}
-  \caption{Addition with type functions}
-  \label{fig:open-type-fun-add}
-\end{figure}
-Open type functions thus give type computation a flavor of rewrite rules.
-Each type family instance directly translates to axioms. Thus for !Plus m n! type function, the two associated instances would introduce the following axioms !CoAddZ : Plus Z n ~ n! and !CoAddSmn : Plus (S m) n ~ S (Plus m n)!
+
 
 \subsection{Implicit vs Explicit Evidence}
 \SFC is to be used as a core language with fairly complex features. It would be worth while to investigate if, as an optimization step, the explicit coercions can be elided and then by means of typechecking they could be reconstructed. We call the system with implicit coercion calculus, \SFCi. The key difference between \SFC and \SFCi is that where ever \SFC has a coercion type $\Co$ of kind $\tau\sim\tau'$, \SFCi only gives the equality kind in curly braces $\tau\sim\tau'$. Hence, for terms

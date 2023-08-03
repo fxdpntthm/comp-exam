@@ -19,6 +19,7 @@ data Alg a where
   IsZero :: Alg Int -> Alg Bool
   Plus   :: Alg Int -> Alg Int -> Alg Int
 --             | forall b. Fun (Alg a -> Alg b) (Alg a)
+  Equals :: Eq a => Alg a -> Alg a -> Alg Bool
 
 zero, one :: Alg Int
 zero = VAlg 0
@@ -38,3 +39,4 @@ eval (VAlg i) = i
 eval (IsZero a) = isZero a
 eval (Plus a b) = (eval a) + (eval b)
 -- eval (Fun f arg) = f (eval arg)
+eval (Equals a b) = (eval a == eval b)

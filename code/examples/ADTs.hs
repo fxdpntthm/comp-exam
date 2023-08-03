@@ -14,7 +14,7 @@ module ADTs where
 data Alg a  = VAlg a           -- :: Alg a
             -- | IsZero (Alg Int) -- :: Alg a
             | Plus (Alg a) (Alg a) -- :: Alg a
-
+            | Equals (Alg a) (Alg a)
 -- data Alg' a where
 --   VAlg' :: a -> Alg' a            -- :: Alg a
 --             -- | IsZero (Alg Int) -- :: Alg a
@@ -39,7 +39,9 @@ eval (VAlg i) = i
 -- eval (IsZero a) = isZero a
 eval (Plus a b) = (eval a) + (eval b)
 -- eval (Fun f arg) = f (eval arg)
-
+eval (Equals a b) = case (a, b) of
+                      (VAlg i, VAlg j) = i == j
+                      (Plus x y, Plus v u) = x =
 
 
 
