@@ -39,15 +39,12 @@ eval (VAlg i) = i
 -- eval (IsZero a) = isZero a
 eval (Plus a b) = (eval a) + (eval b)
 -- eval (Fun f arg) = f (eval arg)
-eval (Equals a b) = case (a, b) of
-                      (VAlg i, VAlg j) = i == j
-                      (Plus x y, Plus v u) = x =
 
 
 
-data AlgExp a  = Value a              -- :: Alg a
-               | IsZero (Alg Int)     -- :: Alg a
-               | Plus (Alg a) (Alg a) -- :: Alg a
+-- data AlgExp a  = Value a              -- :: Alg a
+--                | IsZero (Alg Int)     -- :: Alg a
+--                | Plus (Alg a) (Alg a) -- :: Alg a
 
-evalAlgExp :: Alg a -> a
-evalAlgExp
+-- evalAlgExp :: Alg a -> a
+-- evalAlgExp
