@@ -139,9 +139,8 @@
 
 
 % Coercion language
-\def\refl#1{\langle#1\rangle}
-\def\trans#1#2{#1 \circ #2}
-\def\refl#1{\langle#1\rangle}
+\newcommand\refl[1]{\langle{#1}\rangle}
+\newcommand\trans[2]{{#1} \circ {#2}}
 \newcommand\Sym[1]{\textbf{sym}\App{#1}}
 \newcommand\Kind[1]{\textbf{kind}\App{#1}}
 \newcommand\Contra[2]{\textbf{contra}\App{#1}\App{#2}}
@@ -241,7 +240,8 @@
   flexiblecolumns=false,
   basewidth={0.5em,0.45em},
   morekeywords={instance, class, if, where, data, then, else, type,%
-    case, of, require, linear, primitive, newtype, family, module, error},
+    case, of, require, linear, primitive, newtype, family, module,
+    error, axiom},
   morecomment=[l]{--},
   commentstyle=\color{Gray},
   mathescape=true,
@@ -266,6 +266,7 @@
     {TYPE}{{$\KType$}}1
     {CONSTRAINT}{{$\KPred$}}1
     {FORALL}{{$\forall$}}1
+    {EXISTS}{{$\exists$}}1
     {_i}{{$\!_i$}}1
 }
 \lstnewenvironment{code}{}{}

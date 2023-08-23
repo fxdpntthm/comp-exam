@@ -1,5 +1,5 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, TypeFamilyDependencies #-}
 
 module GADT where
 
@@ -39,4 +39,21 @@ eval (VAlg i) = i
 eval (IsZero a) = isZero a
 eval (Plus a b) = (eval a) + (eval b)
 -- eval (Fun f arg) = f (eval arg)
-eval (Equals a b) = (eval a == eval b)
+eval (Equals a b) = eval a == eval b
+
+
+
+-- type family F a -- = r | r -> a
+-- type instance F Int = Int
+-- type instance F [Int] = Char
+-- -- type instance F a = a
+
+-- data T a = T (F a)
+
+
+-- type family FClosed a = r | r -> a where
+--   -- FClosed [Int] = Int
+--   FClosed a = a
+
+
+-- data T2 a = T2 (FClosed a)

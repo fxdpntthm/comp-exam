@@ -13,7 +13,7 @@ module ADTs where
 
 data Alg a  = VAlg a           -- :: Alg a
             -- | IsZero (Alg Int) -- :: Alg a
-            | Plus (Alg a) (Alg a) -- :: Alg a
+            | Plus (Alg Int) (Alg Int) -- :: Alg a
             | Equals (Alg a) (Alg a)
 -- data Alg' a where
 --   VAlg' :: a -> Alg' a            -- :: Alg a
@@ -25,6 +25,10 @@ data Alg a  = VAlg a           -- :: Alg a
 zero, one :: Alg Int
 zero = VAlg 0
 one = VAlg 1
+
+true, false :: Alg Bool
+true = VAlg True
+false = VAlg False
 
 suc :: Alg Int -> Alg Int
 suc v = Plus one v

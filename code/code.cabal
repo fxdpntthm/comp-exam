@@ -31,7 +31,7 @@ executable code
     -- other-extensions: GADTs
     --                   TypeFamilies
 
-    build-depends:    base ^>=4.16.4.0
+    build-depends:    base >= 4.17
                     , comp-examples
 
     hs-source-dirs:   app
@@ -39,7 +39,7 @@ executable code
     ghc-options:   -optl=-Wl,-no_fixup_chains
 
 library comp-examples
-    build-depends:    base ^>=4.16.4.0
+    build-depends:    base >= 4.17
 
     hs-source-dirs: examples
 
