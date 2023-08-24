@@ -637,13 +637,41 @@ As an example of why coercion composition is useful, consider a higher kinded al
  \label{fig:sfc-typing-ki}
 \end{figure}
 
-The kinding judgement for types, other than coercions, are listed in \pref{fig:sfc-typing-ty} are fairly standard in comparison to \SF. The judgement $\trule{ty-app}$ enables kinding applications of higher kinded types like !List! or !Tree!. We note that the kinding judgement for $\trule{ty-fcon}$ and $\trule{ty-con}$ are distinct as only fully saturated type function constructors are valid types in the system. The impredicative nature of \SFC is evident from $\trule{ty-all}$.
+The kinding judgement for types, \fbox{$\TyKinding \TEnv \tau \kappa$}, other than coercions, are listed in \pref{fig:sfc-typing-ty} are fairly standard in comparison to \SF. The judgement $\trule{ty-app}$ enables kinding applications of higher kinded types like !List Int! or !Tree b!. We note that the kinding judgement for $\trule{ty-fcon}$ and $\trule{ty-con}$ are distinct as only fully saturated type function constructors are valid types in the system. The impredicative nature of \SFC is evident from $\trule{ty-all}$.
 
-\newcommand\TCase{
- \ib{\irule[\trule{case}]
- {\Typing \TEnv {\Tm} {\sigma}}
- {\many{\Typing \TEnv {P \to N} {\sigma \to \tau}}};
- {\Typing \TEnv {\Case \Tm {\many{P \to N}}} {\tau}}
+\newcommand\TVar{
+ \ib{\irule[\trule{var}]
+ {x\co\tau \in \TEnv};
+ {\Typing \TEnv x \tau}
+ }
+}
+
+\newcommand\TAbs{
+ \ib{\irule[\trule{\I\to}]
+ {\Typing {\TEnv,x\co\sigma} {M} {\tau}};
+ {\Typing \TEnv {\Lam x M} {\sigma \to \tau}}
+ }
+}
+\newcommand\TApp{
+ \ib{\irule[\trule{\E\to}]
+ {\Typing \TEnv \Tm {\sigma \to \tau}}
+ {\Typing \TEnv N \sigma};
+ {\Typing \TEnv {\Tm \App N} {\tau}}
+ }
+}
+\newcommand\TTyApp{
+ \ib{\irule[\trule{\E\forall}]
+ {\Typing  \TEnv \Tm {\Forall {\alpha\co\kappa} \tau}}
+ {\Kinding \TEnv \sigma \kappa};
+ {\Typing  \TEnv {M\App\sigma} {\tau}}
+ }
+}
+
+\newcommand\TTyAbs{
+ \ib{\irule[\trule{\I\forall}]
+   {\Typing {\TEnv,\alpha\co\kappa} \Tm \tau}
+   {\alpha\#\TEnv};
+   {\Typing \TEnv {\Forall {\alpha\co\kappa} \Tm} {\tau}}
  }
 }
 
@@ -663,18 +691,28 @@ The kinding judgement for types, other than coercions, are listed in \pref{fig:s
  {\Typing \TEnv {\Cast \Tm \Co} {\sigma}}
  }
 }
+\newcommand\TCase{
+ \ib{\irule[\trule{case}]
+ {\Typing \TEnv {\Tm} {\sigma}}
+ {\many{\Typing \TEnv {P \to N} {\sigma \to \tau}}};
+ {\Typing \TEnv {\Case \Tm {\many{P \to N}}} {\tau}}
+ }
+}
 
 \begin{figure}[ht]
 \begin{gather*}
- \fbox{$\Typing \TEnv M \tau$}\\
- \TCast \rsp \TCase \\ \TAlt
+  \fbox{$\Typing \TEnv M \tau$}\\
+  \TVar   \rsp \TAbs \rsp \TApp\\
+  \TTyAbs \rsp \TTyApp \\
+  \TCast  \rsp \TCase \\
+  \TAlt
 \end{gather*}
 
  \caption{Typing judgements: Excerpt of Static Semantics of \SFC}
  \label{fig:sfc-typing-ty}
 \end{figure}
 
-An excerpt of typing judgements for terms is shown in \pref{fig:sfc-typing-ty}. It also does not differ much from the \SF. The novel judgement \trule{cast} transforms a term $M\co\tau$ to a term $M\co\sigma$ with a witness coercion $\Co\co\tau\sim\sigma$. The two typing judgements worth discussing are that for typing case statements $\trule{ty-case}$ and typing alternatives $\trule{ty-alt}$. A case statement can only be well typed if the discriminant has a type $\sigma$ and each of the alternatives $P \to N$ have the same type $\sigma \to \tau$. For alternatives, if the pattern is a data constructor, only the existential type variables $\many\beta$ are brought into scope explicitly in the pattern. The trickery is sound as existential quantification can be encoded using a universal quantification.
+An typing judgements for terms, \fbox{$\Typing \TEnv \Tm \tau$}, is shown in \pref{fig:sfc-typing-ty}. The judgements inherited from \SF are $\trule{var}$, $\trule{\I\to}$, $\trule{\E\to}$, $\trule{\I\forall}$, and $\trule{\E\forall}$. The novel judgement \trule{cast} transforms a term $M\co\tau$ to a term $M\co\sigma$ with aa witness coercion $\Co\co\tau\sim\sigma$. The two typing judgements worth discussing are that for typing case statements $\trule{ty-case}$ and typing alternatives $\trule{ty-alt}$. A case statement can only be well typed if the discriminant has a type $\sigma$ and each of the alternatives $P \to N$ have the same type $\sigma \to \tau$. For alternatives, if the pattern is a data constructor, only the existential type variables $\many\beta$ are brought into scope explicitly in the pattern.
 
 For example, consider the data constructor !IsEquals! and its type with explicit kind anotations from the previous section.
 \begin{CenteredBox}
@@ -683,15 +721,16 @@ IsEquals :: FORALL (a :: *). FORALL (b :: *). DEq b -> b -> b -> GAlgExpr a
 \end{code}
 \end{CenteredBox}
 
-Inside a case term the pattern would have the form
+Inside a case term the alternative would have the form
 
 \begin{CenteredBox}
 \begin{code}
-case M of IsEquals (b :: *). (d :: DEq b) (x :: b) (y :: b) -> N
+(IsEquals (b :: *). (d :: DEq b) (x :: b) (y :: b)) -> N
 \end{code}
 \end{CenteredBox}
 
-as the type of !IsEquals! is isomorphic to the one
+where $N$ is the resultant if the discriminant matches the pattern !IsEquals!.
+This transformation is sound as the type of !IsEquals! is isomorphic to
 
 \begin{CenteredBox}
 \begin{code}
@@ -701,26 +740,7 @@ FORALL (a :: *). (EXISTS (b :: *). (DEq b, b, b)) -> GAlgExpr a
 % How does case and alternative may encode GADTs
 % example of how \exists is just \forall
 
-We can now make more sense of the type magic which the !eval :: GAlgExpr a -> a! seemed to perform by elaborating the definition of the eval function into \SFC.
-
-\begin{CenteredBox}
-\begin{code}
-eval :: FORALL a. GAlgExpr a -> a
-eval (Value x) = x
-eval (IsZero (co :: a ~ Bool) (x :: Int)) = (isZero x) /> sym co
-eval (Plus (co :: a ~ Int) (x :: Int) (y :: Int))
- = (((eval (x /> sym co)) /> co)
- + ((eval (y /> sym co)) /> co))
- /> sym co
-eval (IsEquals (co :: a ~ Bool) (d :: Eq a )
-\end{code}
-\end{CenteredBox}
-
-In the !Value! case, the argument to the constructor is a generic variable of type !a!, while in the case of !IsZero! an existential coercion, !co :: a ~ Bool!, is brought into scope. This coercion can be used for type refinement to the result type of !isZero x! to convert it back to a generic variable !a!. Recall that the type of the funciton !isZero! is !Int -> Bool!. The !Plus! although looks complicated, can be read systematically. Each argument !x! and !y! is first, coerced to a generic type !a! using the existential coercion !co : a ~ Int! and then coerced back into !Int! to peform the addition operation (!+!). Before returning, it is casted back into the generic type variable !a!.
-
 \subsection{Operational Semantics}
-We use call by name semantics as GHC uses lazy evaluation and we assume Barendregt's convention throughout the presentation.
-
 \newcommand{\Beta}{
  \ib{\irule[\trule{$\beta$}]
  {};
@@ -841,24 +861,26 @@ If our system has a top level axiom such as $coBogus \co \texttt{Int} \sim \text
  \end{itemize}
 \end{definition}
 
-\begin{theorem}[Progress and Subject Reduction]\label{thm:progress}
+\begin{theorem}[Progress and Subject Reduction]\label{thm:progress-sfc}
  If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ then, either $\Tm \in C\Val$ or, $\stepsto \Tm \Tm'$ and
  $\Typing \TEnv {\Tm'} \tau$
 \end{theorem}
 
-\subsection{Encoding Language Features}
+The above consistency critera is the minimun requirement to guarantee soundness property. The system is designed in a modular way such that if it was extended to have more features, the consistency critera will have to change.
+The burden of defining what consistency depends on the language designer who would ultimately define it depending on what are the soundness requirements, which in turn depends on what language features are supported.
 
-Armed with the new coercion infrastructure, it is now possible to encode most of the features discussed in \pref{sec:language-features}. \SFC is a conservative extension of \SF, type classes and algebraic datatypes can thus be encoded in \SFC without any extra machinery. GADTs and associated types demand some more details.
-
-\subsubsection{GADTs}\label{sec:fc-encodes-gadts}
+\section{Encoding Language Features in \SFC}
+% Armed with the new coercion infrastructure of \SFC, it is now possible to encode most of the features discussed in \pref{sec:language-features}. \SFC is a conservative extension of \SF, type classes and algebraic datatypes can thus be encoded in \SFC without any extra machinery. GADTs and associated types demand some more details.
+\subsection{GADTs}\label{sec:fc-encodes-gadts}
+We now formalize the intuition of how GADTs can be encoded into \SFC using a type directed elaboration. Although \SFC does not distinguish between monotypes and polytypes, the surface level syntax does make that distinction. This distinction is due to pragmatic reasons, allowing a higher ranked type scheme makes the type and kind checking difficult\cite{}.
 
 \begin{figure}[ht]
  \centering
  \begin{syntax}
+ \text{Constraints} && C \bnfeq& \empt \bnfor C, c\co\tau\sim\tau'\\
  \text{Polytypes} && \pi \bnfeq& \eta \bnfor \Forall\TyVar.\pi\\
- \text{Constrained Types} && \eta \bnfeq& \tau \bnfor \tau\sim\tau \then \eta\\
- \text{Monotypes} && v,\tau \bnfeq& \TyVar \bnfor \tau\to\tau \bnfor T\App\many\tau\\
- \text{Constraints} && C \bnfeq& \empt \bnfor C, c\co\tau\sim\tau'
+ \text{Constrained Types} && \eta \bnfeq& \tau \bnfor C \then \eta\\
+ \text{Monotypes} && v,\tau \bnfeq& \TyVar \bnfor \tau\to\tau \bnfor T\App\many\tau
  \end{syntax}
  \caption{GADT Surface level type syntax}
  \label{fig:gadt-type-syntax}
@@ -917,6 +939,10 @@ Armed with the new coercion infrastructure, it is now possible to encode most of
  }
 }
 
+
+The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level term $\Tm$ of type $\pi$, it is elaborated to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the elaboration is that the type equality constraints, $\tau\sim\tau'$, are elaborated to coercions in \SFC. The constraint C is a collection of named type equalities. The rules \trule{g-var}, $\trule{g-\I\forall}$ and \trule{g-$\E\forall$} are standard rules used for elaborating Hindley-Milner System to \SF while \trule{g-$\I C$} and \trule{g-$\E C$} reminescent of elaborating typeclass constraints. In the implementation, the solver would produce the coerction $\Co$ using the list of assumptions $\TEnv$ in $\trule{g-\E\forall}$. The complex looking \trule{g-alt} elaborates case statements into \SFC. Each surface level data constructor is elaborated to the \SFC data constructor with explicit existentials coercions as pattern variables. The rule $\trule{g-eq}$ is the same as \trule{cast} rule. The important detail here is that the coercion, $\Co$, is inferred from the constraint context $C$. Constructing the appropriate $\Co$ algorithmically is possible by using a simple unification algorithm based on \cite{lassez_unification_1988}.
+
+
 \begin{figure}[ht]
  \centering
  \begin{gather*}
@@ -932,25 +958,33 @@ Armed with the new coercion infrastructure, it is now possible to encode most of
  \caption[Encoding GADTs]{GADTs' Type-directed Translation in \SFC}
  \label{fig:encoding-gadts}
 \end{figure}
-Each GADT data constructor's type is elaborated with equality coercions as arguments in \SFC term.
-For example the data constructor !App! from \pref{fig:gadt-example} is elaborated as:
+
+We can now make more sense of the type magic which the !eval :: GAlgExpr a -> a! seemed to perform by elaborating the definition of the eval function into \SFC.
+
+\begin{CenteredBox}
 \begin{code}
- App : FORALL a:* b:*. FORALL c:*. FORALL co: c ~ (a -> b). Lam c -> Lam a -> Lam b
+eval :: FORALL a. GAlgExpr a -> a
+eval (Value x) = x
+eval (IsZero (co :: a ~ Bool) (x :: Int)) = (isZero x) /> sym co
+eval (Plus (co :: a ~ Int) (x :: Int) (y :: Int))
+ = (((eval (x /> sym co)) /> co)
+ + ((eval (y /> sym co)) /> co))
+ /> sym co
 \end{code}
-A type directed elaboration converts a source level GADT into \SFC as shown in \pref{fig:encoding-gadts}.
-The source level types are stratified into three groups: polytypes, constrained types and monotypes.
+\end{CenteredBox}
 
-The judgement $\GTranslate C \TEnv \Tm \pi \Tm'$ says that given a surface level term $\Tm$ of type $\pi$, it is elaborated to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the elaboration is that the type equality constraints, $\tau\sim\tau'$, are elaborated to coercions in \SFC. The constraint C is a collection of named type equalities. The rules \trule{g-var}, \trule{g-$\I\forall$} and \trule{g-$\E\forall$} are standard rules used for elaborating Hindley-Milner System to \SF while \trule{g-$\I C$} and \trule{g-$\E C$} reminescent of elaborating typeclass constraints. The complex looking \trule{g-alt} elaborates case statements into \SFC. Each surface data constructor is elaborated to the \SFC data constructor with explicit coercions as arguments. The rule \trule{g-eq} is the same as \trule{cast} rule. The important detail here is that the coercion, $\Co$, is inferred from the constraint context $C$. Constructing the appropriate $\Co$ algorithmically is possible by using a simple unification algorithm based on \cite{lassez_unification_1988}.
+In the !Value! case, the argument to the constructor is a generic variable of type !a!, while in the case of !IsZero! an existential coercion, !co :: a ~ Bool!, is brought into scope. This coercion can be used for type refinement to the result type of !isZero x! to convert it back to a generic variable !a!. Recall that the type of the funciton !isZero! is !Int -> Bool!. The !Plus! although looks complicated, can be read systematically. Each argument !x! and !y! is first, coerced to a generic type !a! using the existential coercion !co : a ~ Int! and then coerced back into !Int! to peform the addition operation (!+!). Before returning, it is casted back into the generic type variable !a!.
 
+The following lemmas are extensions of the meta-theoritic properties discussed in the previous section. We want to formalize the argument that ensures we have not lost the subject reduction property mentioned in \pref{thm:progress-sfc}.
 \begin{lemma}[Type Preservation]
  If $\GTranslate C \empt \Tm \tau {\Tm'}$ then $\Typing C {\Tm'} \tau$
 \end{lemma}
 Type preservation is an important sanity check for the elaborations. It says that the the elaborated terms have the same type that was inferred at surface level.
 
-\begin{theorem}[GADT Consistency]
+\begin{theorem}[GADT Consistency]\label{thm:gadt-consistency}
  If $\dom\TEnv$ does not contain type variables and coercion constants, and $\CoKinding \TEnv \Co {\tau\sim\tau'}$ then, $\tau$ and $\tau'$ are syntactically identical.
 \end{theorem}
-GADT consistency says that if two types are provably equal, then they must be syntactically identical. All GADT programs are sound in \SFC.
+\pref{thm:gadt-consistency} says that if two base types, or type function free types, are provably equal, then they must be syntactically identical. All GADT programs are sound in \SFC.
 
 \begin{theorem}[GADT Soundess]
  If $\GTranslate \empt \empt \Tm \tau \Tm'$, then $\manystepsto {\Tm'} \Val$ iff $\manystepsto {\compile\Tm} \Val$ where $\Val$ is some value of ground type and $\compile\Tm$ is type erased term.
@@ -1049,8 +1083,6 @@ We can derive a coercion !Int ~ Bool! if we are not careful enough on how we use
 \end{theorem}
 
 If there exists a restriction of \SFCi which is sufficient to encode all the language features while enjoying decidable type checking is an open question.
-
-% \subsubsection{Generative Abstract Types}
 
 \section{\SFR}\label{sec:sfr} % R for roles
 \subsection{Generative types}
