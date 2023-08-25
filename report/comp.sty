@@ -223,9 +223,14 @@
 
 % Compilation
 \def\compile#1{\llbracket#1\rrbracket}
-\newcommand\GTranslate[5]{#1;#2 \vdash_{\mathcal{G}} \textcolor{blue}{#3 : #4} \Mapsto \textcolor{red}{#5}}
+\newcommand\GTranslate[5]{#1;#2 \vdash_{\tiny{\mathcal{G}}} \textcolor{blue}{#3 : #4} \Mapsto \textcolor{red}{#5}}
 \newcommand\DTranslate[3]{#1 \vdash_{\mathcal{D}} \textcolor{blue}{#2}
   \Mapsto \textcolor{red}{#3}}
+\newcommand\NTranslate[3]{#1 \vdash_{\tiny{\mathcal{N}}}
+  \textcolor{blue}{#2} \Mapsto \textcolor{red}{#3}}
+\newcommand\NTTranslate[4]{#1 \vdash_{\tiny{\mathcal{N}}}
+  \textcolor{blue}{#2 : #3} \Mapsto \textcolor{red}{#4}}
+
 % Haskell listings
 \usepackage{listings}
 \lstloadlanguages{Haskell}
