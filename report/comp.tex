@@ -6,7 +6,7 @@
 
 \usepackage{comp}
 
-\title{Practical Functional Programming in \SFC and its extensions}
+\title{Practical Functional Programming with \SFC and its extensions}
 % \subtitle{Extensions to System F}
 
 \author{Apoorv Ingle}
@@ -1123,9 +1123,7 @@ An unusual feature of the system, which also makes the type system expressive is
  \caption{Type level Arithmetic}
  \label{fig:open-type-fun-add}
 \end{figure}
-Open type functions thus give type computation a flavor of rewrite rules. Each type family instance directly translates to coercion axioms. Thus for !Plus m n! type function, the two associated instances would introduce the following axioms !CoPlusZn :: Plus Z n ~ n! and !CoPlusSmn :: Plus (S m) n ~ S (Plus m n)!.
-
-There are certain caveats on how these coercion axioms introduced by type functions can be used by the typechecker to avoid inconsistency. For example, consider an open type function !F! and two of its instances that give rise to axioms !coFIB! and !coFBB! respectively.
+Open type functions thus give type computation a flavor of rewrite rules. Each type family instance directly translates to coercion axioms. Thus for !Plus m n! type function, the two associated instances would introduce the following axioms !CoPlusZn :: Plus Z n ~ n! and !CoPlusSmn :: Plus (S m) n ~ S (Plus m n)!. There are certain caveats on how these coercion axioms introduced by type functions can be used by the typechecker to avoid inconsistency. For example, consider an open type function !F! and two of its instances that give rise to axioms !coFIB! and !coFBB! respectively.
 
 \begin{minipage}[ht]{0.5\linewidth}
 \begin{code}
@@ -1145,6 +1143,26 @@ We can derive a coercion !Int ~ Bool! if we are not careful enough on how we use
 
 \subsubsection{Functional Dependencies}\label{sec:fc-encodes-fundeps}
 Consider the !Con e c! from \pref{fig:tc-collection-fd}.
+
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{code}
+class Con e c | c ~> e where ...
+instance Con Int [Int] where ...
+empty :: FORALL e c. Con e c => c
+extend :: FORALL e c. Con e c => e -> c -> c
+\end{code}
+\end{minipage}%
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{code}
+type FDCon c : *
+axiom FDConInt : FDCon [Int] ~ Int
+empty  : FORALL c. Con (FDCon c) c => c
+extend : FORALL c. Con (FDCon c) c => e -> c -> c
+\end{code}
+\end{minipage}
+
+There is a way to encode functional dependencies via the mechanism of open type functions. Each functional dependency induces a special type function that relates determiner to the determinant. Each typeclass instance introduces an axiom that encodes the functional mapping. Further, every type that mentions the determinant of the functional dependency gets replaced by the type function: !Con e c! gets converted to !Con (FCCon c) c!.
+We skip the formalization for encoding functional dependencies until further \pref{sec:conclusion}; while there is an encoding mechanism that is sound, a complete encoding that covers all exotic cases is an open problem
 
 \subsection{General Observations}
 In the current formalization, all the types (and coercions) are explicit in the system. This means that while it is easy to design and implement a machine checker to check its well-formedness, it is difficult for humans to read and understand it. It would be worth while to investigate if, as an optimization step, the explicit coercions can be elided and then by means of type inference they could be reconstructed, albeit the intension of \SFC is to be used as core language, and general programmers would never have to read the verbose code. We call the system with implicit coercion calculus, \SFCi. The key difference between \SFC and \SFCi is that where ever \SFC has a coercion type $\Co$ of kind $\tau\sim\tau'$, \SFCi only gives the equality kind in curly braces $\tau\sim\tau'$. Hence, for terms
