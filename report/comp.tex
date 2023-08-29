@@ -1144,11 +1144,10 @@ axiom coFBB: F Bool ~ Bool
 We can derive a coercion !Int ~ Bool! if we are not careful enough on how we use the coercions. Both axioms have !Bool! as their result type, hence we can derive !F Int ~ F Bool! by transitivity, and then we can use the !right! construct to derive !Int ~ Bool!. the term $\texttt{right}\App(\trans{\texttt{coFIB}}{\Sym{\texttt{coFBB}}})$ has the type !Int ~ Bool!. It is crucial to use the !left! and !right! rules only on types that are not applications of type functions as they can be non-injective. This also influences the surface language design: the type functions need to be fully saturated.
 
 \subsubsection{Functional Dependencies}\label{sec:fc-encodes-fundeps}
-Consider the !Con e c! from \pref{sec:}
+Consider the !Con e c! from \pref{fig:tc-collection-fd}.
 
 \subsection{General Observations}
-\subsubsection{Implicit vs Explicit Evidence}
-\SFC is to be used as a core language with fairly complex features. It would be worth while to investigate if, as an optimization step, the explicit coercions can be elided and then by means of type checking they could be reconstructed. We call the system with implicit coercion calculus, \SFCi. The key difference between \SFC and \SFCi is that where ever \SFC has a coercion type $\Co$ of kind $\tau\sim\tau'$, \SFCi only gives the equality kind in curly braces $\tau\sim\tau'$. Hence, for terms
+In the current formalization, all the types (and coercions) are explicit in the system. This means that while it is easy to design and implement a machine checker to check its well-formedness, it is difficult for humans to read and understand it. It would be worth while to investigate if, as an optimization step, the explicit coercions can be elided and then by means of type inference they could be reconstructed, albeit the intension of \SFC is to be used as core language, and general programmers would never have to read the verbose code. We call the system with implicit coercion calculus, \SFCi. The key difference between \SFC and \SFCi is that where ever \SFC has a coercion type $\Co$ of kind $\tau\sim\tau'$, \SFCi only gives the equality kind in curly braces $\tau\sim\tau'$. Hence, for terms
 \begin{itemize}
 \item Type casts, $\Cast \Tm \Co$, turns into $\Cast \Tm \Set{\tau \sim \tau'}$ and,
 \item Coercion applications, $\Tm\App\Co$ turns into $Tm\App\Set{\tau \sim \tau'}$
@@ -1157,14 +1156,23 @@ Consider the !Con e c! from \pref{sec:}
 \begin{theorem}[Undecidability of coercion reconstruction of \SFCi]
  If $\Tm_i$ is an expression in \SFCi and $\TEnv$ is a typing environment, then reconstructing a \SFC term $\Tm$ such that $\Typing \TEnv {\stepsto {\Tm_i} \Tm} \sigma$, where $\Typing \TEnv \Tm \sigma$ holds is undecidable.
 \end{theorem}
+The proof of undecidability amounts to reducing the problem of coercion reconstruction to A-ground theories in a semi-Thue system, which known to be undecidable\cite{post_recursive_1947}. If there exists a restriction of \SFCi which is sufficient to encode all the language features while enjoying decidable type checking is an open question.
 
-If there exists a restriction of \SFCi which is sufficient to encode all the language features while enjoying decidable type checking is an open question.
+The second observation is that the coercions are types, kinds of which give type equalities. This is novel to \SFC, and the status quo is to express coercions as terms. The goal of the core language is to be practical; due to all coercions being encoded at type leve, they can be erased at runtime to generate efficient code. Another reason is that for implementation purposes, the error term, $\bot$ which trivially just halts the program, by throwing an exception, can be typed all all types. If equality had been encoded at the level of types by making coercions at the level of terms, we would have an ``error coercion'' term $\bot : \tau \sim \sigma$. We would then have had to guarantee evaluating the the type equality evidences before we evaluate the term, without which we cannot guarantee that we can use a coercion for casts. To avoid such complications and maintain a phase distinction \SFC follows the slogan: \emph{Kinds are propositions, proofs are (coercion) types}
 
 
 \section{Extensions of \SFC}\label{sec:fc-extensions}
 \subsection{\SFR}\label{sec:sfr} % R for roles
 \subsubsection{Generative types}
-GHC uses the keyword newtype to declare generative types. For the type declaration !newtype Fun = MkFun (Fun -> Fun)!, its translation to \SFC amounts to an introduction of a coercion axiom !CoFun : Fun ~ (Fun -> Fun)! where !Fun! is a type constant. In general, for any generative type declaration of the form !newtype T $\many\TyVar$ = MkT $\tau$! will be of the form !CoT : T $\many\TyVar$ ~ $\tau$! where $\tau$ may contain $\many\TyVar$ as free type variables. The advantage of introducing coercion axioms for newtype declarations is that they provide abstraction with zero runtime cost. However,
+GHC uses the keyword newtype to declare generative types. For the type declaration
+
+\begin{CenteredBox}
+\begin{code}
+newtype Fun = MkFun (Fun -> Fun)
+\end{code}
+\end{CenteredBox}
+
+its translation to \SFC amounts to an introduction of a coercion axiom !CoFun : Fun ~ (Fun -> Fun)! where !Fun! is a type constant. In general, for any generative type declaration of the form !newtype T $\many\TyVar$ = MkT $\tau$! will be of the form !CoT : T $\many\TyVar$ ~ $\tau$! where $\tau$ may contain $\many\TyVar$ as free type variables. The advantage of introducing coercion axioms for newtype declarations is that they provide abstraction with zero runtime cost. However,
 a naive translation can result in a type soundness bug\cite{TODO}.
 
 Consider two modules: !AgeLib! where the library writer defines a newtype !Age! and the other, !AgeClient!, a client module that uses the library module !AgeLib!. The !AgeLib! module does not expose the newtype constructor !MkAge! and forces the client module to use the smart constructors !mkAge! to create values of the type !Age! instead.
