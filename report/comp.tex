@@ -148,8 +148,7 @@ class Con e c | c ~> e where
 \label{fig:tc-collection-fd}
 \end{figure}
 
-As shown in \pref{fig:tc-collection-fd}, the extra annotation !c ~> e! specifies the functional dependency on the typeclass !Con e c!. It is to be read as ``for a given !c!, !e! can be uniquely determined ''. !c! to called the determiner and !e! is called the determinant of the functional dependency.
-
+As shown in \pref{fig:tc-collection-fd}, the extra annotation !c ~> e! specifies the functional dependency on the typeclass !Con e c!. It is to be read as ``for a given !c!, !e! can be uniquely determined ''. !c! to called the determiner and !e! is called the determinant of the functional dependency. This extension to typeclasses has a good power to weight ratio with a minimal change to the typeclass syntax and is backwards compatible. The instance declarations do not change, however there needs to be an extra check while type checking the instance declarations to verify that the new instance does not violate the functional dependency: We cannot allow both the typeclass instances, !Con Int [Int]! and !Con Float [Int]! to exist together.
 % improvement, simplification
 %
 
@@ -859,11 +858,9 @@ If our system has a top level axiom such as $coBAD \co \texttt{Int} \sim \texttt
  $\Typing \TEnv {\Tm'} \tau$
 \end{theorem}
 
-The above consistency criteria is the minimum requirement to guarantee soundness property. The system is designed in a modular way such that if it was extended to have more features, the consistency criteria will have to change.
-The burden of defining what consistency depends on the language designer who would ultimately define it depending on what are the soundness requirements, which in turn depends on what language features are supported.
+The above consistency criteria is the minimum requirement to guarantee soundness property. The system is designed in a modular way such that if it was extended to have more features, the consistency criteria will have to change. The burden of defining what consistency depends on the language designer who would ultimately define it depending on what are the soundness requirements, which in turn depends on what language features are supported.
 
 \section{Encoding Language Features in \SFC}
-% Armed with the new coercion infrastructure of \SFC, it is now possible to encode most of the features discussed in \pref{sec:language-features}. \SFC is a conservative extension of \SF, type classes and algebraic datatypes can thus be encoded in \SFC without any extra machinery. GADTs and associated types demand some more details.
 \subsection{GADTs}\label{sec:fc-encodes-gadts}
 We now formalize the intuition of how GADTs can be encoded into \SFC using a type directed elaboration. Although \SFC does not distinguish between monotypes and polytypes, the surface level syntax does. This is due to pragmatic reasons, allowing a higher ranked type scheme makes the type inference non-trivial\cite{jones_practical_2007}.
 
@@ -1004,15 +1001,6 @@ coHtml :: Html ~ String
 
 The axiom !coHtml! can be used freely to cast any term with a type !HTML! to be used in the context that expects a !String!. The elaboration scheme enables us to not only have the cake but eat it too: it has the capability to provide type safety at zero run cost.
 
-% \begin{minipage}[ht]{0.5\linewidth}
-% \begin{code}
-% mkHtml :: String -> Html
-% mkHtml x = (Html . escapeString) x
-
-% unHtml :: Html -> String
-% unHtml (Html x) = x
-% \end{code}
-% \end{minipage}%
 \begin{minipage}[ht]{0.5\linewidth}
 \begin{code}
 mkHtml :: String -> Html
@@ -1156,7 +1144,7 @@ axiom coFBB: F Bool ~ Bool
 We can derive a coercion !Int ~ Bool! if we are not careful enough on how we use the coercions. Both axioms have !Bool! as their result type, hence we can derive !F Int ~ F Bool! by transitivity, and then we can use the !right! construct to derive !Int ~ Bool!. the term $\texttt{right}\App(\trans{\texttt{coFIB}}{\Sym{\texttt{coFBB}}})$ has the type !Int ~ Bool!. It is crucial to use the !left! and !right! rules only on types that are not applications of type functions as they can be non-injective. This also influences the surface language design: the type functions need to be fully saturated.
 
 \subsubsection{Functional Dependencies}\label{sec:fc-encodes-fundeps}
-An example of how fundeps translate to \SFC
+Consider the !Con e c! from \pref{sec:}
 
 \subsection{General Observations}
 \subsubsection{Implicit vs Explicit Evidence}
