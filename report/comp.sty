@@ -120,7 +120,7 @@
 \newcommand\lhs[1]{\text{lhs}_{#1}}
 \newcommand\rhs[1]{\text{rhs}_{#1}}
 \newcommand\many[1]{\overline{#1}}
-
+\newcommand\forces{\mathrel{\vDash}}
 \DeclarePairedDelimiter\ceil{\lceil}{\rceil}
 \DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
 
@@ -180,6 +180,9 @@
 \newcommand{\MoreFamCtrs}{\texttt{G}}
 \newcommand\Ptrns{\texttt{P}}
 \newcommand\Sub[2]{\Set{#1 \mapsto #2}}
+\newcommand\NType{\ensuremath{T_N}}
+\newcommand\TypeConst{\ensuremath{\mathcal{T}}}
+
 \def\FamPattern{\texttt{N}}
 
 \def\Cast#1#2{#1\mathrel{\blacktriangleright}#2}
@@ -190,7 +193,8 @@
 \def\compat#1#2{\texttt{compat}(#1, #2)}
 \def\match#1#2{\texttt{match}(#1, #2)}
 \def\flatten#1{\texttt{flatten}(#1)}
-\def\Good#1{\texttt{Good }#1}
+\newcommand\Good[1]{\texttt{Good~}#1}
+\newcommand\roles[1]{\texttt{roles}(#1)}
 
 
 \newcommand\Typing[3]{#1 \vdash #2 : #3}
@@ -205,6 +209,9 @@
 \newcommand\ValidType[2]{#1 \vdash #2~\text{type}}
 \newcommand\ValidProp[2]{#1 \vdash_\Prop #2~\textbf{ok}}
 \newcommand\ValidAssmp[2]{#1 \vdash #2~\text{asmp}}
+
+\newcommand\RoleAssign[2]{\ensuremath{#1 \forces #2}}
+
 
 % Operational Semantics
 \def\steps{\mathrel{\rightsquigarrow}}
