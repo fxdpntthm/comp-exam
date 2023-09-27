@@ -40,10 +40,10 @@ There can be no functional programming language without a support for first clas
 \end{code}
 \end{minipage}
 
-The type signature !id_I :: Int -> Int! specifies the input-output behavior of the function: !id_I! accepts an argument of type !Int! and returns a value of type !Int!. The function definition !id_I i = i! specifies how the function satisfies the typing specification: it takes an argument !i! and returns it unmodified. Functions declared in a functional programming language resemble mathematical functions in two ways: first, they are referentially transparent, i.e.  a call to the same function twice with the same arguments will always return the same result. Thus, the expression, !id_I 3!, will always evaluate to !3!. Second, they are declarative, in a sense they abstract away the implementation and execution details of how the function executes on the actual underlying hardware; there is no mention of allocating and freeing program memory or even an explicit return. This declarative style, may discomfort skeptic users on execution efficiency, but liberates them from the burden of understanding the exact execution semantics of the hardware.
+The type signature !id_I :: Int -> Int! specifies the input-output behavior of the function: !id_I! accepts an argument of type !Int! and returns a value of type !Int!. The function definition !id_I i = i! specifies how the function satisfies the typing specification: it takes an argument !i! and returns it unmodified. Functions declared in a functional programming language resemble mathematical functions in two ways: first, they are referentially transparent, i.e.  a call to the same function twice with the same arguments will always return the same result. Thus, the expression, !id_I 3!, will always evaluate to !3!. Second, they are declarative, in a sense they abstract away the implementation and execution details of how the function executes on the actual underlying hardware; there is no mention of allocating and freeing program memory or even an explicit return. This declarative style, may discomfort skeptics on execution efficiency, but liberates them from the burden of understanding the exact execution semantics of the hardware.
 
 \subsubsection{Parametric Polymorphism}
-Functions like !id_I!, while enough to build large programs, are too cumbersome in practice to program in. It is sometimes necessary to define the same functionality over different types. For example, an identity function over !Char!, !id_C! has the exact same definition as !id_I!. The functions that work on base types, such as !Int!, are called as monomorphic functions. To enhance reusability of programs, it is necessary to be able to abstract over types.
+Functions like !id_I!, while enough to build large programs, are too cumbersome in practice to program in. It is sometimes necessary to define the same functionality over different types. For example, an identity function over !Char!, !id_C! has the exact same definition as !id_I!. The functions that work on base types, such as !Int!, are called as monomorphic functions. To enhance re-usability of programs, it is necessary to be able to abstract over types.
 
 \begin{CenteredBox}
 \begin{code}
@@ -71,7 +71,7 @@ t2 :: Float = 1.1 + 2.3
 \end{CenteredBox}
 In the definition of !t1!, the operator (!+!) is applied to two integers, but in the definition of !t2! it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of the two terms are distinct: !t1! adds two !Int!s and returns an !Int! while the !t2! adds two !Float!s and returns a !Float!. The compiler generated code for each would also be different as they would make a call to two different built-in subroutines. This variety of name punning, which is dependent on the type of arguments or the context of where the function appears, is called as adhoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to implement adhoc polymorphism, where the compiler resolves the overloaded operator (!+!) to the actual operator (!int_plus! or !float_plus!).
 
-To make implicit overloading practical in functional programming languages, \citet{wadler_polymorphism_1989} proposed a dictionary passing style mechanism. Typeclasses are the incarnation of the the dictionary passing mechanism in Haskell. \citet{jones_qualified_1994} gave an account of typeclasses using the general framework of qualified types. In contrast to parametrically polymorphic functions like !id!, functions like !(+)! which act on some specific set of constrained or qualified types. For example, the addition function (!+!) gets a type: !Num a => a -> a -> a!. This means that the function can only be called on those types !a! which satisfy !Num a! constraint. This !Num a! constraint is declared by the user as a typeclass and instances of it specify when the typeclass constraint holds and what is the intended behaviour. Thus, in this setting, satisfying the constraint amounts to finding an instance declaration of !Num! for the particular type instantiation in question. As an example, instances of the typeclass !Num! are declared with accompanying instance declarations at type !Int! and !Float! in \pref{fig:tc-num}. Typeclasses can also be viewed as relations over types, with every instance declaration extending that relation. The typeclass !Num! represents a unary relation for those types whose values behave like numbers, they can be compared and added together. The declarations in \pref{fig:tc-num} can be interpreted by saying !Float! and !Int! belong to the unary relation !Num!, $\{$ !Int! , !Float! $\} \subseteq $ !Num!. If the type checker is not able to find an appropriate instance, it results in a type error. As expected, the expression !'A' + 'B'! should result in a type error as !Char! $\not\subseteq$ !Num!
+To make implicit overloading practical in functional programming languages, \citet{wadler_polymorphism_1989} proposed a dictionary passing style mechanism. Typeclasses are the incarnation of the the dictionary passing mechanism in Haskell. \citet{jones_qualified_1994} gave an account of typeclasses using the general framework of qualified types. In contrast to parametrically polymorphic functions like !id!, functions like !(+)! which act on some specific set of constrained or qualified types. For example, the addition function (!+!) gets a type: !Num a => a -> a -> a!. This means that the function can only be called on those types !a! which satisfy !Num a! constraint. This !Num a! constraint is declared by the programmer as a typeclass and instances of it specify when the typeclass constraint holds and what is the intended behaviour. Thus, in this setting, satisfying the constraint amounts to finding an instance declaration of !Num! for the particular type instantiation in question. As an example, instances of the typeclass !Num! are declared with accompanying instance declarations at type !Int! and !Float! in \pref{fig:tc-num}. Typeclasses can also be viewed as relations over types, with every instance declaration extending that relation. The typeclass !Num! represents a unary relation for those types whose values behave like numbers, they can be compared and added together. The declarations in \pref{fig:tc-num} can be interpreted by saying !Float! and !Int! belong to the unary relation !Num!, $\{$ !Int! , !Float! $\} \subseteq $ !Num!. If the type checker is not able to find an appropriate instance, it results in a type error. As expected, the expression !'A' + 'B'! should result in a type error as !Char! $\not\subseteq$ !Num!
 
 %% Something about methods
 
@@ -105,7 +105,7 @@ instance Num Float where
 \label{fig:tc-num}
 \end{figure}
 
-\citet{kaes_parametric_1988} had similar ideas related to implementation aspects of adhoc polymorphism before Wadler et al. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for users to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot uniquely resolve an option or when the user wants to force the typechecker to resolve it to a specific instance. % This can be somewhat confusing as a language feature as depending on which implicit object is used, the program behavior can completely change even within the package.
+\citet{kaes_parametric_1988} had similar ideas related to implementation aspects of adhoc polymorphism before Wadler et al. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for the programmer to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot uniquely resolve an option or when the programmer wants to force the typechecker to resolve it to a specific instance. % This can be somewhat confusing as a language feature as depending on which implicit object is used, the program behavior can completely change even within the package.
 
 \subsubsection{Type Computation}
 A generalization of single parameter typeclasses is to have multi-parameter typeclasses. It naturally extends the idea of having n-ary relations over types. For example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under a single interface can be defined using a !Con e c! typeclass, as shown in \pref{fig:tc-collection}. The type variable !e! stands for the element type of the container while !c! stands for the container type itself. One can imagine having instances for such a typeclass as \lstinline{Con Int [Int]}, !Con Int (Tree Int)!, etc. Speaking in terms of relations, we say that $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
@@ -826,14 +826,14 @@ Coercion lifting plays an important role here to make sure that the term sub-com
 \subsubsection{Soundness}
 So do the static semantics effectively weed out all the programs that may fail at runtime. One way to show soundness for a system is by proving subject reduction property.
 
-\begin{theorem}[Progress and Subject Reduction (Take 1)]
+\begin{prop}[Progress and Subject Reduction]\label{prop:sfc-ty-safety}
  If $\Typing \TEnv \Tm \tau$ then, either $\Tm$ is a cvalue or, $\stepsto \Tm \Tm'$ and
  $\Typing \TEnv {\Tm'} \tau$
-\end{theorem}
+\end{prop}
 
 \subsubsection{Consistency}
 We want to ensure that we can never derive anything obviously wrong such as !coBAD : Int ~ Bool! in our system.
-!coBAD! has the power to cast a term of a type !Int! into !Bool!. If such unsound equalities were to be allowed, either by derivation or specified by the user, any term that has a type !Int! could be casted into a term !Bool!. This would mean we would be able to escape the protection provided by the typechecker.
+!coBAD! has the power to cast a term of a type !Int! into !Bool!. If such unsound equalities were to be allowed, either by derivation or specified by the programmer, any term that has a type !Int! could be casted into a term !Bool!. This would mean we would be able to escape the protection provided by the typechecker.
 If our system has a top level axiom such as $coBAD \co \texttt{Int} \sim \texttt{Bool}$, this coercion can be used in a cast, to convert an ill-typed term to a well typed term thus breaking subject reduction property. The theorem needs to be strengthened using an appropriate restriction on $\TEnv$. In general, checking consistency at top level is an undecidable. There exists is a conservative approximation of consistency which can be checked syntactically and it is sufficient for this purpose.
 
 \begin{definition}[\Good $\TEnv$]
@@ -850,7 +850,7 @@ If our system has a top level axiom such as $coBAD \co \texttt{Int} \sim \texttt
  $\Typing \TEnv {\Tm'} \tau$
 \end{theorem}
 
-The above consistency criteria is the minimum requirement to guarantee soundness property. The system is designed in a modular way such that if it was extended to have more features, the consistency criteria will require a change. The burden of defining what consistency depends on the language designer who would ultimately define it depending on what the soundness requirements are, which in turn depends on what language features are supported.
+The above consistency criteria is the sufficient criteria to guarantee soundness. The consistency criteria is designed with modularity in mind: the system was extension to have more features, mandates the consistency criteria extension as well. The burden of defining what consistency depends on the language designer who would ultimately define it depending on what the soundness requirements are, which in turn depends on what language features are supported.
 
 \section{Encoding Language Features in \SFC}\label{sec:sfc-encoding-features}%%%%%%%%%
 \subsection{GADTs}\label{sec:fc-encodes-gadts}
@@ -922,7 +922,7 @@ We now formalize the intuition of how GADTs can be encoded into \SFC using a typ
 }
 
 
-The judgment \fbox{$\GTranslate C \TEnv \Tm \pi \Tm'$} says that given a surface level term $\Tm$ of type $\pi$, it is elaborated to a term $\Tm'$ into \SFC under the constraints C and typing environment $\TEnv$. The key idea of the elaboration is that the type equality constraints, $\tau\sim\tau'$, are elaborated to coercions in \SFC. The constraint C is a collection of named type equalities. The rules \trule{g-var}, $\trule{g-\I\forall}$ and \trule{g-$\E\forall$} are standard rules used for elaborating Hindley-Milner style system\cite{TODO} to \SF while \trule{g-$\I C$} and \trule{g-$\E C$} reminiscent of elaborating typeclass constraints. In the implementation, the solver would produce the coercion $\Co$ using the list of assumptions $\TEnv$ in $\trule{g-\E\forall}$. The complex looking \trule{g-alt} elaborates case statements into \SFC. Each surface level data constructor is elaborated to the \SFC data constructor with explicit existential coercions as pattern variables. The rule $\trule{g-eq}$ is the same as \trule{cast} rule. The important detail here is that the coercion, $\Co$, is inferred from the constraint context $C$. Constructing the appropriate $\Co$ algorithmically is possible by using a simple unification algorithm based on \cite{lassez_unification_1988}.
+The typing-cum-elaboration  judgment \fbox{$\GTranslate C \TEnv \Tm \pi \Tm'$} says that given a well typed surface level term $\Tm$ with type $\pi$, it is elaborated to a term $\Tm'$ in \SFC under the constraints C and typing environment $\TEnv$. The key idea of the elaboration is that the type equality constraints, $\tau\sim\tau'$, are elaborated to coercions in \SFC. The constraint C is a collection of named type equalities. The rules \trule{g-var}, $\trule{g-\I\forall}$ and \trule{g-$\E\forall$} are standard rules used for elaborating Hindley-Milner style system\cite{TODO} to \SF while \trule{g-$\I C$} and \trule{g-$\E C$} reminiscent of elaborating typeclass constraints. In the implementation, the solver would produce the coercion $\Co$ using the list of assumptions $\TEnv$ in $\trule{g-\E\forall}$. The complex looking \trule{g-alt} elaborates case statements into \SFC. Each surface level data constructor is elaborated to the \SFC data constructor with explicit existential coercions as pattern variables. The rule $\trule{g-eq}$ is the same as \trule{cast} rule. The important detail here is that the coercion, $\Co$, is inferred from the constraint context $C$. Constructing the appropriate $\Co$ algorithmically is possible by using a simple unification algorithm based on \cite{lassez_unification_1988}.
 
 
 \begin{figure}[ht]
@@ -1090,8 +1090,7 @@ Elaborating associated types to \SFC is very similar to translating GADTs. The c
  \label{fig:assoc-types-syntax}
 \end{figure}
 
-The judgment $\DTranslate C {D\App\tau} d$ elaborates the predicate $D\App\tau$ to a dictionary $d$ in \SFC.
-The rule \trule{subst} allows replacing type class parameters with equal types. This is necessary to account for associated types that appear in the type class signature. $D\App\tau$ may contain an associated type, and depending on the instantiations of the free type variables in $\tau$ an appropriate coercion can be used to justify casting the dictionary $d$ to the corresponding actual type.
+The judgment $\DTranslate C {D\App\tau} d$ elaborates the predicate $D\App\tau$ to a dictionary $d$ in \SFC. The rule \trule{subst} allows replacing type class parameters with equal types. This is necessary to account for associated types that appear in the type class signature. $D\App\tau$ may contain an associated type, and depending on the instantiations of the free type variables in $\tau$ an appropriate coercion can be used to justify casting the dictionary $d$ to the corresponding actual type.
 
 $$
 \ib{\irule[\trule{subst}]
@@ -1234,7 +1233,7 @@ It is puzzling to comprehend why is this possible even though we had a $\Good\TE
 The main extension to \SFC is by making the equality predicate finer grained by being able to express \emph{how} the two types are equal. In the above case, we see that we have two flavors of type equality coercions: (i) nominal equality, which is established via type function instances (!F String ~ Char!), and (ii) representational equality which is established via newtype definitions (!Html ~ String!). With these different notions of equality, one can restrict coercion lifting as representational equality does not imply nominal equality.
 
 \subsubsection{Syntax}
-We formalize the syntax of the system in \pref{fig:sfr-syntax} and call it \SFR. We extend the syntax infrastructure from \pref{fig:sfc-syntax}. Although the original work by \citet{breitner_safe_2014, weirich_generative_2011} formalizes the system slightly differently, this presentation is easier to understand as an simple extension of \SFC, and is also representative to what the GHC compiler implements. The key extension to represent the notion of finer grained type equality, is done by using \emph{roles}, $\rho$. All type parameters to a type constructor are decorated with a role that says whether the type parameter equality is supposed to be compared nominally, representationally or at phantom role. The function $\roles{\TypeConst}$ returns the roles of all the type parameters of a type constant $\TypeConst$.
+We formalize the syntax of the system in \pref{fig:sfr-syntax} and call it \SFR. We extend the syntax infrastructure from \pref{fig:sfc-syntax}. Although the original work by \citet{breitner_safe_2014, weirich_generative_2011} formalizes the system slightly differently, the presentation in this report is easier to understand as an simple extension of \SFC, and it is also representative to what the GHC compiler implements. The key extension to represent the notion of finer grained type equality, is done by using \emph{roles}, $\rho$. All type parameters to a type constructor are decorated with a role that answers the question how are the two types in question equal. We define the function $\roles{\TypeConst}$ that returns the roles of all the type parameters of a type constant $\TypeConst$.
 
 \subsubsection{Static Semantics}
 The main judgment is for coercions $\CoKinding \TEnv \Co {\tau\sim^\kappa_\rho\sigma}$. This is read as ``in the type environment $\TEnv$ the coercion $\Co$, witness the equality between types $\tau$ and $\sigma$ that have the same kind $\kappa$ at role $\rho$''. The ``equality at role $\rho$'' is the novel feature of \SFR. We will omit the kind $\kappa$ when it is clear from the context. \SFR has three different roles for three different purposes:
@@ -1341,7 +1340,7 @@ Type safe casts can now be expressed using the typing rules \trule{cast-r} and \
 
 Extending the type system with the two rules \trule{cast-r} and \trule{cast-n} would in theory be enough to express what we want, but we can do better by realizing that the equality roles form a total relation: $N < R < P$. If two types are nominally equal, they are representationally equal as well. Similarly, if the two types are representationally equal, they are also equal at phantom role. This is captured in the \trule{co-sub} shown in \pref{fig:sfr-typing}. It says that if we \emph{want} to have equality at representational role, and we are \emph{given} that the two types are nominally equal, then we can generate a coercion that proves the wanted equality from the given equality. Nominal equality is the strictest from of equality while phantom equality is the weakest.
 
-Role assignments to type parameters are performed during type checking the user defined type constant. They are formalized using the role validity as shown in \pref{fig:sfr-validity}. The judgment is read as ``under the role context assumptions $\REnv$, the type $\tau$ has the role $\rho$''. We do not want a global type context to claim that a type parameter's role which is in conflict with the role given to it by the definition the type constant.
+Role assignments to type parameters are performed during type checking the user defined type constant. They are formalized using the role validity as shown in \pref{fig:sfr-validity}. The judgment $\many\rho \forces \TypeConst$ is to be read as ``$\many\rho$ are appropriate for the type constant \TypeConst'', while the judgment $\Typing \REnv \tau \rho$ is read as ``under the role context assumptions $\REnv$, the type $\tau$ has the role $\rho$''. We do not want a global type context to claim that a type parameter's role which is in conflict with the role given to it by the definition the type constant.
 
 \newcommand\RVar{
   \ib{\irule[\trule{r-var}]
@@ -1381,6 +1380,7 @@ Role assignments to type parameters are performed during type checking the user 
     {\RoleAssign {\many\rho} T}
   }
 }
+
 \newcommand\RNTAssign{
   \ib{\irule[\trule{r-nty}]
     {co\NType : \Forall \alpha {\NType\many\alpha \teqR \sigma}}
@@ -1389,11 +1389,27 @@ Role assignments to type parameters are performed during type checking the user 
   }
 }
 
+\newcommand\RToAssign{
+  \ib{\irule[\trule{r-$\to$}]
+    {};
+    {\RoleAssign {R, R} {(\to)}}
+  }
+}
+
+\newcommand\REqAssign{
+  \ib{\irule[\trule{r-$\sim$}]
+    {};
+    {\RoleAssign {\rho, \rho} ({} \teq\rho {})}
+  }
+}
+
+
 \begin{figure}[ht]
   \centering
   \begin{gather*}
     \fbox{$\many\rho \forces \TypeConst$}\\
-    \RNTAssign \rsp \RTAssign
+    \RNTAssign \rsp \RTAssign\\
+    \RToAssign \rsp \REqAssign
   \end{gather*}
   \begin{gather*}
     \fbox{$\Typing \REnv \tau \rho$}\\
@@ -1427,32 +1443,32 @@ The proof of progress does not change with respect to \SFC as the only additiona
 Consider a standard GADT implementation of a vector !Vec! that also stores its length at the type level.
 
 \begin{minipage}[ht]{0.4\linewidth}
- \begin{code}
- data Z
- data S n
- \end{code}
+\begin{code}
+data Z
+data S n
+\end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
- data Vec : * -> * -> * where
- Nil : Vec Z elem
- Cons : elem -> Vec n elem -> Vec (S n) elem
+data Vec : * -> * -> * where
+   Nil : Vec Z elem
+   Cons : elem -> Vec n elem -> Vec (S n) elem
 \end{code}
 \end{minipage}
 
 The types !Z! and !S n! encode the size of the vector. The data constructor !Nil! is a zero length vector which is asserted by the type !Z!, while !Cons! appends an element of type !elem! to a vector of size !n! to return a vector of size !S n!. With primitive kind system, there is no enforcement that the type argument to !Vec! has to be !Z! or !S n!. Any type of kind $\STAR$ is a valid argument. A more desirable alternative would be to restrict the kind of the type that is used to describe the size of the vector.
 
 \begin{minipage}[ht]{0.4\linewidth}
- \begin{code}
- data Nat = Z
- | S Nat
- \end{code}
+\begin{code}
+data Nat = Z
+         | S Nat
+\end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
- data Vec : Nat -> * -> * where
- Nil : Vec Z elem
- Cons : elem -> Vec n elem -> Vec (S n) elem
+data Vec : Nat -> * -> * where
+   Nil : Vec Z elem
+   Cons : elem -> Vec n elem -> Vec (S n) elem
 \end{code}
 \end{minipage}
 
@@ -1474,18 +1490,31 @@ Similar problems arise while writing addition function on type level naturals. T
  \end{code}
 \end{minipage}
 
-Allowing user defined kinds, albeit more expressive, is just a half baked pie without kind polymorphism. Consider a higher kinded datatype !TApp! which is useful for generic programming that encodes type application.
+Allowing user defined kinds, albeit more expressive, are awkward to use without kind polymorphism. Consider a higher kinded datatype !TApp! which is useful for generic programming that encodes type application:
+
+\begin{CenteredBox}
 \begin{code}
- data TApp f a = MkTApp (f a)
+data TApp f a = MkTApp (f a)
 \end{code}
+\end{CenteredBox}
 
-The type argument !f! is defaulted to kind $\STAR \to \STAR$ making the kind of !TApp! to be $(\STAR \to \STAR) \to \STAR \to \STAR$. This limits encoding only those types that have a kind $\STAR$. A more appropriate kind for !TApp! would be $\Forall k {(k\to\STAR) \to k \to \STAR}$, allowing a wider range of types to benefit from generic programming techniques.
+A naive algorithm may compute the kind of the type argument !f! to be $\STAR \to \STAR$, making the kind of !TApp! to be $(\STAR \to \STAR) \to \STAR \to \STAR$. This however may be too restrictive as it allows encoding only those types that have a kind $\STAR$. A more appropriate kind for !TApp! would be $\Forall k {(k\to\STAR) \to k \to \STAR}$, allowing a wider range of types to benefit from generic programming techniques. For example, we can then use feature to write generic programs over higher kinded types like !List!s and !Trees!\cite{magalhaes_generic_2010}.
 
-There are two birds to kill: allowing user defined kinds and kind polymorphism. An unimaginative solution for the former would involve adding a new syntax to the language that accepts kind definitions similar to the type definition. For example !kind Nat = Z | S Z!. An improvement, which the paper proposes, is by reusing the datatype declaration syntax. For any algebraic datatype that the user defines, each of its data constructors will be promoted along with the type constant. To encode type level naturals, the user declares the datatype, as they normally would, while the compiler automatically generates new type and kind level bindings. For example, in case of datatype !Nat!, the data constructor !S : Nat -> Nat! gets promoted to the type level while !Nat! get promoted to the kind level. Kind polymorphism is straight forward by allowing kind quantification only in prenex form. For example for a datatype !T : FORALL $\many{a}$. $\many{k}$ -> *!, all the kind variables $\many{a}$ are quantified before the type arguments of kind $\many{k}$. This simplifies the semantics of the type constants.
+We have identified two requirements: allowing user defined kinds, and less permissive kind polymorphism. An unimaginative solution for the former would involve adding a new syntax to the language that accepts kind definitions similar to the type definition. For example !kind Nat = Z | S Z!. An improvement would be by reusing the datatype declaration syntax. For any algebraic datatype that the programmer defines, each of its data constructors will be promoted along with the type constant. To encode type level naturals, the programmer declares the datatype, as they normally would, and the compiler will automatically generates new type and kind level bindings. For example, in case of datatype !Nat!, the data constructor !S : Nat -> Nat! gets promoted to the type level while !Nat! get promoted to the kind level. Kind polymorphism is straight forward by allowing kind quantification only in prenex form. For example for a datatype !T : FORALL $\many{a}$. $\many{k}$ -> *!, all the kind variables $\many{a}$ are quantified before the type arguments of kind $\many{k}$. This simplifies the semantics of the type constants.
 
 \subsubsection{Syntax}
+\SFP\cite{yorgey_giving_2012}, achieves both the requirements mentioned above with a relatively small extension to \SFC. The syntax for the core language is shown in \pref{fig:sfp-syntax}. The key changes in the language of types---highlighted to compare with \SFC---are allowing kind variables ($\chi$), kind abstraction ($\Forall \chi \kappa$) and application ($\tau\App \kappa$). These changes are reflected in the coercion language which needs additional constructs: kind poly-type congruence ($\Forall \chi \Co$), kind application ($\Co\App\chi$) and kind instantiations ($\Co\At\kappa$).
 
-\begin{figure}[h]
+Other noteworthy addition to the kind and type language are promoted constructors $T\App\many\kappa$ and $H\App\many\tau$, respectively. The data constructors are now explicit in their kind polymorphism by expecting all the kind variables $\many\chi$ to be instantiated before any type variables are instantiated, evident in their type signatures, which now expects the kinds before the type as formal parameters.
+\footnote{As a notational convenience, $\Forall {\many\TyVar} \tau$ is just a shorthand for $\Forall {\TyVar_1} {\Forall {\TyVar_2} {... \Forall {\TyVar_i} \tau}}$, while $\many\tau \to \tau'$ is a short hand for $\tau_1 \to \tau_2 \to ... \to \tau_i \to \tau'$
+}{$$ H : \Forall {\shl{\many\chi}} {\Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\eta}} {\many\tau \to T \App\many{\chi}\App\many{\TyVar}}}} $$
+}
+Promotion of type and data constructors may result in name-space issues. It, however, can be disambiguate from the context. Another mechanism is to add explicit quotation marks as prefix to aid disambiguation.
+For example ``!T!'' is a type constant but ``!'T!'' is a kind constructor.
+Finally, to stop the buck on the syntax classification hierarchy \emph{all} kinds are classified by a unique sort, $\square$.
+
+
+\begin{figure}[ht]
  \centering
  \begin{syntax}
  \shl{\text{Kind Vars}} &\shl{\chi} &  & \\
@@ -1513,21 +1542,13 @@ There are two birds to kill: allowing user defined kinds and kind polymorphism. 
  \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\TyVar\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \Co \co \tau\sim\sigma\\
  \text{Substitutions} &&\Subst \bnfeq& \empt \bnfor \Set{\many{\TyVar \mapsto \tau}}
  \end{syntax}
- \caption{The Syntax of \SFP as an extension for \SFR}
+ \caption{The Syntax of \SFP as an extension for \SFC}
  \label{fig:sfp-syntax}
 \end{figure}
 
-The stone, \SFP, that kills both these birds is a relatively small extension of \SF. The syntax for the core language is shown in \pref{fig:sfp-syntax}. The key changes in the language of types---highlighted to compare with \SFC---are allowing kind variables ($\chi$), kind abstraction ($\Forall \chi \kappa$) and application ($\tau\App \kappa$). These changes are reflected in the coercion language which needs additional constructs: kind poly-type congruence ($\Forall \chi \Co$), kind application ($\Co\App\chi$) and kind instantiations ($\Co\At\kappa$).
 
-Other noteworthy addition to the kind and type language are promoted constructors $T\App\many\kappa$ and $H\App\many\tau$, respectively. The data constructors are now explicit in their kind polymorphism by expecting all the kind variables $\many\chi$ to be instantiated before any type variables are instantiated, evident in their type signatures, which now expects the kinds before the type as formal parameters.
-\footnote{As a notational convenience, $\Forall {\many\TyVar} \tau$ is just a shorthand for $\Forall {\TyVar_1} {\Forall {\TyVar_2} {... \Forall {\TyVar_i} \tau}}$, while $\many\tau \to \tau'$ is a short hand for $\tau_1 \to \tau_2 \to ... \to \tau_i \to \tau'$
-}{$$ H : \Forall {\shl{\many\chi}} {\Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\eta}} {\many\tau \to T \App\many{\chi}\App\many{\TyVar}}}} $$
-}
-Promotion of type and data constructors may result in name-space issues. It, however, can be disambiguate from the context. Another mechanism is to add explicit quotation marks as prefix to aid disambiguation.
-For example ``!T!'' is a type constant but ``!'T!'' is a kind constructor.
-Finally, to stop the buck on the syntax classification hierarchy \emph{all} kinds are classified by a unique sort, $\square$.
 
-\subsubsection{Promotion}
+\subsubsection{Static Semantics}
 It is not clear which constructors can be promoted without threatening either the consistency, or usability of the language. Backwards compatibility is an important aspect while adding a new feature, as the code that compiled without promotion should also work after promotion.
 
 \begin{itemize}
@@ -1537,17 +1558,7 @@ It is not clear which constructors can be promoted without threatening either th
 
 The restriction on the promotion of type constant is because promoting higher kinded types, such as $(\STAR \to \STAR) \to \STAR$ would not be possible without having a richer kind classification system. Further, promotion of type constant that themselves accept promoted types such as !Vec : * -> 'Nat -> *! are not promoted as that would involve double promotion of the type !Nat! or would require type and kind levels to be fully dependent, making the system over complex. Kind polymorphic type constant are also not promoted as that would require polymorphic sorts, which is absent from the system to keep it simple.
 
-\subsubsection{Type and Kind Inference}
-The user is expected to provide minimal (if any) kind annotations to the programs. This necessitates changing the type inference algorithm. While instantiating a kind polymorphic term, fresh kind unification variables are generated, and during type unification, the kinds of the types are also unified. This is necessary due to the design decision: there are no kind equalities. The unification of kinds does not produce any evidences, unlike for type unification. This helps in solving kind unification on the fly in contrast to solving type unification where they are collected as equality constraints and then solved separately, generating coercion as evidences.
-
-The datatype declaration is type checked in a manner very similar to mutually dependent terms:
-\begin{itemize}
-\item The type declarations are sorted into strongly connected components;
-\item The kind inference assigns a new unification kind variable to each of the type constant and then walks over the definitions solving for kind constraints that may arise;
-\item Finally, all the constructors are kind generalized at the end.
-\end{itemize}
-
-In \SFP, there are no kind coercions nor there are kind equality constraints. This keep the design and implementation simple but at the expense of leaving out certain programs that can be well typed. Promotion of GADTs is useful for generic programming.
+The programmer is expected to provide minimal (if any) kind annotations to the programs. This necessitates changing the type inference algorithm. While instantiating a kind polymorphic term, fresh kind unification variables are generated, and during type unification, the kinds of the types are also unified. This is necessary due to the design decision: there are no kind equalities. The unification of kinds does not produce any evidences, unlike for type unification. This helps in solving kind unification on the fly in contrast to solving type unification where they are collected as equality constraints and then solved separately, generating coercion as evidences.
 
 \begin{figure}[ht]
  \centering
@@ -1557,6 +1568,16 @@ In \SFP, there are no kind coercions nor there are kind equality constraints. Th
  \caption{Static Semantics of \SFP}
  \label{fig:sfp-typing}
 \end{figure}
+
+
+The datatype declaration is type checked in a manner very similar to mutually dependent terms:
+\begin{itemize}
+\item The type declarations are sorted into strongly connected components;
+\item The kind inference assigns a new unification kind variable to each of the type constant and then walks over the definitions solving for kind constraints that may arise;
+\item Finally, all the constructors are kind generalized at the end.
+\end{itemize}
+
+In \SFP, there are no kind coercions nor there are kind equality constraints. This keeps the design and implementation simple but at the expense of leaving out certain programs that can be well typed. Promotion of GADTs is useful for generic programming.
 
 \subsection{\SFK}\label{sec:sfk} % K for kind eq
 % We have type equalities, why not kind equalities?
@@ -1641,6 +1662,8 @@ Adding kind equalities to the system is non-trivial owing to its interaction wit
  \item Kind indexed GADTs need to be able to abstract over coercions and use them in the types, a feature missing in \SFC.
 \end{itemize}
 
+In \SFP, we had disallowed promoting types that were indexed or dependent on a promoted type, we can now get rid of this restriction because we make no distinction between kinds and types.c
+
 \begin{figure}[ht]
  \centering
  \begin{syntax}
@@ -1675,8 +1698,8 @@ Adding kind equalities to the system is non-trivial owing to its interaction wit
  \text{Substitutions} &&\Subst \bnfeq& \empt \bnfor \Set{\many{\TyVar \mapsto \tau}}
  \end{syntax}
 
- \caption{The Syntax of \SFK}
- \label{fig:system-fck-syntax}
+\caption{The Syntax of \SFK}
+\label{fig:system-fck-syntax}
 \end{figure}
 
 \newcommand\TContra{
@@ -1771,29 +1794,17 @@ Adding kind equalities to the system is non-trivial owing to its interaction wit
  \label{fig:sfk-typing}
 \end{figure}
 
+\SFK is a representative formalization of the current GHC compiler. It supports kind heterogeneous type equality or in other words, the type language is un-kinded due to impredicativity.
+
+
 \section{Related Work}\label{sec:related-work}
 %%%%%%%%%
 \subsection{Typeclasses}
 \subsubsection{Traits and Interfaces}
-Object oriented languages provide an explicit mechanism of abstraction over behaviour of classes in the form of traits (cf. Rust, Scala) or interfaces (cf. Java, C\#). In dynamically typed languages (cf. python), traits are emulated using implicit conventions. Typeclasses subsume traits and interfaces. Typeclasses can be higher kinded, which often is lacking in object oriented languages, with an exception of Scala where traits can be declared on higher kinded types by means of generics. There is no equivalent of multiparameter typeclasses and funtional dependencies in interfaces and the expressivity of type level computation is non-existent. Traits in Scala 3 can have parameters, but there is no way to express a functional relation between the parameters. Superclasses (not to be confused with superclasses for classes in object oriented languages)  mechanisms exists in both typeclasses and traits and interfaces that establish a containment relationship. The abstract behaviour described by superclasses is contained in the subclasses.
+Object oriented languages provide an explicit mechanism of abstraction over behaviour of classes in the form of traits (cf. Rust, Scala) or interfaces (cf. Java, C\#). In dynamically typed languages (cf. python), traits are emulated using implicit conventions. Typeclasses subsume traits and interfaces. Typeclasses can be higher kinded, which often is lacking in object oriented languages, with an exception of Scala where traits can be declared on higher kinded types by means of generics. There is no equivalent of multiparameter typeclasses and funtional dependencies in interfaces and the expressivity of type level computation is non-existent. Traits in Scala 3 can have parameters, but there is no way to express a functional relation between the parameters. Superclasses (not to be confused with superclasses for classes in object oriented languages)  mechanisms exists in both typeclasses and traits and interfaces that establish a containment relationship. The abstract behaviour described by superclasses is contained in the sub-classes.
 
 \subsubsection{Closed typeclasses}
-GHC/Haskell does not support closed typeclasses out of the box. In Scala, sealed traits accomplish this behaviour. Closed typeclasses, as opposed to the open typeclasses, cannot be extended with instances. This can be useful in cases where we want the typechecker to be able to deduce that certain typeclass constraints can never be satisfied. In current Haskell unsatisfiable typeclass constraints, amout to functions that cannot be called. However, with closed typeclasses, the typechecker would be able to identify such cases and warn the user about unusablity of the functions. Only parital behaviour of closed typeclasses can be emulated in current Haskell, by limiting the export names from modules. This just allows closedness property of closed typeclasses. The typechecker cannot use the information that the unexported typeclass is effectively closed to reason about whether the constraint can be solvable or can never be solved.
-
-% \subsubsection{Closed Type Functions}
-% There maybe cases where the type functions have to be restricted extensions. For example The previously defined
-% !Add! type function is supposed to be defined only on !Z! and !S n! types. Closed type families help in this situtation.
-% \begin{figure}[ht]
-% \begin{minipage}[ht]{0.4\linewidth}
-% \begin{code}
-% type family Add m n where
-% Add Z n = n
-% Add (S m) n = S (Add m n)
-% \end{code}
-% \end{minipage}
-% \caption{Addition with type functions}
-% \label{fig:closed-type-fun-add}
-% \end{figure}
+GHC/Haskell does not support closed typeclasses out of the box. In Scala, sealed traits accomplish this behaviour. Closed typeclasses, as opposed to the open typeclasses, cannot be extended with instances. This can be useful in cases where we want the typechecker to be able to deduce that certain typeclass constraints can never be satisfied. In current Haskell unsatisfiable typeclass constraints, amout to functions that cannot be called. However, with closed typeclasses, the typechecker would be able to identify such cases and warn the programmer about unusablity of the functions. Only parital behaviour of closed typeclasses can be emulated in current Haskell, by limiting the export names from modules. This just allows closedness property of closed typeclasses. The typechecker cannot use the information that the unexported typeclass is effectively closed to reason about whether the constraint can be solvable or can never be solved.
 
 \subsubsection{Instance Chains}
 Instance chains\cite{morris_instance_2010} enable finer grained control of which instance can be used to satisfy a typeclass constraint. The typeclass !Show! specifies how a value can be converted to a string to be printed as shown below:
@@ -1810,24 +1821,14 @@ class Show String where show = ...
 Now, if we know how to show a type, we can write a generic instance of show on a list of those types. However, we may want to override this behaviour for some specific instances of types such as !String!, which is declared as a type synonym for a list of !Char!. The typechecker now has two ways of resolving the typeclass constraint !Show String! it can either use the generic instance via !Show [Char]! or it can use the specific instance !Show String!. The typechecker cannot know apriori which is the more appropriate option. Such instances are called overlapping instances. Standard Haskell disallows such overlapping instances. Instance chains solves this problem by allowing programmers to specify in what order the the instances can be resolved. It also subsumes closed typeclasses by providing the capability to express that any instance that does not match with any of the instances listed above, it should be considered as a failure.
 
 \subsection{Modules}
-Modules and typeclasses
+% Modules and typeclasses
+% are they same
+% no, different.
+% Their co-existence incoherent
+Modules aids decomposing large programs into smaller programs by motivating the programmer by establishing separation of concerns. All general purpose programming languages have some capabilities to modularize programs. Standard ML modules\cite{macqueen_modules_1984} were one of the pioneers of giving formal semantics to modules.
+Various attempts\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} have been made to enable a happy co-existence of parametric and implicit adhoc polymorphism together in a language by encoding typeclasses as modules and vice versa. However, in presence of modularity to support separate code compilation, it becomes impossible to avoid incoherence without crippling the language expressivity. ML and its variants\cite{milner_definition_1997,leroy_ocaml_2023} disallow allow operator overloading to enable modular compilation, while Haskell like languages compromise on the correct module behavior to allow operator overloading via type classes.
 
-are they same
-
-no, different.
-
-Their co-existence incoherent
-
-Various attempts\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} have been made to enable a happy co-existence of parametric and implicit adhoc polymorphism together in a language by encoding typeclasses as modules and vice versa. However, in presence of modularity to support separate code compilation, it becomes impossible to avoid incoherence without crippling the language expressivity. ML and its variants\cite{milner_definition_1997,leroy_ocaml_2023} disallow allow operator overloading to enable modular compilation.
-
-What are the different ways to encode GADTs in System F?
-Because system F is parametric, we cannot encode type equalities in it. So it does require some additional construct to be able to encode GADTs. One way is to have a type case construct.
-
-
-\subsection{Type families}
-\subsubsection{Closed type families}
-Analogous to the expressivity problem of closed and open typeclasses,
-
+\subsection{Type Functions}
 \subsubsection{Injective type famililes}
 Type functions by default are non-injective. However, there are cases, where the intention of the programmer can be captured by declaring that the type family is injective. The typechecker can then leverage the information while trying to solve certain type equality constraints.
 
@@ -1841,31 +1842,39 @@ type instance F Bool = Int
 
 The following type function !F! is declared to specify that the type !r! uniquely determines !a!. This syntax is direct inspiration from functional dependencies for typeclasses. While declaration of axioms of type functions, the typechecker would reject any axiom that makes the type function non-injective. For example, in the above code, the declaration !type instance F Char = Char! would be rejected by the typechecker. Further while trying to solve a type equality constraint such as, !F a ~ Char!, the typechecker can leverage the fact that !F! is injective, and hence, there can be only only solution for the equation: !a ~ Int!. Injective type families\cite{stolarek_injective_2015} can be extended for closed type families as well.
 
+\subsubsection{Closed type families}
+The programmer may want to write type functions to intentionally restrict extensions. For example The previously defined !Add! type function is defined only on !Z! and !S n! types. Closed type families\cite{eisenberg_typefamilies_2014} help in precisely expressing such use cases as shown below:
+
+\begin{CenteredBox}
+\begin{code}
+type family Add m n where
+  Add (S m) n = S (Add m n)
+  Add _ n = n
+\end{code}
+\end{CenteredBox}
+
+An additional advantage is that the programmer can also define a default case handler (!Add _ n = n!) for such type functions. This declaration is impossible with just open type functions as there is no guarantee of the order in which the axioms are matched. The syntax for writing closed type functions is very similar to writing case statements at term level but for types. Closed type families cannot prove confluence of type rewriting with non-linear type patterns (!Add x x!) as it is reducible to open problem in term rewriting community\cite{TODO}. It has to resort to infinitary unification of types which is unsatisfactory as Haskell does not have infinite types.
+
 \subsubsection{Constrained type families}
-Constrained type families allows type computation to proceed only when the type family application can be provably reduced to a ground type. This simplifies the meta-theory of the language significantly. Closed type families cannot prove confluence of type rewriting as it is an open problem in term rewriting community\cite{TODO}. Constrained type families can prove confluence of type rewriting hence gives better type soundness guarantees. Closed type classes, which otherwise would need special infrastructure, fall out naturally in this system. It is not clear how generative abstract types, however can be incorporated in the system.
+Constrained type families allows type computation to proceed only when the type family application can be provably reduced to a ground type. This simplifies the meta-theory of the language significantly. Constrained type families can prove confluence of type rewriting hence gives stronger type soundness guarantees. It avoids the pitfall of having to prove consistency by rewriting of closed type families. Closed type classes, which otherwise would need special infrastructure, fall out naturally in this system. The formalized system however, does not have a corresponding  working implementation, and there is no clear way of retrofitting representational type equality without resorting to the roles infrastructure as in \SFR.
 
 \subsubsection{Partially Applied Type families}
-In \SFC, We have a strict restriction on type functions to be fully applied to avoid unsoundness. The restriction can be resolved by using a polymorphic function type\cite{kiss_higher-order_2019}: One that can be matched, and the other that cannot be matched on.
+In \SFC, We have a strict restriction on type functions to be fully applied to avoid unsoundness. The restriction can be resolved by using a stratifying the type function hierarchy\cite{kiss_higher-order_2019}: the functions that can be matched on, and the other that cannot be matched on. This allows the type checker to reject unsafe programs which potentially violate the safety property by using unrestricted coercion lifting.
 
 \subsection{Type Inference}
-This report does not delve into the type checking problem. We have assumed that there either exists an algorithm which can efficiently compute the types of a programmer provided term, which does not contain any types via a complete type construction\cite{milner_theory_1978}, or the programmer supplies sufficient typing annotations so that the type construction problem becomes tractable via partial type construction\cite{pierce_local_2000, dunfield_bidirectional_2021}. \HMX and its variants is the state of the art type modular inference framework that is based on by using constraint handling rules. The stratified type inference algorithm\cite{pottier_stratified_2006} first collects the typing constraints and then solves them in separate phases. This is different than the greedy approaches used by original typing algorithms\cite{lee_proofs_1998} $\mathcal{W}$ and $\mathcal{M}$ as type checking programs with GADTs becomes tricky.
-
-It becomes a hard problem as we can now have two types for the same term. \cite{peyton_jones_wobbly_2004, jones_practical_2007, pottier_stratified_2006, vytiniotis_outsideinx_2011}
-
-Typeclass + fundep + GADT interaction is less expressive that expected. We have code that should type check, but does not.
-
+This report does not delve into the type checking problem. We have assumed that there either exists an algorithm which can efficiently compute the types of a programmer provided term, which does not contain any types via a complete type construction\cite{milner_theory_1978}, or the programmer supplies sufficient typing annotations so that the type construction problem becomes tractable via partial type construction\cite{pierce_local_2000, dunfield_bidirectional_2021}. \HMX and its variants is the state of the art type modular inference framework that is based on by using constraint handling rules. The stratified type inference algorithm\cite{pottier_stratified_2006} which works in two phases: the first phase collects the typing constraints and then the second phase solves them. This is different than the greedy approaches used by original typing algorithms\cite{lee_proofs_1998} $\mathcal{W}$ and $\mathcal{M}$. The stratified type inference systems are better suited for languages that support GADTs and other advance features\cite{vytiniotis_outsideinx_2011}.
 
 \section{Conclusion}\label{sec:conclusion}
 
 \begin{figure}[ht]
  \centering
  \begin{tabular}[ht]{c | c}
- Parametric Features & Non-parametric Features \\
+ Parametric Features         & Non-parametric Features \\
  \hline
- Modules & Typeclasses (with Functional Dependencies)\\
- Algebraic Datatypes & Generalized Algebraic Datatypes\\
- & Type Families (Open, Closed, Associated types)\\
- & Generative Types (newtypes)
+ Modules                     & Typeclasses (with Functional Dependencies)\\
+ Algebraic Datatypes         & Generalized Algebraic Datatypes\\
+ Generative abstract types   & Type Families (Open, Closed, Associated types)\\
+
  \end{tabular}
  \caption{Features of Haskell}
  \label{fig:haskell-lang-features}
