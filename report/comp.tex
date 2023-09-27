@@ -1865,39 +1865,23 @@ In \SFC, We have a strict restriction on type functions to be fully applied to a
 This report does not delve into the type checking problem. We have assumed that there either exists an algorithm which can efficiently compute the types of a programmer provided term, which does not contain any types via a complete type construction\cite{milner_theory_1978}, or the programmer supplies sufficient typing annotations so that the type construction problem becomes tractable via partial type construction\cite{pierce_local_2000, dunfield_bidirectional_2021}. \HMX and its variants is the state of the art type modular inference framework that is based on by using constraint handling rules. The stratified type inference algorithm\cite{pottier_stratified_2006} which works in two phases: the first phase collects the typing constraints and then the second phase solves them. This is different than the greedy approaches used by original typing algorithms\cite{lee_proofs_1998} $\mathcal{W}$ and $\mathcal{M}$. The stratified type inference systems are better suited for languages that support GADTs and other advance features\cite{vytiniotis_outsideinx_2011}.
 
 \section{Conclusion}\label{sec:conclusion}
-
 \begin{figure}[ht]
  \centering
  \begin{tabular}[ht]{c | c}
- Parametric Features         & Non-parametric Features \\
+ Parametric Features                    & Non-parametric Features \\
  \hline
- Modules                     & Typeclasses (with Functional Dependencies)\\
- Algebraic Datatypes         & Generalized Algebraic Datatypes\\
- Generative abstract types   & Type Families (Open, Closed, Associated types)\\
-
+ Modules\cite{macqueen_modules_1984}    & Typeclasses\cite{wadler_polymorphism_1989} (and Functional Dependencies\cite{jones_tcfd_2000})\\
+ Generative abstract types   & Type Functions (Associated types\cite{chakravarty_associated_2005}, Open\cite{schrijvers_type_2008}, Closed\cite{eisenberg_typefamilies_2014})\\
+ Algebraic Datatypes\cite{burstall_hope_1980}         & Generalized Algebraic Datatypes\cite{cheney_first-class_2003}\\
  \end{tabular}
  \caption{Features of Haskell}
  \label{fig:haskell-lang-features}
 \end{figure}
+\AI{make this table fit on a page}
 
-Using non-parametric features in a context that assumes parametricity is a root cause of type unsoundness ``bugs''.
-Using roles to define a nuanced way to describe equality between types was a way to separate out non-parametric behavior from parametric one. The non-parametric behavior in this case arose from the fact that type functions can behave differently on types that may have the same run time representation.
-A sound type system design for typeclasses with modules without crippling the expressiveness of the system is still an active area of research.
-\AI{TBH i don't know where I'm going with this}
-% \begin{figure}[ht]
-% \centering
-% \begin{tabular}[ht]{c | c | c | c | c | c | c}
-% Language & Decidable Type checking & ADTs & GADTs & Open/Closed Type functions & Generative Types & Kind Functions\\
-% \hline
-% \SF & & & & &\\
-% \SFC & & & & &\\
-% \SFP & & & & &\\
-% \SFK & & & & &\\
-% \end{tabular}
-% \caption{Core languages and their Capabilities}
-% \label{fig:language-features}
-% \end{figure}
+In this report we have covered in depth a theoretical foundation of a modern day declarative functional style programming language and in breadth the different language features programmers like to use. There are two ways of supporting programming idioms, either via encoding them with the help of libraries, or via supporting them as a language features. In the latter case, we realize that composing different language features is non-trivial as their interactions are subtle. The first major insight was to recognize that the three major language features: generative abstract types, generalized algebraic datatypes and type functions can all be encoded by using a single construct: type equality. However, there is no satisfactory account of functional dependencies in this system. The second major hurdle was to understand that non-parametric features interacting with parametric features of the language causes type unsoundness bugs which was solved by using the system of roles. Taming ad-hoc features is non-trivial and they require sophisticated proof techniques to argue their correctness. As new programming languages are constantly designed, built and used, it is important to carry over the good principles established in theory to make better practice tools, and also strengthen the foundational theory by understanding the requirements of the practical tools.
 
+\newpage
 %%%% Bibliography
 \bibliography{comp}%%%%%%%%%
 
