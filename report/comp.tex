@@ -60,7 +60,7 @@ t = id id
 \end{code}
 \end{CenteredBox}
 
-\subsubsection{Adhoc Polymorphism, Typeclasses and Operator Overloading}
+\subsubsection{Adhoc Polymorphism}
 Consider the following two terms:
 
 \begin{CenteredBox}
@@ -69,7 +69,7 @@ t1 :: Int = 1 + 2
 t2 :: Float = 1.1 + 2.3
 \end{code}
 \end{CenteredBox}
-In the definition of !t1!, the operator (!+!) is applied to two integers, but in the definition of !t2! it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of the two terms are distinct: !t1! adds two !Int!s and returns an !Int! while the !t2! adds two !Float!s and returns a !Float!. The compiler generated code for each would also be different as they would make a call to two different built-in subroutines. This variety of name punning, which is dependent on the type of arguments or the context of where the function appears, is called as adhoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a general mechanism to implement adhoc polymorphism, where the compiler resolves the overloaded operator (!+!) to the actual operator (!int_plus! or !float_plus!).
+In the definition of !t1!, the operator (!+!) is applied to two integers, but in the definition of !t2! it is applied to two floating point numbers. Although the programmer uses the same symbol, the meanings of the two terms are distinct: !t1! adds two !Int!s and returns an !Int! while the !t2! adds two !Float!s and returns a !Float!. The compiler generated code for each would also be different as they would make a call to two different built-in subroutines. This scheme of name punning, which is dependent on the type of arguments or the context of where the function appears, is called as adhoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a widely used mechanism to implement adhoc polymorphism, where the compiler resolves the overloaded operator (!+!) to the actual operator (!int_plus! or !float_plus!).
 
 To make implicit overloading practical in functional programming languages, \citet{wadler_polymorphism_1989} proposed a dictionary passing style mechanism. Typeclasses are the incarnation of the the dictionary passing mechanism in Haskell. \citet{jones_qualified_1994} gave an account of typeclasses using the general framework of qualified types. In contrast to parametrically polymorphic functions like !id!, functions like !(+)! which act on some specific set of constrained or qualified types. For example, the addition function (!+!) gets a type: !Num a => a -> a -> a!. This means that the function can only be called on those types !a! which satisfy !Num a! constraint. This !Num a! constraint is declared by the programmer as a typeclass and instances of it specify when the typeclass constraint holds and what is the intended behaviour. Thus, in this setting, satisfying the constraint amounts to finding an instance declaration of !Num! for the particular type instantiation in question. As an example, instances of the typeclass !Num! are declared with accompanying instance declarations at type !Int! and !Float! in \pref{fig:tc-num}. Typeclasses can also be viewed as relations over types, with every instance declaration extending that relation. The typeclass !Num! represents a unary relation for those types whose values behave like numbers, they can be compared and added together. The declarations in \pref{fig:tc-num} can be interpreted by saying !Float! and !Int! belong to the unary relation !Num!, $\{$ !Int! , !Float! $\} \subseteq $ !Num!. If the type checker is not able to find an appropriate instance, it results in a type error. As expected, the expression !'A' + 'B'! should result in a type error as !Char! $\not\subseteq$ !Num!
 
@@ -105,7 +105,7 @@ instance Num Float where
 \label{fig:tc-num}
 \end{figure}
 
-\citet{kaes_parametric_1988} had similar ideas related to implementation aspects of adhoc polymorphism before Wadler et al. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for the programmer to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot uniquely resolve an option or when the programmer wants to force the typechecker to resolve it to a specific instance. % This can be somewhat confusing as a language feature as depending on which implicit object is used, the program behavior can completely change even within the package.
+\citet{kaes_parametric_1988} had similar ideas related to implementation aspects of adhoc polymorphism before \citet{wadler_polymorphism_1989}. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for the programmer to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot uniquely resolve an option or when the programmer wants to force the typechecker to resolve it to a specific instance. Constraint handling rules(CHR)\cite{fruhwirth_theory_1998, stuckey_theory_2005} is a recent way to account for operator overloading. The limitation of using CHRs is that the programmer needs to ensure confluence external to the system to be able to get coherence guarantees.\AI{CHRs needs more explanation or move it to related section work?}
 
 \subsubsection{Type Computation}
 A generalization of single parameter typeclasses is to have multi-parameter typeclasses. It naturally extends the idea of having n-ary relations over types. For example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under a single interface can be defined using a !Con e c! typeclass, as shown in \pref{fig:tc-collection}. The type variable !e! stands for the element type of the container while !c! stands for the container type itself. One can imagine having instances for such a typeclass as \lstinline{Con Int [Int]}, !Con Int (Tree Int)!, etc. Speaking in terms of relations, we say that $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
@@ -195,8 +195,8 @@ Aiding organization of related data together is an important feature of any prog
 \begin{CenteredBox}
 \begin{code}
 data AlgExp where
- Value :: Int -> AlgExp
- Plus :: (AlgExp, AlgExp) -> AlgExp
+   Value :: Int -> AlgExp
+   Plus :: (AlgExp, AlgExp) -> AlgExp
 \end{code}
 \end{CenteredBox}
 The !data! keyword defines a new user defined datatype with name !AlgExp!.
@@ -464,10 +464,12 @@ Finally, the types classify the terms of the system. It has the usual constructs
 $$
 H \co \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa}} \many{\sigma} \to T \many\TyVar}
 $$
-Here the type variables, $\many\TyVar$, appear in the same order as in the algebraic datatype declarations, and type variables $\many\beta$ are the existential; they do not appear in the return type. This characterization of splitting the type variables into $\many\alpha$ and $\many\beta$ plays a crucial role in encoding GADTs which we will describe in more detail in the next \pref{sec:fc-encodes-gadts}. The $\Case M {\overline{P \to N}}$ discriminates on the shape of the term $M$ and chooses one of the alternatives $N$ after a successful match on the one of the patterns $P$. The novel term construct of the system is $\shl{\Cast {M} \Co}$. It says if a term $M$ has a type $\tau$ and we have a type coercion $\Co$ says that $\tau\sim\sigma$, then the term, $\Cast M \Co$, justifies treating $M$ as if it has type $\sigma$. For type theory enthusiasts, type coercions should be thought of as extensional type equality. An alternative intuitive characterization of type equality within the realm of \SFC can be thought as if $\Co$ says $\tau \sim \sigma$ then, within a context that expects a term of type $\sigma$, we can use the term, $\Cast M \Co$ without worrying that the term will get stuck or crash when we run the program.  This soundness argument of the system, however, the does not use any specific semantic notion of type equality.% The soundness property of the type system guarantees that after the types (including casts) have been erased, the program will not crash or get stuck. Unlike other regular types, however, coercions do not classify values, i.e. there are no term level constructs that have a type $\tau\sim\sigma$.
+Here the type variables, $\many\TyVar$, appear in the same order as in the algebraic datatype declarations, and type variables $\many\beta$ are the existential; they do not appear in the return type. This characterization of splitting the type variables into $\many\alpha$ and $\many\beta$ plays a crucial role in encoding GADTs, which we will describe in more detail in the next \pref{sec:fc-encodes-gadts}. The $\Case M {\overline{P \to N}}$ discriminates on the shape of the term $M$ and chooses one of the alternatives $N$ after a successful match on the one of the patterns $P$. The novel term construct of the system is $\shl{\Cast {M} \Co}$. It says that if a term $M$ has a type $\tau$ and we have a type coercion, $\Co$, which says that $\tau\sim\sigma$, then the term, $\Cast M \Co$, justifies treating $M$ as if it has type $\sigma$. For type theory enthusiasts, type coercions should be thought of as extensional type equality. An alternative intuitive characterization of type equality within the realm of \SFC can be thought as if $\Co$ says $\tau \sim \sigma$ then, within a context that expects a term of type $\sigma$, we can use the term, $\Cast M \Co$ without worrying that the term will get stuck or crash when we run the program.  This soundness argument of the system, however, the does not rely on any specific semantic notion of type equality.% The soundness property of the type system guarantees that after the types (including casts) have been erased, the program will not crash or get stuck. Unlike other regular types, however, coercions do not classify values, i.e. there are no term level constructs that have a type $\tau\sim\sigma$.
 
-\subsubsection{Notations}
-Before we describe the system further, we need some helper notations. The type environment $\TEnv$ contains type mapping for free term variables ($x\co\tau$), kind mapping for free type variables ($\alpha\co\kappa$), along with the term constants ($H\co T$) and type function constants ($F\co \tau$) and coercion axioms ($\Co\co\sigma\sim\tau$). $\alpha\#\TEnv$ denotes $\alpha$ does not appear in the domain of $\TEnv$, or $(\TyVar\co\kappa) \not\in \TEnv$. Substitutions, $\Subst$ are mappings from term variables to types. By abuse of notation we will also use it to denote it for type variables to their kinds mapping. A program is a list of declarations $D_{cl}$ followed by term bindings ($x = M$), where each declaration introduces a new user defined datatype, a type function, or an axiom. We use $T :: \tau$ (double colons) to assign or infer type $\tau$ for program expressions $T$, and $T \co \tau$ to mean $T$ has type $\tau$ in a formalization.
+\subsubsection{Notations}\label{sec:notations}
+Before we deep dive into the system formalization any further, we need some helper notations for the sake of presentation. The type environment $\TEnv$ contains type mapping for free term variables ($x\co\tau$), kind mapping for free type variables ($\alpha\co\kappa$), along with the term constants ($H\co\tau$), type function constants ($F\co \tau$), and coercion axioms ($coAx\co(\sigma\sim\tau)$). We will use a convention of naming coercion axioms with a $co$ prefix to distinguish them from non-coercion types. The freshness condition is denoted by $\fresh \alpha \TEnv$: $\alpha$, or that $\alpha$ does not appear in the domain of $\TEnv$, or $(\TyVar\co\kappa) \not\in \TEnv$. Substitutions, $\Subst$, are mappings from term variables to types. By abuse of notation, we will also use it to denote type variables to their kind mappings. Due to naming conventions, we need not worry about (mistakenly) substituting a term into a type. We will use the type constant $(\to)$ and kind constant $(\sim)$ in its infix form rather than in a prefix form: $\tau \to \sigma$ and not $(\to)\App\tau\App\sigma$.
+
+A program, $P_{gm}$, is a list of programmer written type declarations, $D_{cl}$, followed by term bindings, $x = M$. Each $D_{cl}$ introduces a new user defined datatype, a type function, or an axiom. We assume the convention that the declarations are correctly ordered, i.e. defined or at least declared before their use. We use !$\Tm$::$\tau$! (stress on double colons) to assign (or check) type $\tau$ for actual program expression $\Tm$, and $\Tm \co \tau$ (stress on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
 
 \subsection{Static Semantics}
 
@@ -837,7 +839,7 @@ We want to ensure that we can never derive anything obviously wrong such as !coB
 If our system has a top level axiom such as $coBAD \co \texttt{Int} \sim \texttt{Bool}$, this coercion can be used in a cast, to convert an ill-typed term to a well typed term thus breaking subject reduction property. The theorem needs to be strengthened using an appropriate restriction on $\TEnv$. In general, checking consistency at top level is an undecidable. There exists is a conservative approximation of consistency which can be checked syntactically and it is sufficient for this purpose.
 
 \begin{definition}[\Good $\TEnv$]
- A $\TEnv$ is \Good $\TEnv$ when
+ A type environment, $\TEnv$, is \Good $\TEnv$ when it satisfies the following properties:
  \begin{itemize}
  \item If $\CoKinding \TEnv \Co {T \many\sigma \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $T\App\many\sigma'$
  \item If $\CoKinding \TEnv \Co {(\sigma' \to \sigma) \sim \tau}$ and $\tau$ is a value type, then $\tau$ is of the form $\tau' \to \tau''$
@@ -850,7 +852,7 @@ If our system has a top level axiom such as $coBAD \co \texttt{Int} \sim \texttt
  $\Typing \TEnv {\Tm'} \tau$
 \end{theorem}
 
-The above consistency criteria is the sufficient criteria to guarantee soundness. The consistency criteria is designed with modularity in mind: the system was extension to have more features, mandates the consistency criteria extension as well. The burden of defining what consistency depends on the language designer who would ultimately define it depending on what the soundness requirements are, which in turn depends on what language features are supported.
+The above consistency criteria is the sufficient to guarantee soundness. It is designed with modularity in mind: an extension to the system, mandates re-characterization of the consistency criteria as well. The burden of defining what consistency should look like depends on the language features the language supports, which is an obligation on the language designer. We will see in detail how the consistency naturally falls out in the following section when we try to encode language different language features in to \SFC.
 
 \section{Encoding Language Features in \SFC}\label{sec:sfc-encoding-features}%%%%%%%%%
 \subsection{GADTs}\label{sec:fc-encodes-gadts}
@@ -937,7 +939,7 @@ The typing-cum-elaboration  judgment \fbox{$\GTranslate C \TEnv \Tm \pi \Tm'$} s
  \fbox{$\GTranslate C \TEnv {p \to \Tm} {\pi \to \pi} {p' \to e'}$}\\
  \GADTAlt
  \end{gather*}
- \caption[Encoding GADTs]{GADTs' Type-directed Translation in \SFC}
+ \caption[Encoding GADTs]{Type-directed Translation of GADTs in \SFC}
  \label{fig:encoding-gadts}
 \end{figure}
 
@@ -1184,7 +1186,6 @@ The proof of undecidability amounts to reducing the problem of coercion reconstr
 
 The second observation is that the coercions are types, kinds of which give type equalities. This is novel to \SFC, and the status quo is to express coercions as terms. The goal of the core language is to be practical; due to all coercions being encoded at type leve, they can be erased at runtime to generate efficient code. Another reason is that for implementation purposes, the error term, $\bot$ which trivially just halts the program, by throwing an exception, can be typed at all types. If equality had been encoded at the level of types by making coercions at the level of terms, we would have an ``error coercion'' term, $\bot :: \tau \sim \sigma$. We would then have had to guarantee evaluating the the type equality evidences before we evaluate the term. Without this guarantee we cannot use a coercion for casts and maintain soundness. To avoid such complications and maintain a phase distinction \SFC follows the slogan: \emph{Kinds are propositions for type equality, proofs are (coercion) types}
 
-
 \section{Extensions of \SFC}\label{sec:fc-extensions}%%%%%%%%%
 \subsection{\SFR}\label{sec:sfr} % R for roles
 Consider the two modules previously defined in \pref{subsubsec:gen-abs-types}: !module Html! where the library writer defines a !newtype HTML! and the other, !module Client!, a client module that uses the library module !HTML! along with an open function !F!, that maps !HTML! to !Bool! and !String! to !Char!. This declaration adds two new type equalities namely !F Html ~ Bool! and !F String ~ Char!. But, in the presence of the equality !Html ~ String!, we can make type unsound coercions by deriving !Char ~ Bool!.
@@ -1340,8 +1341,6 @@ Type safe casts can now be expressed using the typing rules \trule{cast-r} and \
 
 Extending the type system with the two rules \trule{cast-r} and \trule{cast-n} would in theory be enough to express what we want, but we can do better by realizing that the equality roles form a total relation: $N < R < P$. If two types are nominally equal, they are representationally equal as well. Similarly, if the two types are representationally equal, they are also equal at phantom role. This is captured in the \trule{co-sub} shown in \pref{fig:sfr-typing}. It says that if we \emph{want} to have equality at representational role, and we are \emph{given} that the two types are nominally equal, then we can generate a coercion that proves the wanted equality from the given equality. Nominal equality is the strictest from of equality while phantom equality is the weakest.
 
-Role assignments to type parameters are performed during type checking the user defined type constant. They are formalized using the role validity as shown in \pref{fig:sfr-validity}. The judgment $\many\rho \forces \TypeConst$ is to be read as ``$\many\rho$ are appropriate for the type constant \TypeConst'', while the judgment $\Typing \REnv \tau \rho$ is read as ``under the role context assumptions $\REnv$, the type $\tau$ has the role $\rho$''. We do not want a global type context to claim that a type parameter's role which is in conflict with the role given to it by the definition the type constant.
-
 \newcommand\RVar{
   \ib{\irule[\trule{r-var}]
     {\tau\co\rho' \in \REnv}
@@ -1376,7 +1375,9 @@ Role assignments to type parameters are performed during type checking the user 
 
 \newcommand\RTAssign{
   \ib{\irule[\trule{r-T}]
-    {};
+    {H\co \Forall{\many{\alpha\co\kappa}}{\Forall{\many{\beta\co\kappa'}}{\many\sigma \to T\many\alpha}} \in C_{trs}(T)}
+    {\tau \in \many\sigma}
+    {\Typing {\many{\alpha\co\rho},\many{\beta\co N}} \tau R};
     {\RoleAssign {\many\rho} T}
   }
 }
@@ -1392,14 +1393,14 @@ Role assignments to type parameters are performed during type checking the user 
 \newcommand\RToAssign{
   \ib{\irule[\trule{r-$\to$}]
     {};
-    {\RoleAssign {R, R} {(\to)}}
+    {\RoleAssign {\alpha\co R, \beta\co R} {\alpha \to \beta}}
   }
 }
 
 \newcommand\REqAssign{
   \ib{\irule[\trule{r-$\sim$}]
     {};
-    {\RoleAssign {\rho, \rho} ({} \teq\rho {})}
+    {\RoleAssign {\alpha\co\rho, \beta\co\rho} ({\alpha} \teq\rho {\beta})}
   }
 }
 
@@ -1424,20 +1425,43 @@ Role assignments to type parameters are performed during type checking the user 
   \label{fig:sfr-validity}
 \end{figure}
 
+
+Role assignments to type parameters are performed during type checking the user defined type constant. They are formalized using the role validity as shown in \pref{fig:sfr-validity}. The judgment $\RoleAssign {\many\rho} \TypeConst$ is to be read as ``$\many\rho$ are appropriate for the type constant \TypeConst'', while the judgment $\Typing \REnv \tau \rho$ is read as ``under the role context assumptions $\REnv$, the type $\tau$ has the role $\rho$''. We do not want a global type context to claim that a type parameter's role which is in conflict with the role given to it by the definition the type constant. The role assignment algorithm plays an important role (no pun intended) in inferring the best role for the type parameters for a type constant by walking over its definition. We want to ensure that the role assignments are no too restrictive nor to permissive. In the former case, we can assign each type parameter a nominal role but we would fail to type check a huge majority of the programs that we want to be able to type check. In the later case we can assign each type parameter a phantom role but that would be type unsound.
+
+In the rule \trule{co-nth} is important to have coercion decomposition to occur only on type constants that are not generative types. For example consider the following definitions
+
+\begin{code}
+data Any a = Any
+newtype App f a = MkApp (f a)
+\end{code}
+
+With the above rules, we assign a phantom role for the type parameter !a! of the data type !Any! as intuitively, its instantiation does not influence how the value term !Any! is represented in memory. Now consider the newtype !App!, the roles inferred will be $\roles{\texttt{App}} = R, N$. Now, due to the rules of the coercion calculus we can derive the following representational type equality:
+\begin{align}\label{eqn:app-any-newtype}
+  \texttt{App } \App \texttt{Any}\App \texttt{Int} \teqR \texttt{App}\App\texttt{Any} \App{Bool}\tag{app-co}
+\end{align}
+This is possible because of the following chain of reasoning:
+\begin{align}
+  \texttt{App} \App \texttt{Any}\App \texttt{Int}%
+  \teqR \texttt{Any}\App \texttt{Int}%
+  \teqR \texttt{Any}\App \texttt{Bool}%
+  \teqR \texttt{App}\App\texttt{Any} \App{Bool}\nonumber
+\end{align}
+The first step (and the last step) of the reasoning is valid due to the instantiations of the coercion axiom !coApp : FORALL f a. App f a $\teqR$ f a!, which rises by virtue of the definition of the newtype. We do not want to allow the rule \trule{co-nth} to \pref{eqn:app-any-newtype}. Because if we did, then we would be able to produce a coercion $\texttt{Int} \teqR \texttt{Bool}$, a blunder.
+
 \subsubsection{Meta-theory}
-
 \AI{The role inference with some defaulting works well in practice,}
-
 \AI{Where it does not work give the role using an annotation.}
-
 \AI{We have a role sub-tying relation, it is okay as there is total ordering.}
-
 \AI{The role check/inference is be performed during or after kind checking.}
-
 \AI{how does it avoid unrestricted coercion lifting?}
-
-The proof of progress does not change with respect to \SFC as the only additional construct is roles, which does not play any part in the operational semantics of the language. The proof of preservation uses the formulation of coercion calculus extended with roles and thus requires some attention. The reason for type unsoundness was that we allowed too many coercions with unrestricted coercion lifting in \SFC. We need to ensure that type preservation gives us the type safety guarantees which we want.
-
+The proof of progress does not change with respect to \SFC as the only additional construct is roles, which does not play any part in the operational semantics of the language. To recall, the proof of progress is necessary to show that the well typed terms are either values or they can take a step.
+\begin{lemma}[Progress \SFR]\label{lem:progress-sfr}
+ If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ then, either $\Tm \in C\Val$ or, $\stepsto \Tm \Tm'$
+\end{lemma}
+The proof of preservation uses the formulation of coercion calculus extended with roles and thus requires some attention. The reason for type unsoundness was that we allowed too many coercions with unrestricted coercion lifting in \SFC. The \pref{lem:preservation-sfr} is the formal guarantee to ensure that type preservation gives us the type safety guarantees along with \pref{lem:progress-sfr}.
+\begin{lemma}[Preservation \SFR]\label{lem:preservation-sfr}
+If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ and $\stepsto \Tm \Tm'$, then $\Typing \TEnv {\Tm'} \tau$
+\end{lemma}
 
 \subsection{\SFP}\label{sec:sfp} % P for promotion
 Consider a standard GADT implementation of a vector !Vec! that also stores its length at the type level.
@@ -1839,7 +1863,6 @@ type instance F Int = Char
 type instance F Bool = Int
 \end{code}
 \end{CenteredBox}
-
 The following type function !F! is declared to specify that the type !r! uniquely determines !a!. This syntax is direct inspiration from functional dependencies for typeclasses. While declaration of axioms of type functions, the typechecker would reject any axiom that makes the type function non-injective. For example, in the above code, the declaration !type instance F Char = Char! would be rejected by the typechecker. Further while trying to solve a type equality constraint such as, !F a ~ Char!, the typechecker can leverage the fact that !F! is injective, and hence, there can be only only solution for the equation: !a ~ Int!. Injective type families\cite{stolarek_injective_2015} can be extended for closed type families as well.
 
 \subsubsection{Closed type families}
