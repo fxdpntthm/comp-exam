@@ -1,6 +1,6 @@
-\usepackage{fontawesome,enumitem,ifthen,infer,mathwidth,mathtools,multicol,xspace,xy,xspace,tikz}
+\usepackage{amsthm,thmtools,fontawesome,enumitem,ifthen,infer,mathwidth,mathtools,multicol,multirow,xspace,xy,xspace,tikz}
 \usepackage{parskip,tabularx,mathbbol,tcolorbox,hyphenat,fancybox,relsize}
-\usepackage{tikz}
+\usepackage{algpseudocode}
 
 \tcbuselibrary{theorems}
 %% no spaces for enumeration
@@ -46,13 +46,18 @@
 \newcommand\SFR{System \textbf{F\texorpdfstring{$^R_C$}{r\_c}}\xspace} % R for roles
 \newcommand\SFP{System \textbf{F\texorpdfstring{$^\uparrow_C$}{up\_c}}\xspace} % P for promotions
 \newcommand\SFK{System \textbf{F\texorpdfstring{$^{\kappa}_C$}{k\_c}}\xspace} % K for kind coercions
-
 \newcommand\SFw{System \textbf{F\texorpdfstring{$_\omega$}{\_w}}\xspace} % F \omega
-
-\newcommand\HMX{\textbf{HM(X)}\xspace}
+\newcommand\HMX{\textbf{HM(X)}\xspace} % HM(X)
 
 
 % Math theorems
+% \declaretheorem[
+% headpunct={\vspace{\topsep}\newline}, %
+% spaceabove=3\topsep, %
+% postheadspace=0 pt ]{mytheorem}
+
+%\declaretheorem[name=lemma, style=mytheorem]{mylemma}
+%
 \newtheorem{theorem}{Theorem}
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{property}[theorem]{Property}
