@@ -18,19 +18,103 @@
 \begin{document}
 
 \begin{abstract}
-This report is a juxtaposition of practical (type checker) and meta-theoretical (formalization) aspects of statically typed functional programming language design. It is organized into six main sections. After an eagles eye view\pref{sec:introduction} which sets the scope of problem space, in \pref{sec:language-features}, we go through some quintessential and some advanced language features. Some of these are specific to Haskell. This serves as a \emph{programmers view} of the language. The \pref{sec:sfc} focuses on formalization of \SFC, which is in essence, \SF enriched with first class explicit type equalities. Adding type equalities as a core language construct has extensive repercussions. They efficiently encode a diverse set of language features which we sketch in \pref{sec:sfc-encoding-features}. These features were previously either impossible or required non-trivial extensions to \SF making the overall system convoluted and complex to maintain. This portion of the report is the \emph{compiler writers} view of the language. In \pref{sec:fc-extensions}, we pose different extensions to \SFC; vanilla \SFC is not sufficient to encode all programming idioms which functional programmers would want to express: \SFR makes type equality finer grained, \SFP makes the kind system more expressive, and, \SFK enables expressing kind level equalities by squashing the distinction between types and kinds. Finally, in \pref{sec:related-work} we conclude by pointing out some important related work and notable open problems.
+This monograph is a juxtaposition of practical (typechecker) and
+meta-theoretical (formalization) aspects of a modern statically typed
+functional programming language. It is organized as follows: We set
+the scope of the research interest space in
+\pref{sec:introduction}, and we then go through some quintessential
+along with some advanced language features of a statically typed
+functional programming language. Some of these features are specific to the
+Haskell language. This serves as a \emph{programmers view} of the language.
+The \pref{sec:sfc} focuses on the formalization aspects of \SFC.
+This portion of the report is the \emph{compiler writers} view of the
+language. \SFC in essence is \SF enriched with first class explicit
+type equalities. It forms the basis of the core intermediate language
+of GHC, the de facto Haskell language compiler. Adding type equalities
+as a core language construct has extensive repercussions.
+In the \pref{sec:sfc-encoding-features}, we sketch how type equalities
+can efficiently encode a diverse set of language features,
+These features were previously either impossible or required non-trivial extensions
+to \SF making the overall system convoluted and complex to maintain.
+The vanilla \SFC is insufficient to encode all the programming
+idioms which programmers would want to express. In the
+\pref{sec:fc-extensions}, to this effect, we study different
+extensions of \SFC: \SFR makes type equality finer grained while
+providing stronger type soundness guarantees, \SFP makes the kind system more
+expressive, and \SFK squashes the distinction between types and kinds
+making the type (and kind) level computation even more expressive.
+To conclude, in \pref{sec:related-work} we point out some important related
+work not covered in this report and give some directions to future
+work in \pref{sec:future-work}.
 \end{abstract}
 
 \maketitle
 \section{Introduction}\label{sec:introduction}
-Constructive mathematics and computer programming are acts of doing the same thing: identifying and exploiting the right abstractions to solve a problem. Mathematicians tackle it from top to bottom: by building the abstractions first and then enriching them, to make them represent real world problems, while programming turns the process on to its head, the programmer first writes a program, possibly incorrect, to solve a very specific task, and then by means of iterative code refactoring, build the right level of abstraction, while possibly fixing the incorrect program behaviors. This observation is well established and even has a name, Curry-Howard or the Bouwer-Heyting-Kromoglov correspondence\cite{TODO} in the field of Type Theory\cite{TODO}. A compiler is nothing but a software that transforms a higher level language suitable for humans (programmers) to a lower level language (suitable for computers) possibly via a series of transformations. Every software evolves and so does the compiler software and every new language feature is implemented as a new compiler feature. There are two ways of doing this extension: encode the new language feature by using existing the high level language features. In this encoding scheme, we just define a high level language to a high level language syntax transformer. Some exotic language features may not be able to leverage this encoding scheme and for such cases, we need to enrich the intermediate language along with the higher level language. However, multiple such extensions cause a clutter in the intermediate language, making it difficult to maintain. We need to find the right abstractions to refactor the intermediate language so that all different high level language features can be encoded precisely into a unified intermediate language with fewer extensions and easy to maintain.
+Constructive mathematics and computer programming are acts of doing the same thing:
+identifying and exploiting the right abstractions to solve a problem. Mathematicians
+tackle it from top to bottom: by building the abstractions first and then enriching them,
+to make them represent real world problems, while programming turns the process on to its
+head, the programmer first writes a program, possibly incorrect, to solve a very specific
+task, and then by means of iterative code refactoring, build the right level of
+abstraction, while possibly fixing the incorrect program behaviors.
+This is a well established, named phenomenon: Curry-Howard or the
+Brouwer–Heyting–Kolmogorov correspondence\cite{wadler_propositions_2015,han_deep_2023}
+and it forms the basis of the field of Type
+Theory\cite{barendregt_lambda_2013, hottbook_2013,nordstrom_programming_1990}.
 
-In compilers for a statically typed programming languages, the type checker is the gate keeper. It needs to ensure that it does not let ``bad'' programs to pass. This allows the programmers to liberate themselves from a class of programming errors, such as null pointer exceptions due to incorrect function arguments, that result in runtime errors. On the other hand, the type checker also needs to ensure that programmers can express all the programs that they want write. Type theory is a mathematical framework that helps us identify the right abstractions and also aid formal reasoning, to design and implement type checkers. The structure of types needs to be sufficiently enriched to express complex programmer ideas while rejecting runtime unsafe programs. As an example, consider writing an abstract syntax tree for representing the language in the compiler. The compiler writer may want to capture certain semantic invariant on the data structure representing the abstract syntax tree (AST). For example, the term of the conditionals on the control structures of !if! or !while! loops have to be of Boolean types so that they can be evaluated to either !True! or !False! and not result in a runtime error, or even more complex invariant where in a multi stage compiler pass, the AST gains more information at every pass. This new information is stored in the AST and the types ensure that if the information is populated in the third pass, trying to access that information in the first pass results in a type checker error and not a runtime error.
+A compiler, in essence, is a program which transforms a higher level language, suitable for
+humans, to a lower level language, suitable for computers. It may
+preform this transformation possibly via a multi-step
+process\cite{essentials_siek_2023}.
+Every useful software program needs to evolve over time by means of
+extensions, and a new language feature is implemented as a new
+compiler feature extension. There are two ways of realizing this
+extension: encode the new language feature means of existing high
+level language features, or by enriching the intermediate language. In the first encoding
+scheme, we just define a high level language to a high level language syntax
+transformer. Some exotic language features may not be able to leverage such encoding
+scheme for practical or theoretical reasons and for such cases, we enrich the intermediate
+language which reflects the extensions made to the higher level language. However, in the
+second case, multiple extensions to the intermediate language causes a feature clutter,
+making it difficult to maintain. We then need to find the right abstraction to refactor
+the intermediate language so that all different high level language features can be
+encoded precisely into a unified intermediate language with fewer extensions.
+
+In compilers for a statically typed programming languages, the type checking component, or
+simply, the typechecker, can be thought of as the gate keeper. Its purpose is to ensure
+that it does not let ``bad'' programs go through while flagging
+appropriate offending parts of programs to the programmer.
+This gate keeping is desirable because it liberates the programmer as
+by guaranteeing that a class of programming errors---such as runtime null pointer exceptions
+due to incorrect function arguments---can never occur, so that they
+can concentrate on the other more important aspects of the program.
+On the other hand, the typechecker also needs to allow the ``good'' programs
+which the programmers wishes write, pass without an intense struggle.
+The safety net casted by the typechecker should not become the reason
+of its undesirability. The structure of types needs to be
+sufficiently enriched to express complex programmer ideas, while rejecting runtime unsafe
+programs. As an example, consider writing an abstract syntax tree for representing the
+language in the compiler. The compiler writer may want to capture certain semantic
+invariants on the data structure representing the abstract syntax tree (AST). For example,
+the term of the conditionals on the control structures of !if! or !while! loops have to be
+of !Boolean! types so that they can be evaluated to either !True! or !False!, and not result
+in a runtime error, or even more complex invariants, where in a multi-stage compiler pipeline,
+the AST may gain more information at every pass. This new information is stored in the AST,
+and the types ensure that, if the information is populated in the third pass, trying to
+access that information in the first pass will result in a typechecker
+error while also ensuring maximum data structure sharing for memory efficiency.
+Once we identify the right abstractions to express such complex
+invariants into the type structure, we will use type theory as a mathematical tool to help us
+formally reason about its correctness.
 
 \section{Features of Typed Functional Programming Languages}\label{sec:language-features}%%%%%%%%%
 \subsection{Functions and Polymorphism}
 \subsubsection{Functions}
-There can be no functional programming language without a support for first class functions. They capture the essence of the program execution by encoding the logic via transforming data. An example of a function declaration in Haskell is that of an identity function, !id_I! over integers.
+There can be no functional programming language without a support for first class
+functions. They capture the essence of the program execution by encoding the logic via
+transforming data. An example of a function declaration in Haskell is that of an identity
+function, !id_I! over integers.
+
 
 \begin{minipage}{0.5\linewidth}
 \begin{code}
@@ -45,10 +129,29 @@ There can be no functional programming language without a support for first clas
 \end{code}
 \end{minipage}
 
-The type signature !id_I :: Int -> Int! specifies the input-output behavior of the function: !id_I! accepts an argument of type !Int! and returns a value of type !Int!. The function definition !id_I i = i! specifies how the function satisfies the typing specification: it takes an argument !i! and returns it unmodified. Functions declared in a functional programming language resemble mathematical functions in two ways: first, they are referentially transparent, i.e.  a call to the same function twice with the same arguments will always return the same result. Thus, the expression, !id_I 3!, will always evaluate to !3!. Second, they are declarative, in a sense they abstract away the implementation and execution details of how the function executes on the actual underlying hardware; there is no mention of allocating and freeing program memory or even an explicit return. This declarative style, may discomfort skeptics on execution efficiency, but liberates them from the burden of understanding the exact execution semantics of the hardware.
+The type signature !id_I :: Int -> Int! specifies the input-output behavior of the
+function: !id_I! accepts an argument of type !Int! and returns a value of type !Int!. The
+function definition !id_I i = i! specifies how the function satisfies the typing
+specification: it takes an argument !i! and returns it unmodified. Functions declared in a
+functional programming language resemble mathematical functions in two ways: first, they
+are referentially transparent, i.e.  a call to the same function twice with the same
+arguments will always return the same result. Thus, the expression, !id_I 3!, will always
+evaluate to !3!. Second, they are declarative, in a sense they abstract away the
+implementation and execution details of how the function executes on the actual underlying
+hardware; there is no mention of allocating and freeing program memory or even an explicit
+return. This declarative style, may discomfort skeptics on execution efficiency, but
+liberates them from the burden of understanding the exact execution semantics of the
+hardware.
+
 
 \subsubsection{Parametric Polymorphism}
-Functions like !id_I!, while enough to build large programs, are too cumbersome in practice to program with. It is sometimes necessary to define the same functionality over different types. For example, an identity function over !Char!, !id_C! has the exact same definition as !id_I!. The functions that work on base types, such as !Int!, are called as monomorphic functions. To enhance re-usability of programs, it is necessary to be able to abstract over types.
+Functions like !id_I!, while enough to build large programs, are too cumbersome in
+practice to program with. It is sometimes necessary to define the same functionality over
+different types. For example, an identity function over !Char!, !id_C! has the exact same
+definition as !id_I!. The functions that work on base types, such as !Int!, are called as
+monomorphic functions. To enhance re-usability of programs, it is necessary to be able to
+abstract over types.
+
 
 \begin{minipage}{0.5\linewidth}
 \begin{code}
@@ -64,7 +167,19 @@ Functions like !id_I!, while enough to build large programs, are too cumbersome 
 \end{minipage}
 
 \TODO{How do i center align these code blocks?}
-The function !id!, shown above, abstracts over all types by an implicit universal quantification over the type variable !a!. Such functions are called parametrically polymorphic\cite{strachey_fundamental_2000}. The compiler can deduce which instance of the polymorphic function is required when an argument of a concrete type is passed as an argument to a polymorphic function. Other imperative languages such as Java and C also allow user defined polymorphic functions but often require explicit pointer casts or the use of interfaces. Parametric polymorphism also enables first class functions via higher order functional programming. Functions can be passed as arguments to other functions. For example, the type of the left hand side !id! in the definition of !t! will be assigned the type !(a -> a) -> (a -> a)! by the typechecker. ML\cite{milner_logic_1975, milner_theory_1978} was the first functional programming language to introduce declarative parametric polymorphism.
+The function !id!, shown above, abstracts over all types by an implicit universal
+quantification over the type variable !a!. Such functions are called parametrically
+polymorphic\cite{strachey_fundamental_2000}. The compiler can deduce which instance of the
+polymorphic function is required when an argument of a concrete type is passed as an
+argument to a polymorphic function. Other imperative languages such as Java and C also
+allow user defined polymorphic functions but often require explicit pointer casts or the
+use of interfaces. Parametric polymorphism also enables first class functions via higher
+order functional programming. Functions can be passed as arguments to other functions. For
+example, the type of the left hand side !id! in the definition of !t! will be assigned the
+type !(a -> a) -> (a -> a)! by the typechecker. ML\cite{milner_logic_1975,
+  milner_theory_1978} was the first functional programming language to introduce
+declarative parametric polymorphism.
+
 
 \subsubsection{Adhoc Polymorphism}
 Consider the following two terms, !t1! and !t2!:
@@ -75,9 +190,39 @@ t1 :: Int = 1 + 2
 t2 :: Float = 1.1 + 2.3
 \end{code}
 \end{CenteredBox}
-In the definition of !t1!, the operator (!+!) is applied to two integers, but in the definition of !t2! it is applied to two floating point numbers (!Float!). Although the programmer uses the same symbol, the meanings of the two terms are distinct: !t1! adds two !Int!s and returns an !Int! while the !t2! adds two !Float!s and returns a !Float!. The compiler generated code for each would also be different as they would make a call to two different built-in subroutines. This scheme of name punning, which is dependent on the type of arguments or the context of where the function appears, is called as adhoc polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a widely used mechanism to implement adhoc polymorphism, where the compiler resolves the overloaded operator (!+!) to the actual operator (!int_plus! or !float_plus!).
+In the definition of !t1!, the operator (!+!) is applied to two integers, but in the
+definition of !t2! it is applied to two floating point numbers (!Float!). Although the
+programmer uses the same symbol, the meanings of the two terms are distinct: !t1! adds two
+!Int!s and returns an !Int! while the !t2! adds two !Float!s and returns a !Float!. The
+compiler generated code for each would also be different as they would make a call to two
+different built-in subroutines. This scheme of name punning, which is dependent on the
+type of arguments or the context of where the function appears, is called as adhoc
+polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a widely
+used mechanism to implement adhoc polymorphism, where the compiler resolves the overloaded
+operator (!+!) to the actual operator (!int_plus! or !float_plus!).
 
-To make implicit overloading practical in functional programming languages, \citet{wadler_polymorphism_1989} proposed a dictionary passing style mechanism. Typeclasses are the incarnation of the the dictionary passing mechanism in Haskell. \citet{jones_qualified_1994} gave an account of typeclasses using the general framework of qualified types. In contrast to parametrically polymorphic functions like !id!, functions like !(+)! which act on some specific set of constrained or qualified types. For example, the addition function (!+!) gets a type: !Num a => a -> a -> a!. This means that the function can only be called on those types !a! which satisfy !Num a! constraint. This !Num a! constraint is declared by the programmer as a typeclass and instances of it specify when the typeclass constraint holds and what is the intended behaviour. Thus, in this setting, satisfying the constraint amounts to finding an instance declaration of !Num! for the particular type instantiation in question. As an example, instances of the typeclass !Num! are declared with accompanying instance declarations at type !Int! and !Float! in \pref{fig:tc-num}. Typeclasses can also be viewed as relations over types, with every instance declaration extending that relation. The typeclass !Num! represents a unary relation for those types whose values behave like numbers, they can be compared and added together. The declarations in \pref{fig:tc-num} can be interpreted by saying !Float! and !Int! belong to the unary relation !Num!, $\{$ !Int! , !Float! $\} \subseteq $ !Num!. If the type checker is not able to find an appropriate instance, it results in a type error. As expected, the expression !'A' + 'B'! should result in a type error as !Char! $\not\subseteq$ !Num!
+To make implicit overloading practical in functional programming languages,
+\citet{wadler_polymorphism_1989} proposed a dictionary passing style
+mechanism. Typeclasses are the incarnation of the the dictionary passing mechanism in
+Haskell. \citet{jones_qualified_1994} gave an account of typeclasses using the general
+framework of qualified types. In contrast to parametrically polymorphic functions like
+!id!, functions like !(+)! which act on some specific set of constrained or qualified
+types. For example, the addition function (!+!) gets a type: !Num a => a -> a -> a!. This
+means that the function can only be called on those types !a! which satisfy !Num a!
+constraint. This !Num a! constraint is declared by the programmer as a typeclass and
+instances of it specify when the typeclass constraint holds and what is the intended
+behaviour. Thus, in this setting, satisfying the constraint amounts to finding an instance
+declaration of !Num! for the particular type instantiation in question. As an example,
+instances of the typeclass !Num! are declared with accompanying instance declarations at
+type !Int! and !Float! in \pref{fig:tc-num}. Typeclasses can also be viewed as relations
+over types, with every instance declaration extending that relation. The typeclass !Num!
+represents a unary relation for those types whose values behave like numbers, they can be
+compared and added together. The declarations in \pref{fig:tc-num} can be interpreted by
+saying !Float! and !Int! belong to the unary relation !Num!, $\{$ !Int! , !Float! $\}
+\subseteq $ !Num!. If the type checker is not able to find an appropriate instance, it
+results in a type error. As expected, the expression !'A' + 'B'! should result in a type
+error as !Char! $\not\subseteq$ !Num!
+
 
 %% Something about methods
 
@@ -111,10 +256,29 @@ instance Num Float where
 \label{fig:tc-num}
 \end{figure}
 
-\citet{kaes_parametric_1988} had similar ideas related to implementation aspects of adhoc polymorphism before \citet{wadler_polymorphism_1989}. Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for the programmer to choose the intended behavior instance if there are multiple available options. This pushes the burden of choosing the right instance on programmer whenever the typechecker cannot uniquely resolve an option or when the programmer wants to force the typechecker to resolve it to a specific instance. Constraint handling rules(CHR)\cite{fruhwirth_theory_1998, stuckey_theory_2005} is a recent way to account for operator overloading. The limitation of using CHRs is that the programmer needs to ensure confluence external to the system to be able to get coherence guarantees.\TODO{CHRs needs more explanation or move it to related section work?}
+\citet{kaes_parametric_1988} had similar ideas related to implementation aspects of adhoc
+polymorphism before \citet{wadler_polymorphism_1989}. Implicit
+objects\cite{oliveira_typeclasses_2010} provide a mechanism for the programmer to choose
+the intended behavior instance if there are multiple available options. This pushes the
+burden of choosing the right instance on programmer whenever the typechecker cannot
+uniquely resolve an option or when the programmer wants to force the typechecker to
+resolve it to a specific instance. Constraint handling
+rules(CHR)\cite{fruhwirth_theory_1998, stuckey_theory_2005} is a recent way to account for
+operator overloading. The limitation of using CHRs is that the programmer needs to ensure
+confluence external to the system to be able to get coherence guarantees.\TODO{CHRs needs
+  more explanation or move it to related section work?}
+
 
 \subsubsection{Type Computation}
-A generalization of single parameter typeclasses is to have multi-parameter typeclasses. It naturally extends the idea of having n-ary relations over types. For example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under a single interface can be defined using a !Con e c! typeclass, as shown in \pref{fig:tc-collection}. The type variable !e! stands for the element type of the container while !c! stands for the container type itself. One can imagine having instances for such a typeclass as \lstinline{Con Int [Int]}, !Con Int (Tree Int)!, etc. Speaking in terms of relations, we say that $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
+A generalization of single parameter typeclasses is to have multi-parameter
+typeclasses. It naturally extends the idea of having n-ary relations over types. For
+example, following\cite{jones_tcfd_2000}, a typeclass to unify different containers under
+a single interface can be defined using a !Con e c! typeclass, as shown in
+\pref{fig:tc-collection}. The type variable !e! stands for the element type of the
+container while !c! stands for the container type itself. One can imagine having instances
+for such a typeclass as \lstinline{Con Int [Int]}, !Con Int (Tree Int)!, etc. Speaking in
+terms of relations, we say that $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
+
 
 \begin{figure}[ht]
 \centering
@@ -143,7 +307,21 @@ instance Con Int (Tree Int) where
 \label{fig:tc-collection}
 \end{figure}
 
-The use of !empty! in a polymorphic setting however leads to an ambiguity during compilation. For example in a term !t :: [Int] = insert 3 empty!, the type checker infers the type of !empty! to be !Con e [Int] => [Int]!. It is not enough to determine what the type of !e! should be just by knowing the type !c!. There is no way to rule out an existence of an instance such as !Con Float ([Int])!. This leads to ambiguity in compilation step; the compiler cannot uniquely resolve a typeyclass constraint to an instance. Such types that give rise to ambiguity are called ambiuous types. Formally, if a type variable only appears in the constraints of the type it is called an \emph{ambiguous type}. The type of !empty!, !FORALL e c. Con e c => c!, is ambiguous due to the occurrence of !e! only in the constraint. Ambiguious types need to be rejected by the compiler precisely because they do not have a well defined semantics. % The problem is that the typeclasses are relations making them too general for this use case.
+The use of !empty! in a polymorphic setting however leads to an ambiguity during
+compilation. For example in a term !t :: [Int] = insert 3 empty!, the type checker infers
+the type of !empty! to be !Con e [Int] => [Int]!. It is not enough to determine what the
+type of !e! should be just by knowing the type !c!. There is no way to rule out an
+existence of an instance such as !Con Float ([Int])!. This leads to ambiguity in
+compilation step; the compiler cannot uniquely resolve a typeyclass constraint to an
+instance. Such types that give rise to ambiguity are called ambiuous types. Formally, if a
+type variable only appears in the constraints of the type it is called an \emph{ambiguous
+  type}. The type of !empty!, !FORALL e c. Con e c => c!, is ambiguous due to the
+occurrence of !e! only in the constraint. Ambiguous types need to be rejected by the
+compiler precisely because they do not have a well defined semantics.
+% The problem is that the typeclasses are relations making them too general for this use
+% case.
+
+
 
 \subsubsection{Functional Dependencies}
 The problem with multi-paramenter type classes is that the programmers intention is to declare a functional relation between the type parameters of the typeclass. There is no way to express this intention and all multi-parameter typeclasses are treated as general relations. To make typeclasses behave in a more constrained way, \citet{jones_tcfd_2000} introduced functional dependencies to enable specify the functional nature of relations, i.e. to be able to say if we \emph{know} certain type parameters of the typeclass, we can \emph{determine} the other type parameters as well. For example, for !Con e c! typeclass, the programmers intention is to specify that the fixing container type !c! also fixes the container's element type !e!.
@@ -1945,6 +2123,10 @@ In \SFC, We have a strict restriction on type functions to be fully applied to a
 \subsection{Type Inference}
 This report does not delve into the type checking problem. We have assumed that there either exists an algorithm which can efficiently compute the types of a programmer provided term, which does not contain any types via a complete type construction\cite{milner_theory_1978}, or the programmer supplies sufficient typing annotations so that the type construction problem becomes tractable via partial type construction\cite{pierce_local_2000, dunfield_bidirectional_2021}. \HMX and its variants is the state of the art type modular inference framework that is based on by using constraint handling rules. The stratified type inference algorithm\cite{pottier_stratified_2006} works in two phases: the first phase collects the typing constraints and then the second phase solves them. This is different than the greedy approaches used by original typing algorithms\cite{lee_proofs_1998} $\mathcal{W}$ and $\mathcal{M}$. The stratified type inference systems are better suited for languages that support GADTs and language features that introduce local constraints\cite{vytiniotis_outsideinx_2011}.
 
+\section{Future Work}\label{sec:future-work}
+Open problems and future direction: Are we falling in the same of
+cramming the language pit by adding equalities. give more examples.
+
 \section{Conclusion}\label{sec:conclusion}
 \begin{figure}[ht]
  \centering
@@ -1956,19 +2138,40 @@ This report does not delve into the type checking problem. We have assumed that 
    \hline
    ADTs\cite{burstall_hope_1980}         & \emph{GADTs}\cite{cheney_first-class_2003}\\
    \hline
-   \multirow{4}*{\emph{Generative abstract types}\cite{breitner_safe_2014}} & \emph{Type Functions}\\
-                                        & \emph{Open}\cite{schrijvers_type_2008}\\
-                                        & \emph{Closed}\cite{eisenberg_typefamilies_2014},\\
-                                        & \emph{Associated types}\cite{chakravarty_associated_2005}\\
+   \multirow{3}*{\emph{Generative abstract types}\cite{breitner_safe_2014}}
+                                        & \emph{Open Type Functions}\cite{schrijvers_type_2008}\\
+                                        & Closed Type Functions\cite{eisenberg_typefamilies_2014},\\
+                                        & \emph{Associated types}\cite{chakravarty_associated_2005}
  \end{tabular}
  \caption{Features of Haskell}
  \label{fig:haskell-lang-features}
 \end{figure}
-
-In this report, we surveyed, in breadth, the different important language features which functional programmers like to use and, in depth, a theoretical foundation of a modern day declarative functional style programming language. The language features that we have covered in this report in some detail are emphasized in \pref{fig:haskell-lang-features} along with other language features. There are two ways of supporting programming language features, either via encoding them with the help of libraries or, via supporting them as a core language feature. In the latter case, we realized that composing different language features is non-trivial as their subtle interactions can threaten language inconsistency. We first recognized that the three seemingly different language features: generative abstract types, generalized algebraic datatypes and various flavors of type functions can be encoded using a single construct: type equality. However, there is no satisfactory account of functional dependencies in this system even though they also exhibit some flavor of type equality. We then identified that non-parametric features interacting with parametric features of the language that contain explicit type equalities causes type unsoundness bugs unless they are treated carefully. Taming ad-hoc features is non-trivial and requires sophisticated proof techniques to argue their correctness. As new programming languages are designed, built and used, it is not only important to identify and carry over the good design principles established by theory using the formalization techniques, but also strengthen the foundational theory by understanding the requirements of practice.
-
-Open problems and future direction: Are we falling in the same of cramming the language pit by adding equalities. give more examples.
-
+We surveyed the important language features, which functional
+programmers like to use, and seen in some depth, a theoretical
+foundation of a modern day declarative functional programming
+language. The language features are tabulated in the
+\pref{fig:haskell-lang-features} where The features that we have
+covered in some detail in this monograph are emphasized.
+There are two ways of supporting a new programming language
+feature, either via encoding them with the help of libraries or, via
+supporting them as a core language feature. In the latter scenario, we
+realized that composing different language features is non-trivial and
+their subtle interactions can threaten semantic consistency. We
+first identified that the three seemingly different language features:
+generative abstract types, generalized algebraic datatypes and type
+functions can be encoded using a simple single construct: type
+equality. However, there is no satisfactory account of functional
+dependencies in this system although they exhibit a flavor
+of type equality as well. We then realized that non-parametric features
+interacting with parametric features of the language that contain
+explicit type equalities can cause type unsoundness bugs, unless they are
+treated carefully. Taming ad-hoc language features is non-trivial and requires
+sophisticated proof techniques to formalize and argue their
+correctness. As new programming languages are designed, built and
+used, it is not only important to identify and carry over the good design principles
+established by theory using the formalization techniques, but also
+strengthen the foundational theory of programming languages
+by understanding the real requirements of practice.
 
 %\newpage
 %%%% Bibliography
@@ -1979,7 +2182,7 @@ Open problems and future direction: Are we falling in the same of cramming the l
 %%% Local Variables:
 %%% mode: latex
 %%% eval: (visual-line-mode 1)
-%%% eval: (auto-fill-mode 0)
+%%% eval: (auto-fill-mode 1)
 %%% eval: (tex-source-correlate-mode 1)
 %%% eval: (flyspell-mode 1)
 %%% TeX-command-extra-options: "--synctex=1"
