@@ -82,14 +82,14 @@ encoded precisely into a unified intermediate language with fewer extensions.
 
 In compilers for a statically typed programming languages, the type checking component, or
 simply, the typechecker, can be thought of as the gate keeper. Its purpose is to ensure
-that it does not let ``bad'' programs go through while flagging
+that it does not let \emph{bad} programs go through while flagging
 appropriate offending parts of programs to the programmer.
 This gate keeping is desirable because it liberates the programmer as
 by guaranteeing that a class of programming errors---such as runtime null pointer exceptions
 due to incorrect function arguments---can never occur, so that they
 can concentrate on the other more important aspects of the program.
-On the other hand, the typechecker also needs to allow the ``good'' programs
-which the programmers wishes write, pass without an intense struggle.
+On the other hand, the typechecker also needs to allow the \emph{good}
+programs, the ones which the programmers wishes write, pass without an intense struggle.
 The safety net casted by the typechecker should not become the reason
 of its undesirability. The structure of types needs to be
 sufficiently enriched to express complex programmer ideas, while rejecting runtime unsafe
@@ -102,7 +102,7 @@ in a runtime error, or even more complex invariants, where in a multi-stage comp
 the AST may gain more information at every pass. This new information is stored in the AST,
 and the types ensure that, if the information is populated in the third pass, trying to
 access that information in the first pass will result in a typechecker
-error while also ensuring maximum data structure sharing for memory efficiency.
+error while also ensuring maximum data structure sharing for memory efficiency\cite{peyton_jones_trees_2017}.
 Once we identify the right abstractions to express such complex
 invariants into the type structure, we will use type theory as a mathematical tool to help us
 formally reason about its correctness.
