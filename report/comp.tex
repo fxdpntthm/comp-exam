@@ -20,92 +20,97 @@
 \begin{abstract}
 This monograph is a juxtaposition of practical (typechecker) and
 meta-theoretical (formalization) aspects of a modern statically typed
-functional programming language. It is organized as follows: We set
-the scope of the research interest space in
-\pref{sec:introduction}, and we then go through some quintessential
-along with some advanced language features of a statically typed
-functional programming language. Some of these features are specific to the
-Haskell language. This serves as a \emph{programmers view} of the language.
-The \pref{sec:sfc} focuses on the formalization aspects of \SFC.
-This portion of the report is the \emph{compiler writers} view of the
-language. \SFC in essence is \SF enriched with first class explicit
-type equalities. It forms the basis of the core intermediate language
-of GHC, the de facto Haskell language compiler. Adding type equalities
-as a core language construct has extensive repercussions.
-In the \pref{sec:sfc-encoding-features}, we sketch how type equalities
-can efficiently encode a diverse set of language features,
+functional programming language. We first lay
+some philosophical underpinnings and the general scope of the research
+area in the \pref{sec:introduction}. We then survey some quintessential
+and advanced language features of a statically typed
+functional programming language in \pref{sec:language-features}.
+Some of these features are specific to the Haskell programming language.
+This serves as a \emph{programmers view} of the language.
+The \pref{sec:sfc} we formalize \SFC, which
+forms the basis of the core intermediate language
+of GHC, the de facto Haskell language compiler.
+In the \pref{sec:sfc-encoding-features}, we sketch how \SFC
+can efficiently encode a diverse set of language features.
 These features were previously either impossible or required non-trivial extensions
 to \SF making the overall system convoluted and complex to maintain.
-The vanilla \SFC is insufficient to encode all the programming
+This servers as the \emph{compiler writers} view of the
+language. The vanilla \SFC is insufficient to encode all the programming
 idioms which programmers would want to express. In the
 \pref{sec:fc-extensions}, to this effect, we study different
 extensions of \SFC: \SFR makes type equality finer grained while
 providing stronger type soundness guarantees, \SFP makes the kind system more
 expressive, and \SFK squashes the distinction between types and kinds
-making the type (and kind) level computation even more expressive.
-To conclude, in \pref{sec:related-work} we point out some important related
-work not covered in this report and give some directions to future
-work in \pref{sec:future-work}.
+making the type (and kind) level computation even more
+expressive. Each of these extensions are formalized and backed by a formal
+argument for its correctness. Finally, in \pref{sec:related-work} we point out some important related
+work not covered here, give some directions to future
+work in \pref{sec:future-work}, and make some concluding remarks in \pref{sec:conclusion}.
 \end{abstract}
 
 \maketitle
 \section{Introduction}\label{sec:introduction}
-Constructive mathematics and computer programming are acts of doing the same thing:
-identifying and exploiting the right abstractions to solve a problem. Mathematicians
-tackle it from top to bottom: by building the abstractions first and then enriching them,
-to make them represent real world problems, while programming turns the process on to its
-head, the programmer first writes a program, possibly incorrect, to solve a very specific
+Constructive mathematics and computer programming are acts of doing
+the same thing. They both involve identify and exploit the right
+abstractions to solve a problem. Mathematicians tackle it from top to
+bottom: by building the abstractions first and then enriching them
+to make them represent real world problems, while programmers turn this process on to its
+head, they first writes a program, possibly incorrect, solve a very specific
 task, and then by means of iterative code refactoring, build the right level of
-abstraction, while possibly fixing the incorrect program behaviors.
+abstraction, while possibly fixing the incorrect program behavior.
 This is a well established, named phenomenon: Curry-Howard or the
 Brouwer–Heyting–Kolmogorov correspondence\cite{wadler_propositions_2015,han_deep_2023}
-and it forms the basis of the field of Type
-Theory\cite{barendregt_lambda_2013, hottbook_2013,nordstrom_programming_1990}.
+and it forms the basis of the field of type
+theory\cite{barendregt_lambda_2013, hottbook_2013,nordstrom_programming_1990}.
 
-A compiler, in essence, is a program which transforms a higher level language, suitable for
+A compiler is a program that transforms a higher level language, suitable for
 humans, to a lower level language, suitable for computers. It may
-preform this transformation possibly via a multi-step
-process\cite{essentials_siek_2023}.
-Every useful software program needs to evolve over time by means of
-extensions, and a new language feature is implemented as a new
-compiler feature extension. There are two ways of realizing this
-extension: encode the new language feature means of existing high
-level language features, or by enriching the intermediate language. In the first encoding
-scheme, we just define a high level language to a high level language syntax
-transformer. Some exotic language features may not be able to leverage such encoding
-scheme for practical or theoretical reasons and for such cases, we enrich the intermediate
-language which reflects the extensions made to the higher level language. However, in the
-second case, multiple extensions to the intermediate language causes a feature clutter,
-making it difficult to maintain. We then need to find the right abstraction to refactor
-the intermediate language so that all different high level language features can be
-encoded precisely into a unified intermediate language with fewer extensions.
+perform this transformation via a multi-step
+process\cite{essentials_siek_2023}. Every useful software program
+evolves over time by means of extensions. A compiler is no
+exception to this rule. A new language feature is implemented
+as a new compiler feature as an extension. One way of realizing this
+extension is by encoding the new language feature by means of existing high
+level language features. Some exotic language features may
+not be able to leverage this transformation scheme,
+for practical or theoretical reasons. For such cases, we need to
+enrich the intermediate language to support
+the extensions made to the higher level language. This kind of
+extension, however, does not scale. Multiple extensions to
+the intermediate language causes a feature clutter, making it
+difficult to maintain. We then need to find the right abstraction to refactor
+the intermediate language so that the different high level language features can be
+encoded into a unified intermediate language with fewer extensions.
 
 In compilers for a statically typed programming languages, the type checking component, or
-simply, the typechecker, can be thought of as the gate keeper. Its purpose is to ensure
-that it does not let \emph{bad} programs go through while flagging
+simply, the typechecker, is the gate keeper. Its purpose is to ensure
+that it does not let \emph{bad} programs pass and flag the
 appropriate offending parts of programs to the programmer.
-This gate keeping is desirable because it liberates the programmer as
+This gate keeping is desirable because it aids the programmer,
 by guaranteeing that a class of programming errors---such as runtime null pointer exceptions
 due to incorrect function arguments---can never occur, so that they
-can concentrate on the other more important aspects of the program.
+can concentrate on the other more important aspects of the program. If
+it typechecked, it will definitely run without surprises.
 On the other hand, the typechecker also needs to allow the \emph{good}
-programs, the ones which the programmers wishes write, pass without an intense struggle.
+programs---the ones that the programmer definitely expects to work---pass without an intense struggle.
 The safety net casted by the typechecker should not become the reason
-of its undesirability. The structure of types needs to be
-sufficiently enriched to express complex programmer ideas, while rejecting runtime unsafe
-programs. As an example, consider writing an abstract syntax tree for representing the
-language in the compiler. The compiler writer may want to capture certain semantic
-invariants on the data structure representing the abstract syntax tree (AST). For example,
-the term of the conditionals on the control structures of !if! or !while! loops have to be
-of !Boolean! types so that they can be evaluated to either !True! or !False!, and not result
-in a runtime error, or even more complex invariants, where in a multi-stage compiler pipeline,
-the AST may gain more information at every pass. This new information is stored in the AST,
-and the types ensure that, if the information is populated in the third pass, trying to
-access that information in the first pass will result in a typechecker
-error while also ensuring maximum data structure sharing for memory efficiency\cite{peyton_jones_trees_2017}.
-Once we identify the right abstractions to express such complex
-invariants into the type structure, we will use type theory as a mathematical tool to help us
-formally reason about its correctness.
+of its undesirability. For this reason, the structure of types needs to be
+sufficiently enriched to allow complex programmer ideas expressible,
+while rejecting definitive runtime unsafe programs.
+As an example, consider writing an abstract syntax tree (AST) for representing the
+language for a compiler. The compiler writer may want to capture certain semantic
+invariants on the data structure representing the AST, to avoid
+explicit checks using predicate functions. For example, in the control
+structures---such as !if! or !while! loops---the sub-term representing
+the conditional needs to have a !Boolean! type, it better evaluate to either !True! or
+!False! and nothing else. Or even more complex invariants, where in a multi-stage compiler pipeline,
+the AST may be gradually enriched with more information at every pass.
+The types can ensure that if the information is enriched in the third pass, trying to
+access that information in the first pass will result in a compile time
+type error. All this while also ensuring maximum data structure sharing for memory efficiency\cite{peyton_jones_trees_2017}.
+Once we identify the right abstractions to express these complex
+invariants in the type structure, we will use type theory
+as a mathematical tool for principled reasoning of its correctness.
 
 \section{Features of Typed Functional Programming Languages}\label{sec:language-features}%%%%%%%%%
 \subsection{Functions and Polymorphism}
@@ -1698,57 +1703,77 @@ The algorithm is terminating as at every call to $\walk{\TypeConst}\sigma$, we e
 If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ and $\stepsto \Tm \Tm'$, then $\Typing \TEnv {\Tm'} \tau$
 \end{lemma}
 The role directed coercion calculus can be proved to be confluent only if the right hand sides of the coercion axioms have linear patterns. Confluence of type rewriting guarantees consistency for the complete system. In case of overlapping non-linear patterns, the proof of confluence is an open problem\cite{mizuhito_rta_1995}.
-Finally, The type preservation lemma, \pref{lem:preservation-sfr}, along with \pref{lem:progress-sfr} is the formal guarantee that ensures type soundness. To summarize, \SFR strove to find a good power to pain ratio by making minimal changes to the system for the benefit to the programmer and re-establishing type soundness by disallowing unsafe coercion lifting by virtue of roles.
+Finally, The type preservation lemma, \pref{lem:preservation-sfr},
+along with \pref{lem:progress-sfr} is the formal guarantee that
+ensures type soundness.
+
+To summarize, \SFR strove to find a good power to pain ratio by making minimal changes to the system for the benefit to the programmer and re-establishing type soundness by disallowing unsafe coercion lifting by virtue of roles.
 
 \subsection{\SFP}\label{sec:sfp} % P for promotion
 Consider a standard GADT implementation of a vector !Vec! that also stores its length at the type level.
 
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
-data Z
-data S n
+        data Z
+        data S n
 \end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
-data Vec : * -> * -> * where
-   Nil : Vec Z elem
-   Cons : elem -> Vec n elem -> Vec (S n) elem
+    data Vec : * -> * -> * where
+       Nil : Vec Z elem
+       Cons : elem -> Vec n elem -> Vec (S n) elem
 \end{code}
 \end{minipage}
 
-The types !Z! and !S n! encode the size of the vector. The data constructor !Nil! is a zero length vector which is asserted by the type !Z!, while !Cons! appends an element of type !elem! to a vector of size !n! to return a vector of size !S n!. With primitive kind system, there is no enforcement that the type argument to !Vec! has to be !Z! or !S n!. Any type of kind $\STAR$ is a valid argument. A more desirable alternative would be to restrict the kind of the type that is used to describe the size of the vector.
+The types !Z! and !S n! encode the size of the vector. The data
+constructor !Nil! is a zero length vector which is asserted by the
+index type !Z!, while !Cons! appends an element of type !elem! to a
+vector of size !n! to return a vector of size !S n!. With a primitive
+kind system, there is no enforcement that the type argument to !Vec!
+has to be either !Z! or !S n!. Any type of kind, $\STAR$ is a valid
+argument. A desirable alternative would be to restrict the kind
+of the index type that describes the size of the vector.
 
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
-data Nat = Z
-         | S Nat
+         data Nat = Z | S Nat
 \end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
-data Vec : Nat -> * -> * where
-   Nil : Vec Z elem
-   Cons : elem -> Vec n elem -> Vec (S n) elem
+     data Vec : Nat -> * -> * where
+        Nil : Vec Z elem
+        Cons : elem -> Vec n elem -> Vec (S n) elem
 \end{code}
 \end{minipage}
 
-In this setting, the type checker has enough information to reject semantically absurd types like !Vec Char Int!.
-Similar problems arise while writing addition function on type level naturals. The situation is worse as writing type functions does not include any kind information; the argument and return types are defaulted to kind $\STAR$, making it seem ill-kinded. The intention of the programmer is not that any type of kind $\STAR$ is a valid argument to the function !Plus!. A better alternative would be to allow specifying the concrete kind specification to the function---in this case specifying that the arguments and return kind of !Plus! is a !Nat!.
+In this setting, the type checker has enough information to reject
+semantically absurd types like !Vec Char a!. As the kind of !Char! is
+$\STAR$ and not !Nat!. Similar problems arise while writing addition function on type level
+naturals. The situation is worse as writing type functions does not
+include any kind information; the argument and return types are
+defaulted to kind $\STAR$, making it seem ill-kinded. The intention of
+the programmer is not that any type of kind $\STAR$ is a valid
+argument to the function !Plus!. A better alternative would be to
+allow specifying the concrete kind specification to the function---in
+this case specifying that the arguments and return kind of !Plus! is a
+!Nat!.
+
 
 \begin{minipage}[ht]{0.4\linewidth}
- \begin{code}
- type family Plus m n
- type instance Plus Z m = m
- type instance Plus (S n) m = S (Plus n m)
- \end{code}
+\begin{code}
+     type family Plus m n
+     type instance Plus Z m = m
+     type instance Plus (S n) m = S (Plus n m)
+\end{code}
 \end{minipage}
 \begin{minipage}[ht]{0.4\linewidth}
- \begin{code}
- type family Plus (m:Nat) (n:Nat) : Nat
- type instance Plus Z m = m
- type instance Plus (S n) m = S (Plus n m)
- \end{code}
+\begin{code}
+     type family Plus (m:Nat) (n:Nat) :: Nat
+     type instance Plus Z m = m
+     type instance Plus (S n) m = S (Plus n m)
+\end{code}
 \end{minipage}
 
 Allowing user defined kinds, albeit more expressive, are awkward to use without kind polymorphism. Consider a higher kinded datatype !TApp! which is useful for generic programming that encodes type application:
@@ -2146,11 +2171,11 @@ cramming the language pit by adding equalities. give more examples.
  \caption{Features of Haskell}
  \label{fig:haskell-lang-features}
 \end{figure}
-We surveyed the important language features, which functional
-programmers like to use, and seen in some depth, a theoretical
+We surveyed some important language features--the ones which functional
+programmers prefer---and seen in some depth, a theoretical
 foundation of a modern day declarative functional programming
 language. The language features are tabulated in the
-\pref{fig:haskell-lang-features} where The features that we have
+\pref{fig:haskell-lang-features}. The features that we have
 covered in some detail in this monograph are emphasized.
 There are two ways of supporting a new programming language
 feature, either via encoding them with the help of libraries or, via
@@ -2161,12 +2186,12 @@ first identified that the three seemingly different language features:
 generative abstract types, generalized algebraic datatypes and type
 functions can be encoded using a simple single construct: type
 equality. However, there is no satisfactory account of functional
-dependencies in this system although they exhibit a flavor
-of type equality as well. We then realized that non-parametric features
+dependencies in this system although they intrinsically exhibit
+type equality. We then showed how non-parametric features
 interacting with parametric features of the language that contain
 explicit type equalities can cause type unsoundness bugs, unless they are
 treated carefully. Taming ad-hoc language features is non-trivial and requires
-sophisticated proof techniques to formalize and argue their
+sophisticated proof techniques to formalize and argue about their
 correctness. As new programming languages are designed, built and
 used, it is not only important to identify and carry over the good design principles
 established by theory using the formalization techniques, but also
