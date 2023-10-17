@@ -291,17 +291,23 @@ The declarations in the \pref{fig:tc-num} can be interpreted as an
 evidence of fact that !Float! and !Int! belong to the unary relation
 !Num!, $\{$ !Int! , !Float! $\} \subseteq$ !Num!, and also !Bool $\not\subseteq$ Num!.
 
-\subsubsection{Type Computation}
+\subsection{Type Computation}\label{sec:type-computation}
 A generalization of single parameter typeclasses is multi-parameter
-typeclass. It naturally extends the idea of having n-ary relations
+typeclasses. It naturally extends the idea of having n-ary relations
 over types. For example, following\cite{jones_tcfd_2000}, the
 typeclass !Con e c! can be used to give a unified treatment of
 different containers and the elements that they contain as shown in
 the \pref{fig:tc-collection}. The type variable !e! stands in for the
 element type of the container while !c! stands in for the container
-type. One can imagine having instances for such a typeclass as
-\lstinline{Con Int [Int]}, !Con Int (Tree Int)!, etc. Speaking in
-terms of relations, we say that $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
+type. The behavior of the containers is captured by the methods of the
+typeclass !empty!, which returns the empty container and !insert!,
+that inserts the element of type !e! in to the container of type !c!.
+We can imagine having instances for such a typeclass as
+!Con Int [Int]! that says that the container list of integers has
+integers as its elements, !Con Word (Tree Chars)! that says that a
+container tree of !Char! contains !Word!s as its
+elements as they are of fixed lengths. Speaking in terms of
+relations, we have $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
 
 \begin{figure}[ht]
 \centering
@@ -321,7 +327,7 @@ instance Con Int [Int] where
 \end{minipage}%
 \begin{minipage}[ht]{0.3\linewidth}
 \begin{code}
-instance Con Int (Tree Int) where
+instance Con Word (Tree Char) where
   empty = ...
   insert = ...
 \end{code}
@@ -330,25 +336,55 @@ instance Con Int (Tree Int) where
 \label{fig:tc-collection}
 \end{figure}
 
-The use of !empty! in a polymorphic setting, however, leads to an ambiguity during
-compilation. For example, in a term !t :: [Int] = insert 3 empty!, the typechecker infers
+The use of !empty! in a polymorphic setting, however, leads to a type ambiguity during
+compilation. For example, in a term !single3 :: [Int] = insert 3 empty!, the typechecker infers
 the type of !empty! as !Con e [Int] => [Int]!. The type inferred by
-the typechecker is the right one. It is not enough to determine what the
-type of !e! should be just by knowing the type !c!. There is no way to rule out an
-existence of an instance such as !Con Float ([Int])!. This leads to ambiguity in
-compilation step; the compiler cannot uniquely resolve a typeyclass constraint to an
-instance. Such types that give rise to ambiguity are called ambiuous types. Formally, if a
-type variable only appears in the constraints of the type it is called an \emph{ambiguous
-  type}. The type of !empty!, !FORALL e c. Con e c => c!, is ambiguous due to the
-occurrence of !e! only in the constraint. Ambiguous types need to be rejected by the
-compiler precisely because they do not have a well defined semantics.
-% The problem is that the typeclasses are relations making them too general for this use
-% case.
+the typechecker is the right one however, we have a free type variable
+!e! in the constraint. We do not have enough information to determine what the
+concrete type of !e! should. There is no way to rule out an
+existence of an instance such as !Con Float [Int]!.
+This results in an ambiguity in compilation step; the compiler cannot
+resolve the typeclass constraint to a unique instance and hence cannot
+choose the right implementation to use. Such types that
+give rise to ambiguity are called ambiguous types. Formally, if a
+type variable only appears in the constraints of the type it is called
+an \emph{ambiguous type}. The type of !empty!,
+!FORALL e c. Con e c => c!, is ambiguous due to the occurrence of !e! only in the
+constraint. Terms with ambiguous types need to be rejected by the compiler
+precisely because they do not have a well defined semantics.
+A possible solution to this problem, is to resort to assigning local
+type annotations, for example,
 
+\begin{CenteredBox}
+\begin{code}
+single3 :: [Int] = insert (3 :: Int) (empty :: [Int])
+\end{code}
+\end{CenteredBox}
 
+However, this solution is unsatisfactory on various fronts: it relies
+on the fact that the programmer knows where to add the type
+annotations and has deep understanding of how the typechecker uses the
+type annotation information and worse, it is fragile, unless each
+sub-term is annotated, any changes to the typechecker
+algorithm may result in unpredictable type inference causing
+previously typecheck-able programs to now fail.
+% The problem is that the typeclasses are relations making them too
+% general for this use case.
 
-\subsubsection{Functional Dependencies}
-The problem with multi-paramenter type classes is that the programmers intention is to declare a functional relation between the type parameters of the typeclass. There is no way to express this intention and all multi-parameter typeclasses are treated as general relations. To make typeclasses behave in a more constrained way, \citet{jones_tcfd_2000} introduced functional dependencies to enable specify the functional nature of relations, i.e. to be able to say if we \emph{know} certain type parameters of the typeclass, we can \emph{determine} the other type parameters as well. For example, for !Con e c! typeclass, the programmers intention is to specify that the fixing container type !c! also fixes the container's element type !e!.
+\subsubsection{Functional Dependencies}\
+The problem with multi-parameter type classes is that there is a
+mismatch between the programmers intention and the expressivity of the
+typeclass machinery in the type system. Continuing with the above example, the
+programmers intention is to have a functional relation between !c! and
+!e! of the typeclass !Con e c!, or that the choice of the type
+parameter !c! fixes the choice of the type parameter !e!. In general,
+there can be arbitrary functional relation between the type parameters
+of the typeclass. In the current setting, all multi-parameter
+typeclasses are treated as general n-ary relations. Inspired by the database's
+relational algebra, \citet{jones_tcfd_2000} introduced functional
+dependencies, a new conservative extension to the typeclass language
+feature. It is able to efficiently capture the functional
+nature between the typeclass parameters.
 
 \begin{figure}[ht]
 \begin{CenteredBox}
@@ -358,16 +394,37 @@ class Con e c | c ~> e where
   extend :: e -> c -> c
 \end{code}
 \end{CenteredBox}
-\caption[\lstinline{Con} typeclass]{\lstinline{Con} Typeclass with Functional Dependency}
+\caption[\lstinline{Con} typeclass]{The \lstinline{Con} Typeclass with Functional Dependency}
 \label{fig:tc-collection-fd}
 \end{figure}
 
-As shown in \pref{fig:tc-collection-fd}, the extra annotation !c ~> e! specifies the functional dependency on the typeclass !Con e c!. It is to be read as ``for a given !c!, !e! can be uniquely determined ''. !c! to called the determiner and !e! is called the determinant of the functional dependency. This extension to typeclasses has a good power to weight ratio with a minimal change to the typeclass syntax and is backwards compatible. The instance declarations do not change, however there needs to be an extra check while type checking the instance declarations to verify that the new instance does not violate the functional dependency: We cannot allow both the typeclass instances, !Con Int [Int]! and !Con Float [Int]! to exist together.
-% improvement, simplification
-%
+The extra annotation !c ~> e!, as seen in the \pref{fig:tc-collection-fd},
+on the typeclass definition captures the functional dependency of the typeclass
+!Con e c! and it reads as ``for a given !c!, !e! can be uniquely
+determined.'' The typeclass parameter !c! is called the determiner
+and the parameter !e! is called the determinant of the
+functional dependency. This extension to typeclasses has a good power
+to weight ratio; with a minimal change to the typeclass syntax and
+complete backwards compatibility with no change to typeclass instance declarations.
+Typechecker needs to now verify that the new instance declarations do
+not violate the functional dependency: We cannot allow both the typeclass instances,
+!Con Int [Int]! and !Con Float [Int]! to exist together.
 
 \subsubsection{Associated Types}
-Another way of introducing a functional relation on types, or simply type functions, would be via associating the determinant of the functional dependency within the class definition\cite{chakravarty_associated_2005}. This completely circumventing the problem of ambiguous types. Every multi-parameter typeclass can be normalized into having only a single parameter. Using our previous !Con c e! example, if !c ~> e! then, it would be more obvious to the programmers to instead write !Elem c! instead of !e!, where !Elem c! is a special type function that takes in a type and returns a type. This effectively gives an alternative syntax to express functional dependencies.
+Another way of introducing a functional relation on types, or simply
+type functions, would be via associating the determinant of the
+functional dependency within the class
+definition\cite{chakravarty_associated_2005} in a more direct fashion.
+Every multi-parameter typeclass can be normalized into having only a single
+parameter and thus completely circumvent the problem of
+ambiguous types. Using our previous !Con c e! example, if !c ~> e! then,
+another style to capture the programmers intention is to use a special
+type function, say !Elem c!, where ever the type parameter
+!e! appears. The !Elem! is a special type function that takes in a type
+and returns a type and is associated with the typeclass.
+This effectively gives an alternative syntax to express functional
+dependencies.
+
 \begin{figure}[ht]
 \begin{center}
 \begin{minipage}[ht]{0.4\linewidth}
@@ -375,7 +432,7 @@ Another way of introducing a functional relation on types, or simply type functi
 class Con c where
   type Elem c
   empty :: c
-  extend :: Elem c -> c -> c
+  insert :: Elem c -> c -> c
 \end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
@@ -383,7 +440,7 @@ class Con c where
 instance Con [Int] where
   type Elem [Int] = Int
   empty = ...
-  extend = ...
+  insert = ...
 \end{code}
 \end{minipage}
 \end{center}
@@ -391,10 +448,16 @@ instance Con [Int] where
 \label{fig:assoc-types}
 \end{figure}
 
-In \pref{fig:assoc-types}, the typeclass !Con! has an associated type function !Elem! that depends on the type parameter !c! of the typeclass. This gives a syntactically pleasing way to write the functional dependencies in a type function form.
+In the \pref{fig:assoc-types}, the typeclass !Con! now has only one
+parameter, !c!, for the container type, with an additional field for
+the type function !Elem! that depends on the type parameter !c! of the
+typeclass. The type signature of !insert!, also now only depends on
+the type parameter !c!, and the !Elem c! stands in for the element
+type of container. In the instance declaration, the !Elem [Int]! is mapped to
+!Int!, meaning, the element of the list of integers is of type !Int!.
+This gives an syntactic alternative to write the functional
+dependencies in a type function form.
 
-%% The point to make here is typechecker can enforce contraints!
-In summary, both functional dependencies and associated types provide the same set of features: improve type inference by resolving ambiguous types and enable type level computations. It would be tempting to pose the questions such as: is one style more expressive than the other or is it just a matter of stylistic preference? In other works, are functional dependencies equivalent to associated types? Jones' original work does not delve into formalization aspects of functional dependencies feature. \citet{jones_language_2008} claim (without proof) that they are equivalent in expressiveness but favor functional dependencies as it introduces minimal overhead in terms of type system implementation. \citet{karachalias_elaboration_2017} use an elaboration technique go the other way around. They however fail to compare how their system translates improvement in type inference which is offered by a functional dependencies and pose it as an open question.
 
 \subsection{User defined Datatypes}
 \subsubsection{Algebraic Datatypes}
@@ -2242,7 +2305,7 @@ do not want to allow only ``trivial'' equality proofs.
 \subsubsection{Typeclass alternatives}
 \citet{kaes_parametric_1988} had similar ideas related to implementation aspects of adhoc
 polymorphism before \citet{wadler_polymorphism_1989}. The work on
-functional dependencies for multiparameter typeclasses is directly
+functional dependencies for multi-parameter typeclasses is directly
 influenced by parametric type classes\cite{chen_parametric_1992}.
 Implicit objects\cite{oliveira_typeclasses_2010} provide a mechanism for the
 programmer to choose the intended behavior instance if there are
@@ -2256,7 +2319,7 @@ is that the programmer needs to ensure confluence external to the
 system to be able to get coherence guarantees.
 
 \subsubsection{Traits and Interfaces}
-Object oriented languages provide an explicit mechanism of abstraction over behaviour of classes in the form of traits (cf. Rust, Scala) or interfaces (cf. Java, C\#). In dynamically typed languages (cf. python), traits are emulated using implicit programmer conventions. Typeclasses subsume traits and interfaces. Typeclasses can be higher kinded, which often is lacking in object oriented languages, with an exception of Scala where traits can be declared on higher kinded types by means of generics. There is no equivalent of multiparameter typeclasses and funtional dependencies in interfaces and the expressivity of type level computation is non-existent. Traits in Scala 3 can have parameters, but there is no way to express a functional relation between the parameters. Superclasses (not to be confused with superclasses for classes in object oriented languages)  mechanisms exists in both typeclasses and traits and interfaces that establish a containment relationship. The abstract behaviour described by superclasses is contained in the sub-classes.
+Object oriented languages provide an explicit mechanism of abstraction over behaviour of classes in the form of traits (cf. Rust, Scala) or interfaces (cf. Java, C\#). In dynamically typed languages (cf. python), traits are emulated using implicit programmer conventions. Typeclasses subsume traits and interfaces. Typeclasses can be higher kinded, which often is lacking in object oriented languages, with an exception of Scala where traits can be declared on higher kinded types by means of generics. There is no equivalent of multi-parameter typeclasses and funtional dependencies in interfaces and the expressivity of type level computation is non-existent. Traits in Scala 3 can have parameters, but there is no way to express a functional relation between the parameters. Superclasses (not to be confused with superclasses for classes in object oriented languages)  mechanisms exists in both typeclasses and traits and interfaces that establish a containment relationship. The abstract behaviour described by superclasses is contained in the sub-classes.
 
 \subsubsection{Closed typeclasses}
 GHC/Haskell does not support closed typeclasses out of the box. In Scala, sealed traits accomplish this behaviour. Closed typeclasses, as opposed to the open typeclasses, cannot be extended with instances. This can be useful in cases where we want the typechecker to be able to deduce that certain typeclass constraints can never be satisfied. In current Haskell unsatisfiable typeclass constraints, amout to functions that cannot be called. However, with closed typeclasses, the typechecker would be able to identify such cases and warn the programmer about unusablity of the functions. Only parital behaviour of closed typeclasses can be emulated in current Haskell, by limiting the export names from modules. This just allows closedness property of closed typeclasses. The typechecker cannot use the information that the unexported typeclass is effectively closed to reason about whether the constraint can be solvable or can never be solved.
@@ -2273,14 +2336,6 @@ class Show String where show = ...
 \end{code}
 \end{CenteredBox}
 Now, if we know how to show a type, we can write a generic instance of show on a list of those types. However, we may want to override this behaviour for some specific instances of types such as !String!, which is declared as a type synonym for a list of !Char!. The typechecker now has two ways of resolving the typeclass constraint !Show String!: it can either use the generic instance via !Show [Char]!, or it can use the specific instance !Show String!. The typechecker cannot know apriori which is the more appropriate option. Such instances are called overlapping instances. Standard Haskell disallows such overlapping instances. Instance chains solves this problem by allowing programmers to specify in what order the the instances can be resolved. It also subsumes closed typeclasses by providing the capability to express that any instance that does not match with any of the instances listed above, it should be considered as a failure.
-
-\subsection{Modules}\label{sec:rw-modules}
-% Modules and typeclasses
-% are they same
-% no, different.
-% Their co-existence incoherent
-Modules help decompose large programs into smaller programs by allowing the programmers to establish separation of concerns. All general purpose programming languages provide some capabilities to make programs modular. \citet{macqueen_modules_1984} pioneered the formalizing semantics of modules in Standard ML.
-Various attempts\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} have been made to enable a happy co-existence of parametric and implicit adhoc polymorphism together in a language by encoding typeclasses as modules and vice versa. However, every attempt has failed to avoid incoherence issues without crippling the language expressivity. ML and its variants\cite{milner_definition_1997,leroy_ocaml_2023} disallow allow operator overloading to enable modular compilation, while Haskell like languages compromise on the correct module behavior to allow operator overloading via typeclass mechanisms.
 
 \subsection{Type Functions}\label{sec:rw-type-fun}
 \subsubsection{Injective type famililes}
@@ -2314,10 +2369,37 @@ Constrained type families\cite{morris_typefamilies_2017} allows type computation
 \subsubsection{Partially Applied Type families}
 In \SFC, We have a strict restriction on type functions to be fully applied to avoid unsoundness. The restriction can be resolved by using a stratifying the type function hierarchy\cite{kiss_higher-order_2019}: the functions that can be matched on, and the other that cannot be matched on. This allows the typechecker to reject unsafe programs which potentially violate the safety property by using unrestricted coercion lifting.
 
+
+\subsection{Modules}\label{sec:rw-modules}
+% Modules and typeclasses
+% are they same
+% no, different.
+% Their co-existence incoherent
+Modules help decompose large programs into smaller programs by allowing the programmers to establish separation of concerns. All general purpose programming languages provide some capabilities to make programs modular. \citet{macqueen_modules_1984} pioneered the formalizing semantics of modules in Standard ML.
+Various attempts\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} have been made to enable a happy co-existence of parametric and implicit adhoc polymorphism together in a language by encoding typeclasses as modules and vice versa. However, every attempt has failed to avoid incoherence issues without crippling the language expressivity. ML and its variants\cite{milner_definition_1997,leroy_ocaml_2023} disallow allow operator overloading to enable modular compilation, while Haskell like languages compromise on the correct module behavior to allow operator overloading via typeclass mechanisms.
+
+
 \subsection{Type Inference}\label{sec:rw-type-inf}
 This report does not delve into the type checking problem. We have assumed that there either exists an algorithm which can efficiently compute the types of a programmer provided term, which does not contain any types via a complete type construction\cite{milner_theory_1978}, or the programmer supplies sufficient typing annotations so that the type construction problem becomes tractable via partial type construction\cite{pierce_local_2000, dunfield_bidirectional_2021}. \HMX and its variants is the state of the art type modular inference framework that is based on by using constraint handling rules. The stratified type inference algorithm\cite{pottier_stratified_2006} works in two phases: the first phase collects the typing constraints and then the second phase solves them. This is different than the greedy approaches used by original typing algorithms\cite{lee_proofs_1998} $\mathcal{W}$ and $\mathcal{M}$. The stratified type inference systems are better suited for languages that support GADTs and language features that introduce local constraints\cite{vytiniotis_outsideinx_2011}.
 
+
+
 \section{Future Work}\label{sec:future-work}
+Both functional dependencies and associated types provide the same set
+of features: improve type inference by resolving ambiguous types and
+enable type level computations. It would be tempting to pose the
+questions such as: is one style more expressive than the other or is
+it just a matter of stylistic preference? In other works, are
+functional dependencies equivalent to associate types? Jones' original
+work does not delve into formalization aspects of functional
+dependencies feature. \citet{jones_language_2008} claim (without
+proof) that they  are equivalent in expressiveness but favor
+functional dependencies as it introduces minimal overhead in terms of
+type system implementation. \citet{karachalias_elaboration_2017} use
+an elaboration technique go the other way around. They however fail to
+compare how their system translates improvement in type inference
+which is offered by a functional dependencies and pose it as an open question.
+
 Open problems and future direction: Are we falling in the same of
 cramming the language pit by adding equalities. give more examples.
 There is no satisfactory account of functional
@@ -2344,7 +2426,6 @@ ambiguous. The compiler has only one option to choose from.
 The improving and simplifying types goes beyond just the above
 ``simple'' example.
 
-
 For the second point, the current typechecker implementation is
 plagued with cases that handle class constraints and those that handle
 type equality constraints. With functional dependencies, we would have
@@ -2353,9 +2434,6 @@ then be simplified by having only once case that handles typeclasses
 and it embeds type equalities uniformly. \TODO{Is this safer that
   having bare type equalities? maybe we can relax $\Good\TEnv$
   condition?}
-
-As simple naive encoding via means of
-
 
 \section{Conclusion}\label{sec:conclusion}
 \begin{figure}[ht]
