@@ -788,42 +788,79 @@ and other languages play catch up.
 
 
 \subsubsection{Generative Abstract Types}\label{subsubsec:gen-abs-types}
-Generative types provides a mechanism for the programmer to confine the visibility of the representation details of a type exclusively within a module. External to the module the client program cannot know how the type is represented or in other words, representation of the generative types is opaque to the client module. In Haskell generative types are defined by hiding the type declarations in the signatures. Consider an HTML module defined in Haskell as shown in \pref{fig:html-generative-type}.
+Generative types provide a mechanism for the programmer to confine the
+visibility of the representation details of a type
+exclusively within a module. External to the module the client program
+cannot know how the type is represented or in other words,
+representation of the generative types is opaque to the client
+module. In Haskell generative types are defined by hiding the type
+declarations in the signatures. Consider an HTML module defined in
+Haskell as shown in the \pref{fig:html-generative-type}.
+
 \begin{figure}[ht]
- \centering
- \begin{minipage}[ht]{0.4\linewidth}
- \begin{code}
- module HTML (Html, mkHtml, unMkHtml)
- where
+\centering
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+module HTML (Html, mkHtml, unMkHtml)
+where
 
- newtype Html = Html String
+newtype Html = Html String
 
- mkHtml :: String -> HTML
- mkHtml = Html . escapeString
+mkHtml :: String -> HTML
+mkHtml = Html . escapeString
 
- unMkHtml :: HTML -> String
- unMkHtml (Html s) = s
- \end{code}
- \end{minipage}%
- \begin{minipage}[ht]{0.4\linewidth}
- \begin{code}
- module Client
- where
+unMkHtml :: HTML -> String
+unMkHtml (Html s) = s
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+module Client
+where
 
- import HTML
+import HTML
 
- page :: HTML
- page = mkHTML "<html><body>Text</body></html>"
+page :: HTML
+page = mkHTML "<html><body>Text</body></html>"
 
- \end{code}
- \end{minipage}
- \caption{HTML as a generative type}
- \label{fig:html-generative-type}
+
+
+
+
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+\caption{HTML as a generative type}
+\label{fig:html-generative-type}
 \end{figure}
 
-Within the scope of !Html! module, the types !String! and !HTML! are synonymous, however the type !Html! will be opaque for any external client using the type !HTML! will not be able to directly manipulate a value of type !Html!---unless of course by using the specific functions exposed in the signature. Inhibiting manipulations and views of the data representation can be useful for avoiding leaking information in secure computation contexts. This (naive) abstraction however comes with a runtime cost. !Html! and !String!, need to be explicitly converted from one form into another using pattern matching. This is explicit conversion is redundant as they have the same representation in memory, but the compiler cannot use this information to perform any optimization on the generated code.
+Within the scope of !Html! module, the types !String! and !HTML! are
+synonymous, however the type !Html! will be opaque for any
+external client using the type !HTML!. The !Client! module will not be
+able to directly manipulate a value of type !Html!---unless
+of course by using the specific functions exposed in the
+signature. Inhibiting manipulations and views of the data
+representation can be useful for avoiding leaking information in
+secure computation contexts. A naive abstraction, however,
+will incur a runtime cost. !Html! and !String!, need to be explicitly
+converted from one form into another using pattern matching.
+This is explicit conversion is redundant as they have the same
+representation in memory, but the compiler cannot use this
+information to perform any optimization on the generated code.
+Just like how GADTs helped us avoid explicit tagging and un-tagging
+with redundant pattern matches, can runtime semantics of the code
+be liberated from the extra overhead? The answer is a positive and we
+will see in detail in the next section.
 
-The idea of generative abstract types first appeared in work of \citet{leroy_applicative_1995} and \citet{milner_definition_1997} in context to ML modules systems. Generative abstract types in the context of Haskell are similar to \cite{montagu_modeling_2009}. While they have a hint of existential types, they have different semantics.
+The idea of generative abstract types first appeared in work of
+\citet{leroy_applicative_1995} and \citet{milner_definition_1997}
+in context to ML modules systems. Generative abstract types in the
+context of Haskell are similar to \cite{montagu_modeling_2009}.
+While they have a hint of existential types, they exhibit different
+semantics.
 
 \section{\SFC}\label{sec:sfc} %%%%%%%%%
 \subsection{History and Motivation}
