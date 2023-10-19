@@ -18,49 +18,40 @@
 \begin{document}
 
 \begin{abstract}
-This monograph is a juxtaposition of practical (typechecker) and
-meta-theoretical (formalization) aspects of a modern statically typed
-functional programming language. We first lay
-some philosophical underpinnings and the general scope of the research
-area in the \pref{sec:introduction}. We then survey some quintessential
-and advanced language features of a statically typed
-functional programming language in the \pref{sec:language-features}.
-Some of these features are specific to the Haskell programming language.
-This section serves as a \emph{programmers view} of the language.
-The \pref{sec:sfc} we formalize \SFC, which
-forms the basis of the core intermediate language
-of GHC, the de facto Haskell language compiler.
-In the \pref{sec:sfc-encoding-features}, we sketch how \SFC
-can efficiently encode a diverse set of language features.
-These features were previously either impossible or required non-trivial extensions
-to \SF making the overall system convoluted and complex to maintain.
-This section servers as the \emph{compiler writers} view of the
-language. The vanilla \SFC is insufficient to encode all the programming
-idioms which programmers would want to express. In the
-\pref{sec:fc-extensions}, to this effect, we study different
-extensions of \SFC: \SFR makes type equality finer grained while
-providing stronger type soundness guarantees, \SFP makes the kind system more
-expressive, and \SFK squashes the distinction between types and kinds
-making the type (and kind) level computation even more
-expressive. Each of these extensions are formalized and backed by a formal
-argument for its correctness. Finally, in the \pref{sec:related-work} we point out some important related
-work not covered in this monograph, give some directions to future
-work in the \pref{sec:future-work}, and make some concluding remarks
-in the \pref{sec:conclusion}.
+  The effects of computing technology are ubiquitous in the current modern era.
+  Computers are increasingly being used to automate a wide variety of
+  tasks to assist in us in all of our day
+  to day activities---from transportation, communication, finance,
+  nuclear power plants to, but not limited to, entertainment and
+  art. To accomplish these tasks, computers run software, which in turn is written by
+  humans using programming languages. The ubiquitous nature of software
+  makes it mission critical; human lives and financial capital may
+  depend on its correct behavior. We need to ensure that we can
+  communicate with computers efficiently and
+  without ambiguities. Programming languages are the interface between humans and
+  computing machines. It is necessary to understand the principles of
+  programming language design and its implementation.
+  To this effect, this monograph is a juxtaposition of practical
+  (typechecker) and meta-theoretical (formalization) aspects of a
+  modern statically typed, declarative and functional style programming
+  language, while identifying and studying some
+  key features that gives machine verified guarantees about the
+  software by making it correct by construction.
 \end{abstract}
 
 \maketitle
 \section{Introduction}\label{sec:introduction}
 Constructive mathematics and computer programming are acts of doing
 the same thing. They both involve identifying and then exploiting the right
-abstractions to solve a problem. Mathematicians tackle it from top to
-bottom; by building the abstractions first and then enriching them
-to make them represent real world problems. Programmers on the other
-hand, turn this process on to its head; they first write a software
-program which solves a very specific task, and then by means of
-iterative code refactoring, build the right level of
-abstraction. The refactoring process also serves as a means to fix the incorrect program behaviors.
-This is a well established, named observation in the field of computer science: Curry-Howard or the
+abstractions to solve a problem. The difference is in the direction,
+mathematicians work from top to bottom; by building the abstractions
+first and then enriching them to make them represent real world
+problems. Programmers on the other hand, turn this process on to its
+head; they first write a software program which solves a very specific
+task, and then by means of iterative code refactoring, build the right
+level of abstraction. The refactoring process also serves as a means
+to fix the incorrect program behaviors. This is a well established,
+named observation in the field of computer science: Curry-Howard or the
 Brouwer–Heyting–Kolmogorov correspondence\cite{wadler_propositions_2015,han_deep_2023}
 and it forms the basis for the field of type theory\cite{barendregt_lambda_2013,hottbook_2013,nordstrom_programming_1990}.
 
@@ -91,7 +82,8 @@ This gate keeping is desirable; it aids the programmer,
 by guaranteeing that a class of program errors---such as runtime null
 pointer exceptions due to incorrect function arguments---can never
 occur. They can then concentrate on the other, more important aspects
-of the program. In the programmers mind ``If my program was type
+of the program, which cannot be verified by the typechecker.
+In the programmers mind ``If my program was type
 checked by the compiler, it will definitely run without
 surprises''. On the other hand, the typechecker needs to allow
 the \emph{good} programs---the ones that the programmer definitely
@@ -118,6 +110,36 @@ sharing for memory efficiency\cite{peyton_jones_trees_2017}. Once we
 identify the right abstractions to express these invariants in
 the structure of types, we will use type theory as a mathematical tool
 for a principled reasoning of its correctness.
+
+
+We will now survey some quintessential
+and advanced language features of a statically typed
+functional programming language in the \pref{sec:language-features}.
+Some of these features are specific to the Haskell programming language.
+This section serves as a \emph{programmers view} of the language.
+The \pref{sec:sfc} we formalize \SFC, which
+forms the basis of the core intermediate language
+of GHC, the de facto Haskell language compiler.
+In the \pref{sec:sfc-encoding-features}, we sketch how \SFC
+can efficiently encode a diverse set of language features.
+These features were previously either impossible or required non-trivial extensions
+to \SF making the overall system convoluted and complex to maintain.
+This section servers as the \emph{compiler writers} view of the
+language.
+
+The vanilla \SFC is insufficient to encode all the programming
+idioms which programmers would want to express. In the
+\pref{sec:fc-extensions}, to this effect, we study different
+extensions of \SFC: \SFR makes type equality finer grained while
+providing stronger type soundness guarantees, \SFP makes the kind system more
+expressive, and \SFK squashes the distinction between types and kinds
+making the type (and kind) level computation even more
+expressive. Each of these extensions are formalized and backed by a formal
+argument for its correctness. Finally, in the \pref{sec:related-work} we point out some important related
+work not covered in this monograph, give some directions to future
+work in the \pref{sec:future-work}, and make some concluding remarks
+in the \pref{sec:conclusion}.
+
 
 \section{Features of Typed Functional Programming Languages}\label{sec:language-features}%%%%%%%%%
 \subsection{Functions and Polymorphism}
@@ -192,7 +214,9 @@ an argument of a concrete type is passed as an argument to a
 polymorphic function. Parametric polymorphism also aids the language feature for defining and using
 higher order functions as functions can now be passed as arguments to other
 functions. For example, the typechecker will infer the type of the
-left hand side !id! in the definition of !hotm! as !(t -> t) -> (t -> t)!. ML\cite{milner_logic_1975,milner_theory_1978}
+left hand side !id! in the definition of !hotm! as !(t -> t) -> (t -> t)!.
+
+ML\cite{milner_logic_1975,milner_theory_1978}
 was the pioneer among the functional programming languages in
 introducing a declarative style implicit parametric polymorphism.
 Imperative languages also allow user defined
@@ -224,12 +248,12 @@ programmer uses the same symbol, the meanings of the two terms are
 distinct: !addI! adds two !Int!s and returns an !Int! while the !addF!
 adds two !Float!s and returns a !Float!. The low level compiler generated code
 for each of them would also differ as they would make a call to two
-different built-in subroutines. This scheme of name punning, which depends on the
+different built-in subroutines. This name punning technique, which is dependent on the
 type of arguments, or the context of where the function appears, is called as adhoc
 polymorphism\cite{strachey_fundamental_2000}. Implicit operator overloading is a popular
 mechanism to implement adhoc polymorphism. The compiler resolves the overloaded
 operator (!+!) to the actual operator (!int_plus! or !float_plus!)
-during one of the phases of typechecking.
+during the typechecking phase.
 
 \begin{figure}[ht]
 \centering
@@ -268,14 +292,14 @@ Haskell. In contrast to parametrically polymorphic functions like
 !id!, functions like !(+)! act only on some specific class of constrained or qualified
 types\cite{jones_qualified_1994}: the term !False + True! is meaningless, as it does not have a well
 defined semantics precisely because Booleans cannot be added
-together. To this effect, the addition function (!+!) has the type
+together. The addition function (!+!), thus, has the type
 !Num t => t -> t -> t!. This means that the function can only be used
 on those types !t! which satisfy the !Num t! constraint. This !Num t!
-constraint is declared by the programmer as a typeclass language
-feature. The instances of the typeclass specify when the typeclass
+constraint is declared by the programmer as a typeclass The instances
+of the typeclass specify when the typeclass
 constraint holds, and what is the intended behavior at that type. For
 example, the !Num! typeclass and its instances are shown in the
-\pref{fig:tc-num}. In this typeclass setting, the use of the function (!+!), say for
+\pref{fig:tc-num}. The use of the function (!+!), say for
 example in the definition of !addF!, the typechecker needs to justify
 its type correctness. This amounts to satisfying the constraint !Num Float!.
 which in turn can only be satisfied, if the typechecker can find a declaration of the
@@ -337,11 +361,19 @@ instance Con Word (Tree Char) where
 \end{figure}
 
 The use of !empty! in a polymorphic setting, however, leads to a type ambiguity during
-compilation. For example, in a term !single3 :: [Int] = insert 3 empty!, the typechecker infers
-the type of !empty! as !Con e [Int] => [Int]!. The type inferred by
-the typechecker is the right one however, we have a free type variable
-!e! in the constraint. We do not have enough information to determine what the
-concrete type of !e! should. There is no way to rule out an
+compilation. For example, in a term
+
+\begin{CenteredBox}
+\begin{code}
+single3 :: [Int] = insert 3 empty
+\end{code}
+\end{CenteredBox}
+
+the typechecker infers the type of !empty! as !Con e [Int] => [Int]!. The type inferred by
+the typechecker is the right one, but we have a free type variable
+!e! which appears only in the constraint. We do not have enough
+information to determine what the
+concrete type of !e! should be as is there no way to rule out the
 existence of an instance such as !Con Float [Int]!.
 This results in an ambiguity in compilation step; the compiler cannot
 resolve the typeclass constraint to a unique instance and hence cannot
@@ -361,13 +393,18 @@ single3 :: [Int] = insert (3 :: Int) (empty :: [Int])
 \end{code}
 \end{CenteredBox}
 
-However, this solution is unsatisfactory on various fronts: it relies
-on the fact that the programmer knows where to add the type
-annotations and has deep understanding of how the typechecker uses the
-type annotation information and worse, it is fragile, unless each
-sub-term is annotated, any changes to the typechecker
-algorithm may result in unpredictable type inference causing
-previously typecheck-able programs to now fail.
+The typechecker can now infer the type of the term unambiguously by
+instantiating !e! to !Int!. However, this solution is unsatisfactory
+on various fronts:
+\begin{itemize}
+\item it relies on the assumption that the programmer knows where to add the
+  type annotations by having a deep understanding of how the typechecker
+  uses the type annotation information, and;
+\item worse, it is fragile;
+  unless each sub-term is annotated, any changes to the typechecker
+  algorithm may result in unpredictable type inference causing
+  previously typecheck-able programs to now fail.
+\end{itemize}
 % The problem is that the typeclasses are relations making them too
 % general for this use case.
 
@@ -461,8 +498,21 @@ dependencies in a type function form.
 
 \subsection{User defined Datatypes}
 \subsubsection{Algebraic Datatypes}
-Aiding organization of related data together is an important feature of any programming language. The structures store information by encoding the domain elements. The transformations, or functions, on these structures then, models the program logic. Algebraic datatypes (ADT) are a primary way to define such new structures in a functional programming language. They are called algebraic because they can be viewed as composite datatypes of named sums of products. As an example, consider modeling a simple calculator application which performs addition operation on integers. The domain, in this case, are algebraic expressions can be encoded using an ADT in Haskell as follows:
+The other important aspect of any programming language, the first
+being transformations of data described in the previous section, is
+that of organizing related data in a logical fashion for the ease of
+access and update. The data structures store the information by
+encoding the domain elements via an appropriate representation in
+memory. The transformations, on these structures then,
+models the program logic. Algebraic datatypes (ADT) are a primary way
+to define such new structures in a functional programming language. They are called
+algebraic because they can be viewed as composite datatype of (named)
+sums of products. As an example, consider modeling a simple calculator
+application which performs addition operation on integers. The domain,
+in this case, are arithmetic expressions and can be represented using an
+ADT in Haskell as:
 
+%\begin{minipage}{1.0\linewidth}
 \begin{CenteredBox}
 \begin{code}
 data AlgExp where
@@ -470,8 +520,22 @@ data AlgExp where
    Plus :: (AlgExp, AlgExp) -> AlgExp
 \end{code}
 \end{CenteredBox}
-The !data! keyword defines a new user defined datatype with name !AlgExp!.
-The data constructor !Value! stores evaluated !Int! values, while !Plus! encodes the operation of adding the two expressions. Now, the function of the calculator---to compute expressions---is simulated by evaluating the encoded expression. This is performed by an !eval! function defined recursively as shown below:
+%\end{minipage}
+% \begin{minipage}{0.5\linewidth}
+% \begin{CenteredBox}
+% \begin{code}
+% data Value where
+%    IntVal :: Int -> AlgExp
+% \end{code}
+% \end{CenteredBox}
+% \end{minipage}
+
+The !data! keyword defines a new user defined datatype with name
+!AlgExp!. The data constructor !Value! stores evaluated !Int! values,
+while !Plus! encodes the operation of adding the two expressions. Now,
+the function of the calculator---to compute expressions---is simulated
+by evaluating the encoded expression. This is performed by an !eval!
+function defined recursively as shown below:
 
 \begin{CenteredBox}
 \begin{code}
@@ -481,63 +545,143 @@ eval (Plus (x, y)) = eval x + eval y
 \end{code}
 \end{CenteredBox}
 
-The declarative style of programming allows us to write the !eval! function on a case by case basis via pattern matching. There are only two ways in which we could have obtained a value of type !AlgExp!. The first case says that if we have a !Value i!, we can deduce that !i! is an !Int! and return it. In the second case, !Plus!, we first evaluate the expressions !x! and !y! recursively, and then return the addition of the two results. Another advantage of having a declarative style is that extending the calculator application, say to include operations such as multiplication and division operation, is straightforward. The code changes required would be to add the associated data constructors, !Mult! and !Div!, in the datatype declaration followed by extending the !eval! function with cases for !Mult!, which multiplies, and !Div! that divides.
+The declarative style of programming allows us to write the !eval!
+function on a case by case basis via pattern
+matching. There are exactly two ways in which we could have obtained a
+value of type !AlgExp! by virtue of this definition. The first case says
+that if we have a !Value i!, we can deduce that
+!i! is an !Int! and return it. In the second case, !Plus!, we first
+evaluate the expressions !x! and !y! recursively, and then return the
+addition of the two results. Another advantage of having a declarative
+style is that extending the calculator application, say to include
+operations such as multiplication and division operation, is
+straightforward. The code changes required would be to add the
+associated data constructors, !Mult! and !Div!, in the datatype
+declaration followed by extending the !eval! function with cases for
+!Mult!, which multiplies, and !Div! that divides.
 
-In an untyped programming language, a predicate is necessary to check that certain structural invariants hold: the constructor !Plus! should always have two sub expressions. In a typed setting the typechecker can reject programs with ill-structured data: the expression !Plus (Value 3)! is ill-typed. The declarative style of defining algebraic datatypes and pattern matching was introduced in Hope\cite{burstall_proving_1969, burstall_hope_1980} and has become an essential feature of all modern functional programming languages.
+It is important to notice that the type structure bolsters our confidence
+about the input-output behavior of the !eval! function. While writing
+the function, the programmer can safely assume that only a well-formed
+!AlgExp! data will be accepted as a function input, and the accepted
+return value will be an !Int!. Further, as opposed to an untyped
+programming language, a predicate function is necessary to check that certain
+structural invariants hold: the constructor !Plus! should always have
+two sub expressions. In a typed setting the typechecker will reject programs
+with ill-structured data: the expression !Plus (Value 3)! is
+ill-typed. This also helps in maintaining a separation of concern,
+where the parser's responsibility is only to parse and populate the
+AST data structure while the typecheckers responsibility is to ensure
+well-formedness of the data.
+
+The declarative style of defining algebraic datatypes and pattern matching was introduced in
+Hope\cite{burstall_proving_1969, burstall_hope_1980} and has become an
+essential feature of all modern typed functional programming languages.
 
 \subsubsection{Generalized Algebraic Datatypes}
-Consider extending the previously defined !AlgExp! to now be polymorphic over the base types, and also to include a predicate !IsZero!, which checks if the expression is equal to zero.
+Consider extending the previously defined !AlgExp! to now
+include a data constructor !IsZero!. The intention of the constructor is to
+check if the expression of type !AlgExp! is evaluated to zero.
 
 \begin{figure}[ht]
 \centering
-\begin{minipage}[ht]{0.6\linewidth}
+\begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
 \begin{code}
-data AlgExp a where
-  Value  :: a                    -> AlgExp a
-  Plus   :: AlgExp a -> AlgExp a -> AlgExp a
-  IsZero :: AlgExp Int           -> AlgExp a
+data AlgExp where
+  Value  :: Int              -> AlgExp
+  Plus   :: AlgExp -> AlgExp -> AlgExp
+  IsZero :: AlgExp           -> AlgExp
 \end{code}
+\end{CenteredBox}
 \end{minipage}%
-\begin{minipage}[ht]{0.4\linewidth}
+\begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
 \begin{code}
-eval :: AlgExp Int -> Int
+eval :: AlgExp -> Int
 eval (Value i) = i
 eval (Plus x y) = (eval x) + (eval y)
-eval (IsZero x) = (eval x) == 0 -- Type error!
+eval (IsZero x) = (eval x) == 0 -- type error!
 \end{code}
+\end{CenteredBox}
 \end{minipage}
 \caption{\texttt{AlgExp} datatype and \texttt{eval} function}
 \label{fig:algexp-eval}
 \end{figure}
-How should the !eval! function handle the !IsZero! case? The definition, !(eval x) == 0!, fails to type check as the !eval! function requires the return type of the expression to be an !Int! but it is of type !Bool!. Another possible solution is to change the return type of the the !eval! function to instead be !Either Int Bool!. which means that the evaluator either returns an !Int! or a !Bool!. While this would work as expected, it requires a complete rewrite of the !eval! function. The situation of maintaining this !eval! function would become even more cumbersome if later we wanted to add a facility to store and use user defined functions. Extending !AlgExp! with new constructs would mean nesting of !Either! datatype and then checking at each recursive call which value is returned.
 
-All we really wanted was a function that evaluates an expression compositionally. In full generality, the evaluation of the expression may not result in the same type. In our case, the !IsZero! evaluates an expression to a Boolean value, while the !Plus! operator evaluates to an Integer. Thus, the type signature of the !eval! function should abstract over the expression result type: !eval :: FORALL a. AlgExp a -> a!. The current data constructors of !AlgExp! all have a generic return type of !AlgExp a!. The problem would disappear if we were to constrain the return type of each of the data constructors. This constrained return type can be used as a tag to convince the typechecker that !eval! function is indeed type safe.
-\TODO{Do you need a type tag here?}
+How should the !eval! function handle the !IsZero! case? The naive
+definition, !(eval x) == 0!, fails to type check as the !eval!
+function requires the return type of the expression to be an !Int! but
+it is of type !Bool!. A possible solution is to change the return type
+of the the !eval! function to be !Either Int Bool!. This would mean
+that the evaluator either returns an !Int! or a !Bool!. While this would work as
+expected, it requires a complete rewrite of the !eval! function. The
+situation of maintaining this !eval! function would become even more
+cumbersome if later we wanted to add a new facility, say, to store and use user
+defined functions. Extending !AlgExp! with new constructs would mean
+nesting of !Either! datatype and then checking at each recursive
+call the value returned is the one that we expect.
+
+To take a step back and reflect on the situation: all we really
+expect from the !eval! function is to compositionally evaluate an
+expression, then why should the programmer be bothered to wrap the
+evaluated values of the !AlgExp! into a data type? This certainly
+looks like a code smell, and we should be able to find an appropriate
+abstraction to handle this wrapping and unwrapping automatically.
+It is important to note that, in full generality, the evaluation of the expression
+may not result in the same type. In our case, the !IsZero! evaluates
+an expression to a Boolean value, while the !Plus! operator evaluates
+to an Integer. Thus, the type signature of the !eval! function should
+abstract over the expression result type:
+!eval :: FORALL a. AlgExp a -> a!. The problem
+would resolve if we were to constrain the return type of each of the
+data constructors to agree to the type of the value expected after
+evaluating the value of type !AlgExp!. This constrained return type
+can be used as a tag to convince the typechecker that !eval! function
+is indeed type safe. The current formulation of data
+constructors of !AlgExp! needs to be extended with the type tag
+as shown below in the \pref{fig:galgexp-eval}.
+
+% \TODO{Do you need a type tag here? yes}
 \begin{figure}[ht]
 \centering
 \begin{minipage}[ht]{0.6\linewidth}
 \begin{code}
 data GAlgExp a where
-  Value  :: a                          -> GAlgExp a
+  Value  :: Int                        -> GAlgExp Int
   Plus   :: GAlgExp Int -> GAlgExp Int -> GAlgExp Int
   IsZero :: GAlgExp Int                -> GAlgExp Bool
 \end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
-eval :: FORALL a. GAlgExp a -> a
-eval (Value i) = i
-eval (Plus x y) = (eval x) + (eval y)
-eval (IsZero x) = (eval x) == 0 -- Okay!
+eval :: GAlgExp a -> a
+eval (Value i) = i                    --(1)
+eval (Plus x y) = (eval x) + (eval y) --(2)
+eval (IsZero x) = (eval x) == 0       --(3)
+                   -- type checks okay!
 \end{code}
 \end{minipage}%
 \caption{\texttt{GAlgExp} datatype and \texttt{eval} function}
 \label{fig:galgexp-eval}
 \end{figure}
 
-Now in each of the case branches, the type of the right hand side of a pattern match agrees with the type constraint introduced by the pattern match. !Plus x y! is of type !GAlgExp Int! and so is the right hand side of the expression in the case that evaluates the addition. Similarly, the in case branch of !IsZero x!, the type of which is !AlgExp Bool! has a type !Bool! which agrees with the type of its right hand side.
+In each of the case alternative branches, the type of the right hand side of a
+pattern match agrees with the type constraint introduced by the
+pattern. For example, in the alternative case branch labeled (2)
+in the \pref{fig:galgexp-eval}, the
+pattern !Plus x y! is of type !GAlgExp Int! and the type of the
+resultant on the right hand side of the equation is of type !Int!.
+Similarly, in the alternative branch labeled (3) with the pattern
+!IsZero x! is of type !AlgExp Bool! is on the left hand of the
+equation, has a right hand side of the equation
+of type !Bool!, which agrees with the type of its right hand side.
+This automatic type tagging and un-tagging displays the real power
+of GADTs, which parameterized algebraic data types inherently lacks.
 
-The type constraints which arise due to pattern matching GADTs can further help in identifying dead code\cite{xi_dead_1998,graf_lower_2020}. For example, consider the function !isZero! shown below:
+The type constraints that arise due to pattern matching GADTs can
+further help in identifying dead code\cite{xi_dead_1998,graf_lower_2020}.
+For example, consider the function !isZero! shown below:
 
 \begin{minipage}[ht]{0.5\linewidth}
 \begin{CenteredBox}
@@ -549,32 +693,59 @@ isZero (Plus x y) = isZero x && isZero y
 \end{CenteredBox}
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
 \begin{code}
 isZero :: AlgExp Int -> Bool
 isZero (Value i) = i == 0
 isZero (Plus x y) = isZero x && isZero y
 isZero (IsZero x) = error "impossible"
 \end{code}
+\end{CenteredBox}
 \end{minipage}
 
-The typechecker has enough information to identify that the case !IsZero x! is impossible as it has a type !GAlgExp Bool! while the function only expects an argument of type !GAlgExp Int!. If we were to define the same function for !AlgExp Int!, the function would have to include a bogus case for !IsZero x!.
+The typechecker has enough information to identify that the case
+!IsZero x! is impossible as it has a type !GAlgExp Bool! while the
+function only expects an argument of type !GAlgExp Int!. If we were to
+define the same function for !AlgExp Int!, the function
+would have to include a bogus case for !IsZero x!.
 
-\begin{minipage}[ht]{0.5\linewidth}
+\begin{minipage}[ht]{0.6\linewidth}
+\begin{CenteredBox}
 \begin{code}
 data GAlgExp a where
   ...
   Equals :: GAlgExp a -> GAlgExp a -> GAlgExp Bool
 \end{code}
+\end{CenteredBox}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
+\begin{CenteredBox}
 \begin{code}
 eval :: GAlgExp a -> a
 ...
-eval (Equals x y) = (eval x) == (eval y) -- Type error!
+eval (Equals x y) = (eval x) == (eval y)
+                           -- Type error!
 \end{code}
+\end{CenteredBox}
 \end{minipage}
 
-Consider a generalization of !IsZero x! namely, !Equals x y! as shown in the above code block. The intention of !Equals x y! to encode comparing the arguments !x! and !y! and decide if they are equal. The !eval! function case that evaluates !Equals x y! fails to type check. The problem is not that the return type does not match, it is indeed !Bool!, but there is no reason to believe that !eval x! and !eval y! can be compared using the !(==)! operator. The only information we can infer from the pattern match is that the type of !eval x! and !eval y! are of some generic type variable !a!. Such types are called existential as they not appear in the return type. We need to somehow constrain the types of the arguments to !Equal! to only those that can be compared. Fortunately, Haskell already supports such a mechanism via typeclasses. By constraining the type variable to only which satisfy the !Eq! typeclass, we are able to convinced the typechecker that the term !(eval x) == (eval y)! is well typed.
+Consider a generalization of !IsZero x! namely, !Equals x y! as shown
+in the above code block. The intention of !Equals x y! to
+encode comparing the arguments !x! and !y! and decide if they are
+equal. The !eval! function case that evaluates !Equals x y! fails
+to type check. The problem is not that the return type does not match,
+it is indeed !Bool!, but there is no reason to believe that
+!eval x! and !eval y! can be compared using the !(==)! operator. The
+only information we can infer from the pattern match is that
+the type of !eval x! and !eval y! are of some generic type variable
+!a!. Such types are called existential as they not appear in
+the return type. We need to somehow constrain the types of the
+arguments to !Equal! to only those that can be compared.
+Fortunately, Haskell already supports such a mechanism via
+typeclasses. By constraining the type variable to only which satisfy
+the !Eq! typeclass, we are able to convinced the typechecker that the
+term !(eval x) == (eval y)! is well typed.
+
 
 \begin{minipage}[ht]{0.5\linewidth}
 \begin{code}
@@ -592,13 +763,29 @@ eval (Equals x y) = (eval x) == (eval y) -- Okay!
 \end{code}
 \end{minipage}
 
-GADTs generalize the notion of algebraic datatypes in two distinct ways:
+To summarize GADTs generalize the notion of algebraic datatypes in two
+distinct ways by uniformly supporting:
 \begin{enumerate}
-\item Phantom or tagged types, where the return type of the data constructor is no longer a generic type variable and it is refined to be a fixed type;
-\item existential types, where it is possible for the type variables that appear in the types of the arguments to the data constructors to not appear in the return type.
+\item phantom or tagged types, where the return type of the data
+  constructor is no longer a generic type variable and it is refined
+  to be a fixed type;
+\item existential types, where it is possible for the type variables
+  that appear in the types of the arguments to the data
+  constructors to not appear in the return type.
 \end{enumerate}
 
-While there is a rich literature of GADTs (inductive type families) for dependently typed languages\cite{dybjer_inductive_1991, dybjer_inductive_1994}, the idea of GADTs for non-dependently typed languages appeared under different names such as indexed types\cite{zenger_indexed_1997}, first class phantom types\cite{cheney_first-class_2003}, guarded recursive datatypes\cite{xi_guarded_2003}, equality qualified types\cite{sheard_meta-programming_2008}. GHC/Haskell was the only language compiler that supported GADTs\cite{peyton_jones_wobbly_2004} until recently OCaml 4.0\cite{garrigue_gadt_2011}, Scala 3\cite{TODO}, and other languages are playing catch up.
+While there is a rich literature of GADTs (inductive type families)
+for dependently typed languages\cite{dybjer_inductive_1991,
+  dybjer_inductive_1994}, the idea of GADTs for non-dependently typed
+languages appeared under different names such as indexed
+types\cite{zenger_indexed_1997}, first class phantom
+types\cite{cheney_first-class_2003}, guarded recursive
+datatypes\cite{xi_guarded_2003}, equality qualified
+types\cite{sheard_meta-programming_2008}. GHC/Haskell was the only
+language compiler that supported GADTs\cite{peyton_jones_wobbly_2004}
+until recently OCaml 4.0\cite{garrigue_gadt_2011}, Scala 3\cite{TODO},
+and other languages play catch up.
+
 
 \subsubsection{Generative Abstract Types}\label{subsubsec:gen-abs-types}
 Generative types provides a mechanism for the programmer to confine the visibility of the representation details of a type exclusively within a module. External to the module the client program cannot know how the type is represented or in other words, representation of the generative types is opaque to the client module. In Haskell generative types are defined by hiding the type declarations in the signatures. Consider an HTML module defined in Haskell as shown in \pref{fig:html-generative-type}.
