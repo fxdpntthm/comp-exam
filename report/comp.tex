@@ -770,19 +770,24 @@ term !(eval x) == (eval y)! is well typed.
 
 
 \begin{minipage}[ht]{0.5\linewidth}
+\begin{CenteredBox}
 \begin{code}
 data GAlgExp a where
 ...
    Equals :: Eq a => GAlgExp a -> GAlgExp a
                   -> GAlgExp Bool
 \end{code}
+\end{CenteredBox}
 \end{minipage}%
 \begin{minipage}[ht]{0.4\linewidth}
+\begin{CenteredBox}
 \begin{code}
 eval :: GAlgExp a -> ac
 ...
-eval (Equals x y) = (eval x) == (eval y) -- Okay!
+eval (Equals x y) = (eval x) == (eval y)
+                              -- Okay!
 \end{code}
+\end{CenteredBox}
 \end{minipage}
 
 To summarize GADTs generalize the notion of algebraic datatypes in two
@@ -805,8 +810,8 @@ types\cite{cheney_first-class_2003}, guarded recursive
 datatypes\cite{xi_guarded_2003}, equality qualified
 types\cite{sheard_meta-programming_2008}. GHC/Haskell was the only
 language compiler that supported GADTs\cite{peyton_jones_wobbly_2004}
-until recently OCaml 4.0\cite{garrigue_gadt_2011}, Scala 3\cite{TODO},
-and other languages started follow Haskell's lead.
+until recently OCaml 4.0\cite{garrigue_gadt_2011}, Scala 3\cite{xu_implementing_2021},
+and other languages started following the lead of Haskell.
 
 
 \subsubsection{Generative Abstract Types}\label{subsubsec:gen-abs-types}
@@ -886,12 +891,69 @@ semantics.
 
 \section{\SFC}\label{sec:sfc} %%%%%%%%%
 \subsection{History and Motivation}
-The Glasgow Haskell Compiler (GHC)\cite{ghc_2020}, is a widely used Haskell\cite{haskell_2010} compiler. The compiler works in three major passes. First, the \emph{parsing phase} that parses the programmer writing text code, also known as the surface syntax, in an appropriate abstract syntax tree representation, the second pass is the \emph{type checking phase} that checks for type correctness the surface syntax, and finally the \emph{compilation phase} that compiles the program into a core language. Haskell is a statically typed functional programming language which has practical and theoretical implications; in practice, only those terms whose types can be verified by the typechecker can be compiled to the core language, and in theory, terms without types have no meanings. This section of the report concentrates on the design and meta-theory of the core language of the GHC compiler.
+The Glasgow Haskell Compiler (GHC)\cite{ghc_2020}, is a widely used
+Haskell language\cite{haskell_2010} compiler. The compiler works in
+three major passes. First, the \emph{parsing phase} ingests the
+programmer writing text code, also known as
+the surface syntax, in an appropriate abstract syntax tree
+representation, the second pass is the \emph{typechecking phase} that
+checks for type correctness the surface syntax, and finally the
+\emph{desugaring phase} that compiles the program into a core
+language. Colloquially, these three major phases--parsing,
+typechecking, desugaring---are lumped together and called
+the front end of the compiler. Haskell is a statically typed,
+which has practical and theoretical implications;
+in practice, only those terms whose types can be verified by the
+typechecker can be compiled to the core language, and in theory,
+terms without types have no meanings, that is they are intrinsic.
+This following section concentrates on the design and meta-theory of
+the core language of the GHC compiler.
 
-Implicit parametric\cite{reynolds_user-defined_1978}, and adhoc polymorphism\cite{hall_type_1994} have a rich literature for expressing them in \SF. In this scheme the function types in the elaborated language have explicit type arguments. This means that at the function use site explicit types need to be applied before their value arguments can be passed. For example, the function !id! in \SF will have a type !id :: FORALL a. a -> a! while for the term, !id 3!, where !id! is used, it will be elaborated to !id Int 3!. The typeclasses are converted into a record type called dictionaries. The records contain the methods associated with the type class. The instances of typeclasses are values of this type and contains a reference to the instance of the methods. Elaborating algebraic datatypes in \SF have an even richer literature; they can be expressed by using various encodings schemes such as Church\cite{jansen_efficient_2005,jansen_programming_2013}, Mogensen-Scott\cite{mogensen_efficient_1992}, or Mendler-Parigot encodings\cite{parigot_representation_1990, stump_efficiency_2016}. The data constructors introduced by user defined datatypes are simply constants with the appropriate argument and type specified by the declaration.
-% \AI{How should one encode GADTs? Give a simple example by the way of elaboration in System F}
+Implicit parametric\cite{reynolds_user-defined_1978}, and adhoc
+polymorphism\cite{hall_type_1994} have a rich literature for
+expressing them in \SF. In this scheme the function types in the
+elaborated language have explicit type arguments. This means that at
+the function use site explicit types need to be applied before their
+value arguments can be passed. For example, the function !id! in \SF
+will have a type !id : FORALL a. a -> a!, while for the term, !id 3!,
+it will be elaborated to !id Int 3!. The typeclasses are converted
+into a record type called dictionaries that contain the
+methods associated with the type class. The instances of typeclasses
+are values of this type and contains a reference to the instance of
+the methods. Elaborating algebraic datatypes in \SF have an even
+richer literature; they can be expressed by using various encodings
+schemes such as Church\cite{jansen_efficient_2005,jansen_programming_2013},
+Mogensen-Scott\cite{mogensen_efficient_1992},
+or Mendler-Parigot encodings\cite{parigot_representation_1990,
+  stump_efficiency_2016}. The data constructors introduced by user
+defined datatypes are simply constants with the appropriate argument
+and type specified by the declaration.
 
-Consider a datatype declaration of AlgExp a from before. The data constructor !Value! has the type !FORALL a. a -> AlgExp a! in the core language, and programmer written term !Value 3! will be elaborated to !Value Int 3!. Notice how the types need to be explicitly applied in the core language. The elaboration procedure needs to find unique values to fill into the placeholder arguments for core level functions. Typechecking expressions that contain value constructors of user defined algebraic datatypes is as straightforward as type checking simple term applications as the type of each value constructor can be inferred from the typing context. Now, consider a GADT data constructor !Equals! with the type !Eq a => GAlgExp a -> GAlgExp a -> GAlgExp Bool!. The quantified type variable !a! is existential and needs a special treatment in the typechecker. For example, A function declaration such as !f (Equals x y) = x! needs to be disallowed to avoid the existential type variable to escape its scope. Previous work relied on cunning type inference machinery to establish that such invariants. Further, consider the match statement !eval (IsZero x) = x == x!. To convince the typechecker that this is a type correct expression, a type refinement machinery is necessary. The type of !IsZero x! is !GAlgExp Bool!, and hence it is okay to allow the right hand side of the expression to be of type !Bool!. All previous works\cite{cheney_first-class_2003, xi_guarded_2003, peyton_jones_simple_2006} used ambient equality constraints as extensions to \SF to support GADTs.
+Consider a datatype declaration of !AlgExp! from before. The data
+constructor !Value! has the type !FORALL a. a -> AlgExp a! in the core
+language, and programmer written term !Value 3! will be elaborated to
+!Value Int 3!. Notice how the types need to be explicitly applied in
+the core language. The elaboration procedure needs to find unique
+values to fill into the placeholder arguments for core level
+functions. Typechecking expressions that contain value constructors of
+user defined algebraic datatypes is as straightforward as type
+checking simple term applications as the type of each value
+constructor can be inferred from the typing context.
+Now, consider a GADT data constructor !Equals! with the type
+!Eq a => GAlgExp a -> GAlgExp a -> GAlgExp Bool!. The
+quantified type variable !a! is existential and needs a special
+treatment in the typechecker. For example, A function declaration such
+as !f (Equals x y) = x! needs to be disallowed to avoid the
+existential type variable to escape its scope. Previous work relied on
+cunning type inference machinery to establish that such
+invariants. Further, consider the match statement
+!eval (IsZero x) = x == x!. To convince the typechecker that this is a
+type correct expression, a type refinement machinery is necessary. The
+type of !IsZero x! is !GAlgExp Bool!, and hence it is okay to allow
+the right hand side of the expression to be of type !Bool!. All
+previous works\cite{cheney_first-class_2003, xi_guarded_2003,
+  peyton_jones_simple_2006} used ambient equality constraints as
+extensions to \SF to support GADTs.
 
 Further, consider an associated datatype type !Elem [Int]! from the previous \pref{fig:assoc-types}. To implement such types, there is a need to have a special class of associated types. These are to be used as stand-ins for concrete types. However, due to polymorphism, it is not always possible to erase these types while elaborating it into the core language. Things become more complicated when the associated types appear as arguments to datatypes and the compiler needs to perform extensive rewrite during elaboration into the core language.\TODO{Make the argument about why associated types are a pain more verbose.}
 
