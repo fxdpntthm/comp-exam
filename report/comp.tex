@@ -18,24 +18,19 @@
 \begin{document}
 
 \begin{abstract}
-  The effects of computing technology are ubiquitous in the modern day
-  era. Computers are increasingly being used to assist us in all of our
-  day to day activities by automating a wide variety of tasks in
-  different areas from transportation, communication, finance and
-  energy, to education, entertainment and art. To accomplish these tasks, computers run
-  software. The omnipresent nature of software
-  makes it mission critical; human lives and financial capital may
-  depend on it. This warrants efficient and unambiguous communication
-  with computers. Programming languages are the interface between humans and
-  computers and thus, it is necessary to understand the principles of
-  programming language design and its implementation.
-  This monograph is a juxtaposition of practical
-  (typechecker) and meta-theoretical (formalization) aspects of a
+  This monograph studies the practical (typechecker) and
+  meta-theoretical (formalization) aspects of a
   modern, statically typed, declarative, and functional style
-  programming language. It identifies and studies some
-  key language features, which when used to write programs provides
-  machine verified guarantees by following the footsteps of ``correct by
-  construction'' philosophy.
+  programming language. Understanding the principles
+  of programming language design and its implementation is crucial as they
+  are the primary interface between humans and computers to encode
+  unambiguous yet expressive instructions via software programs.
+  The features of a typed functional programming language strive to
+  provide machine verified guarantees about the programs by
+  following the  ``correct by construction'' philosophy.
+  We focus how a single construct, explicit type
+  equality, unifies seemingly different important language
+  features into a simple typed intermediate language.
 \end{abstract}
 
 \maketitle
@@ -50,7 +45,7 @@ head; they first write a software program which solves a very specific
 task, and then by means of iterative code refactoring, build the right
 level of abstraction. The refactoring process also serves as a means
 to fix the incorrect program behaviors. This is a well established,
-named observation in the field of computer science: Curry-Howard or the
+observation in the field of computer science: Curry-Howard or the
 Brouwer–Heyting–Kolmogorov correspondence\cite{wadler_propositions_2015,han_deep_2023}
 and it forms the basis for the field of type
 theory\cite{barendregt_lambda_2013,hottbook_2013,nordstrom_programming_1990}.
