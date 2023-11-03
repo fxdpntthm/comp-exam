@@ -18,78 +18,86 @@
 \begin{document}
 
 \begin{abstract}
-  This monograph studies the practical (typechecker) and
-  meta-theoretical (formalization) aspects of a
+  Understanding the programming language's design
+  and implementation principles is crucial as
+  they are a primary interface between humans
+  and computers. Programming languages need to encode unambiguous yet
+  expressive instructions for the computers via software programs. The
+  features of a typed programming language strive to provide machine
+  verified guarantees about the programs by following the  ``correct
+  by construction'' philosophy. This monograph studies the practical
+  (typechecker) and meta-theoretical (formalization) aspects of a
   modern, statically typed, declarative, and functional style
-  programming language. Understanding the principles
-  of programming language design and its implementation is crucial as they
-  are the primary interface between humans and computers to encode
-  unambiguous yet expressive instructions via software programs.
-  The features of a typed functional programming language strive to
-  provide machine verified guarantees about the programs by
-  following the  ``correct by construction'' philosophy.
-  We focus how a single construct, explicit type
-  equality, unifies seemingly different important language
-  features into a simple typed intermediate language.
+  programming language. We first focus on how a single construct, explicit type
+  equality, gives a unified account of seemingly different
+  language features resulting in an easy to reason
+  and implement typed intermediate language. We then survey some
+  important extensions of the system and identify some important open
+  research problems.
 \end{abstract}
 
 \maketitle
 \section{Introduction}\label{sec:introduction}
 Constructive mathematics and computer programming are acts of
 the same thing: they both involve identifying and then exploiting the right
-abstractions to solve a problem. The difference is in the direction,
-mathematicians work from top to bottom; by building the abstractions
+abstractions to solve a problem. The difference is in the direction;
+mathematicians work from top to bottom, by building the abstractions
 first and then enriching them to make them represent real world
-problems. On the other hand, programmers, turn the process on to its
-head; they first write a software program which solves a very specific
+problems. On the other hand, programmers, turn the process on its
+head, they first write a software program, which solves a very specific
 task, and then by means of iterative code refactoring, build the right
 level of abstraction. The refactoring process also serves as a means
 to fix the incorrect program behaviors. This is a well established,
-observation in the field of computer science: Curry-Howard or the
+observation in computer science: Curry-Howard or the
 Brouwer–Heyting–Kolmogorov correspondence\cite{wadler_propositions_2015,han_deep_2023}
 and it forms the basis for the field of type
 theory\cite{barendregt_lambda_2013,hottbook_2013,nordstrom_programming_1990}.
 
-A compiler is a program that transforms a higher level language, suitable for
-humans, to a lower level language, suitable for computers. It may
-perform this transformation via a multi-step compilation
-process\cite{essentials_siek_2023}. Every useful software program
-evolves over time by means of extensions, and a compiler is no
-exception to this rule. A new language feature is reflected as
-a compiler extension. One way of realizing this extension is by
-transforming the new language feature by encoding them
-into the existing high level language features. However, some exotic
-language features may not be able to leverage this transformation
-scheme. This necessitates enrichment to the intermediate language to
-support the new language feature. Extensions to the intermediate
-language, however, do not scale. Multiple extensions to the
-intermediate language causes a feature clutter, making it difficult to
-maintain. The intermediate language requires a reformulation,
-which amounts to finding the right abstraction that can encode the different high
-level language features into a simplified intermediate language.
+Every useful software program evolves over time by means of
+extensions, and the compiler software is no exception to
+this rule. A new language feature is reflected as
+a compiler extension in two ways; first,
+the abstract syntax tree (AST)---the data structure that represents
+the surface syntax of the language---is extended to represent the new
+feature, and second, the operations performed on the AST are extended
+to cater for this new feature. These operations transform the AST into
+an intermediate language. The intermediate language is internal to the
+compiler\cite{siek_compilation_2023}, and it is a more suitable
+representation of the surface syntax AST to perform code analysis and
+optimizations\cite{aho_compilers_1986}.
+If there is a way of encoding the new language feature by using the
+existing language features the second step, of operation extension, can be
+skipped. However, some exotic language features cannot be encoded
+into existing language features. In such cases, the compiler writer, needs
+to enrich the intermediate language to support the
+new language feature. Extensions to the intermediate language,
+however, do not scale. Multiple extensions to the intermediate
+language causes a feature clutter, making it difficult to
+maintain and reason about its correctness. The intermediate language
+requires a reformulation, which amounts to finding the right
+abstraction that can encode the different high level language features
+into a simplified intermediate language.
 
-In a compiler for statically typed programming languages, the type
-checking component, or simply, the typechecker, is the gate
-keeper. Its purpose is to ensure that it does not let \emph{bad}
-programs pass, and flag the appropriate offending parts of programs to
-the programmer. This gate keeping is desirable; it aids the programmer,
-by guaranteeing that a class of program errors---such as runtime null
-pointer exceptions due to incorrect function arguments---can never
-occur. They can then concentrate on the other, more important aspects
-of the program, which cannot be verified by the typechecker.
-From the programmers point of view, ``If the program was typechecked
-by the compiler, it will definitely run without bad surprises''.
-On the other hand, the typechecker needs to allow
-the \emph{good} programs---the ones that the programmer definitely
-expects to work in all cases---to pass without an intense struggle.
-The safety net casted by the typechecker should not become the reason
-of its undesirability. For this reason, the structure of the types need to be
-sufficiently enriched to allow complex programmer ideas be expressible,
-while rejecting definitive runtime unsafe programs.
-As an example, consider writing an abstract syntax tree (AST) for representing the
-language for a compiler. The compiler writer may want to capture certain semantic
-invariants on the data structure representing the AST. This avoids the
-need for having predicate functions to explicitly check the invariants
+In a compiler for statically typed programming languages, the
+typechecker, is the gate keeper. Its purpose is to ensure that it does
+not let \emph{bad} programs pass, and flag the appropriate offending
+parts of programs to the programmer. This gate keeping is desirable;
+it aids the programmer, by guaranteeing that a class of program
+errors---such as runtime null pointer exceptions due to incorrect
+function arguments---can never occur. They can then concentrate on the
+other, more important aspects of the program, which cannot be verified
+by the typechecker. On the other hand, the typechecker needs to allow
+the \emph{good} programs---the ones that are definitely bug free---
+to pass without an intense struggle. The safety net casted by the
+typechecker should not become the reason  of its undesirability, we
+want the programmers to be able to write and run useful programs. For
+this reason, the structure of types needs to be sufficiently enriched
+to express complex programmer idea, while rejecting definitive runtime
+unsafe programs. As an example, consider writing an abstract syntax
+tree (AST) for representing the language for a compiler. The compiler
+writer may want to capture certain semantic invariants on the data
+structure representing the AST. This avoids the need for having
+predicate functions to explicitly check the invariants
 as the data structure is correct by construction. For example, in the
 AST representing the control structures, such as !if! or !while!
 loop, the sub-term representing the conditional needs to have a
