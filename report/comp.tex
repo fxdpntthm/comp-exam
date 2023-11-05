@@ -28,11 +28,11 @@
   by construction'' philosophy. This monograph studies the practical
   (typechecker) and meta-theoretical (formalization) aspects of a
   modern, statically typed, declarative, and functional style
-  programming language. We first focus on how a single construct, explicit type
-  equality, gives a unified account of seemingly different
+  programming language. We first focus on how one single construct,
+  explicit type equality, gives a unified account of seemingly different
   language features resulting in an easy to reason
-  and implement typed intermediate language. We then survey some
-  important extensions of the system and identify some important open
+  and implement typed intermediate language. We then survey
+  important extensions of the system and identify notable open
   research problems.
 \end{abstract}
 
@@ -87,62 +87,57 @@ errors---such as runtime null pointer exceptions due to incorrect
 function arguments---can never occur. They can then concentrate on the
 other, more important aspects of the program, which cannot be verified
 by the typechecker. On the other hand, the typechecker needs to allow
-the \emph{good} programs---the ones that are definitely bug free---
-to pass without an intense struggle. The safety net casted by the
-typechecker should not become the reason  of its undesirability, we
-want the programmers to be able to write and run useful programs. For
-this reason, the structure of types needs to be sufficiently enriched
-to express complex programmer idea, while rejecting definitive runtime
-unsafe programs. As an example, consider writing an abstract syntax
-tree (AST) for representing the language for a compiler. The compiler
-writer may want to capture certain semantic invariants on the data
-structure representing the AST. This avoids the need for having
-predicate functions to explicitly check the invariants
-as the data structure is correct by construction. For example, in the
-AST representing the control structures, such as !if! or !while!
-loop, the sub-term representing the conditional needs to have a
-!Boolean! type: it better evaluate to either !True! or
-!False! and nothing else. Or consider even more complex invariants, where in a
-multi-stage compiler pipeline, the AST may be gradually enriched with
-more information at every pass by the typechecker. The type structure
-would ensure that if the
-information is enriched in the third pass, trying to
-access that information in the first pass will result in a
-type error. All this while also ensuring maximum data structure
-sharing for memory efficiency\cite{peyton_jones_trees_2017}. Once we
-identify the right abstractions to express these invariants in
-the structure of types, we will use type theory as a mathematical tool
-for a principled reasoning of its correctness.
+the \emph{good} programs---the ones that are definitely bug free---to
+pass without the programmer's intense struggle. For
+this reason, the structure of types needs to be sufficiently rich
+to express programmer's complex ideas, while rejecting definitive incorrect
+programs. The examples below illustrate a few idioms and
+their associated semantic invariants which the programmers may like to
+capture within the type structure:
+\begin{itemize}
+\item Consider an AST where the compiler writer wants to enforce the
+  sub-term to always be of a fixed typed. This avoids the need
+  explicitly checking them in the code.
+  More concretely, the AST representing the control structures, such
+  as !if! or !while! loop, is well formed only when the sub-term
+  representing the condition has a !Boolean! type.
+\item In a multi-stage compiler, the AST is gradually enriched with
+  more information after each analysis stage. The type structure can
+  enforce that the information is accessed only after it is populated,
+  otherwise, the typechecker raises a type error\cite{peyton_jones_trees_2017}.
+\end{itemize}
 
+The thesis of the monograph is: \emph{explicit type equality is the
+right level of abstraction to encode a wide variety
+of semantic invariants}, such as the one's previously described, without
+compromising on either safety or efficiency. Further, we use type theory as a
+mathematical tool to formalize this thesis. The monograph is arranged in four parts:
+\begin{enumerate}
+\item[Part I] serves as a reminder of the essential features
+  of a statically typed functional programming language in the
+  \pref{sec:language-features}. This gives the \emph{programmers'
+    view} of the language motivated using real world examples.
+\item[Part II] formalizes \SFC in the \pref{sec:sfc}. It is in essence
+  \SF extended with typed equality. This gives the \emph{compiler
+    writers' view} of the language. We then show how the language
+  features described in Part I can be trivially encoded within this
+  system in the \pref{sec:sfc-encoding-features}.
+\item[Part III] describes 3 important extensions of vanilla \SFC in
+  the \pref{sec:fc-extensions}, as
+  it is insufficient to encode all the language features.
+  \SFR makes type equality finer grained while
+  providing stronger type soundness guarantees, \SFP makes the kind system more
+  expressive, and \SFK squashes the distinction between types and kinds
+  making the type (and kind) level computation even more
+  expressive. Each of these extensions are formalized along with a
+  sketch of a formal argument of its correctness.
+\item[Part IV] describes notable open problems in the \pref{sec:future-work}.
+  To be comprehensive, it is followed by related work in the
+  \pref{sec:related-work}, and finally the conclusion is in the
+  \pref{sec:conclusion}.
+\end{enumerate}
 
-To outline this monograph, we survey some quintessential
-and advanced features of a statically typed
-functional programming language in the \pref{sec:language-features}.
-Some of these features are specific to the Haskell programming language.
-This section serves as a \emph{programmers view} of the language.
-In the \pref{sec:sfc} we formalize \SFC, which
-forms the basis of the core intermediate language
-of GHC, the de facto Haskell language compiler.
-In the \pref{sec:sfc-encoding-features}, we sketch how \SFC
-can efficiently encode a diverse set of language features.
-These features were previously either impossible or required non-trivial extensions
-to \SF making the overall system convoluted and complex to maintain.
-This section servers as the \emph{compiler writers} view of the
-language.
-
-The vanilla \SFC is insufficient to encode all the programming
-idioms which programmers want to express. In the
-\pref{sec:fc-extensions}, we study different
-extensions of \SFC: \SFR makes type equality finer grained while
-providing stronger type soundness guarantees, \SFP makes the kind system more
-expressive, and \SFK squashes the distinction between types and kinds
-making the type (and kind) level computation even more
-expressive. Each of these extensions are formalized along with a
-sketch of a formal argument of its correctness. Finally, in the
-\pref{sec:related-work}, we point out related work not covered in this
-monograph, give some directions to future work in the
-\pref{sec:future-work}, and make some concluding remarks
-in the \pref{sec:conclusion}.
+PART I
 
 \section{Features of Typed Functional Programming Languages}\label{sec:language-features}%%%%%%%%%
 \subsection{Functions and Polymorphism}
