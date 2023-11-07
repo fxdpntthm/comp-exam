@@ -46,6 +46,9 @@
 
 \setcopyright{none}
 
+\newcommand\Part[1]{\newpage\begin{flushright}{\LARGE\textbf{\textsc{Part #1}}}\end{flushright}%
+                                 \par\noindent\rule{\textwidth}{0.4pt}}
+
 %% Names for systems
 \newcommand\SF{System \textbf{F}\xspace}
 \newcommand\SFC{System \textbf{F\texorpdfstring{$_C$}{\_c}}\xspace} % C for corecions
@@ -56,6 +59,7 @@
 \newcommand\SFw{System \textbf{F\texorpdfstring{$_\omega$}{\_w}}\xspace} % F \omega
 \newcommand\HMX{\textbf{HM(X)}\xspace} % HM(X)
 
+\newcommand*\bang{!}
 
 % Math theorems
 % \declaretheorem[
@@ -88,6 +92,7 @@
 \newrefformat{def}{Definition~\ref{#1}}
 \newrefformat{prop}{Proposition~\ref{#1}}
 \newrefformat{eqn}{Equation~\ref{#1}}
+\newrefformat{part}{Part~\ref{#1}}
 
 % Names & utils for Typing rules
 \newcommand\ib[1]{\infbox{#1}}
