@@ -920,7 +920,9 @@ motivate why \SF with extensions was insufficient to encode the
 advanced language features
 
 Haskell follows the suit of Hindley-Milner type
-system\cite{milner_theory_1978}. Implicit
+system\cite{milner_theory_1978} to achieve decidable type inference so
+that the programmers are not burdened with writing explicit type
+annotations through out the code. Implicit
 parametric\cite{reynolds_user-defined_1978}, and adhoc
 polymorphism\cite{hall_type_1994} in Haskell can be easily
 translated into \SF, owing to the fact that Hindley-Milner type
@@ -936,48 +938,56 @@ associated with the type class. The instances of typeclasses are
 values of this type and contains a reference to the instance of the
 methods.
 
-Elaboration of algebraic datatypes in \SF have also been widely
-studied in literature; various encodings schemes such as
-Church\cite{jansen_efficient_2005,jansen_programming_2013},
+Elaboration of algebraic datatypes into \SF has also been widely
+studied in literature and various elaboration (or encoding) schemes
+such as Church\cite{jansen_efficient_2005,jansen_programming_2013},
 Mogensen-Scott\cite{mogensen_efficient_1992}, or Mendler-Parigot
-\cite{parigot_representation_1990, stump_efficiency_2016} can be used
-to elaborate user defined datatypes in \SF.
+\cite{parigot_representation_1990, stump_efficiency_2016} can be used.
 The data constructors introduced by user defined datatypes are treated as
-term constants with the appropriate argument and type specified by the
-declaration. For example, consider the datatype declaration of
-!AlgExp! from before. The data constructor !Value! has the type
-!FORALL a. a -> AlgExp a! in the core language, and programmer written
-term !Value 3! will be elaborated to !Value Int 3!. Notice how the
-types need to be explicitly applied in the core language. The
-elaboration procedure needs to find unique values to fill into the
-placeholder arguments for core level functions. Typechecking
-expressions that contain value constructors of user defined algebraic
-datatypes is as straightforward as type checking simple term
-applications as the type of each value constructor can be inferred
-from the typing context.
+term constants with its type and appropriate argument are specified in
+the declaration. Consider a pathological datatype declaration as shown
+below:
+
+\begin{CenteredBox}
+\begin{code}
+  data T a where MkT :: a -> T a
+\end{code}
+\end{CenteredBox}
+
+The data constructor !MkT! has type !FORALL a. a -> T a! in the
+core language. The programmer written term !MkT 42! for the type
+!T Int! will be elaborated to !MkT Int 42!. The example illustrates
+that types need to be explicitly applied in the core language and the
+elaboration procedure needs to find unique (type) values to fill into the
+placeholder arguments for core level functions. In the previous
+example, the type !Int! had to be inferred by the type checker so as
+to include it in the elaborated term. The uniqueness criteria for
+elaboration is important for the same type ambiguity reason that we saw
+in the previous section for multiparameter typeclasses and functional
+dependencies.
 
 Now, consider a GADT data constructor !Equals! with the type
 !Eq a => GAlgExp a -> GAlgExp a -> GAlgExp Bool!. The
 quantified type variable !a! is existential and needs a special
-treatment in the typechecker. For example, A function declaration such
-as !f (Equals x y) = x! needs to be disallowed to avoid the
+treatment in the typechecker. For example, a function declaration such
+as !f (Equals x y) = x! should disallowed to avoid the
 existential type variable to escape its scope. Previous work relied on
 cunning type inference machinery to establish that such
-invariants. Further, consider the match statement
+invariants are never violated. Further, consider the match statement
 !eval (IsZero x) = x == x!. To convince the typechecker that this is a
 type correct expression, a type refinement machinery is necessary. The
 type of !IsZero x! is !GAlgExp Bool!, and hence it is okay to allow
-the right hand side of the expression to be of type !Bool!. All
-previous works\cite{cheney_first-class_2003, xi_guarded_2003,
-  peyton_jones_simple_2006} used ambient equality constraints as
+the right hand side of the expression to be of type !Bool!. Previous
+work\cite{cheney_first-class_2003,xi_guarded_2003,peyton_jones_simple_2006}
+used ambient equality constraints during type checking phase as
 extensions to \SF to support GADTs.
 
-Consider an associated datatype type !Elem [Int]! from the
+Next, consider an associated datatype type !Elem [Int]! from the
 previous \pref{fig:assoc-types}. To implement such types, there is a
 need to have a special class of associated types. These are to be used
 as stand-ins for concrete types. This can be encoded
-using the extension to typeclass records while translating to \SF
-closely following the existing machinery. However, due to
+using the extension to typeclass records while translating to \SF,
+to closely following the existing machinery. However, due to
 polymorphism, it is not always possible to erase these types while
 elaborating it into the core language. For example,
 consider the case when the associated types appear as parameters to
@@ -1008,26 +1018,30 @@ newtype Fun = MkFun (Fun -> Fun)
 The intention of this declaration is to make the type !Fun!
 and !Fun -> Fun! be isomorphic. \SF is parametric which means
 there is no way to encode this in pure \SF: we cannot inspect the type
-and check for their equality.
+and check its equality without breaking the parametricity barrier.
 
-It is evident that with the addition of GADTs, generative
-types, and associated types using orthogonal extensions of pure \SF
-would be too cumbersome, if  not impossible to express. Further, the
-interaction of each of these seamy different features together would
-be painful for the compiler writer. \SFC\cite{sulzmann_system_2007}
-was thus designed as an alternative to having separate extensions for
-each language feature. The key insight is that each language feature is in a sense
-trying to encode some notion of type equality
+In summary, the co-existence of GADTs, generative abstract
+types, and associated types would be too cumbersome, if not impossible
+to express using orthogonal extensions of pure \SF. Further, the
+interaction of each of these seemingly different features together would
+be painful for the compiler writer to implement, and programming
+language theorists to argue about its correctness.
+
+\SFC\cite{sulzmann_system_2007}
+was designed as an alternative to having separate extensions for
+each language feature. The key insight is that each language feature
+is, in a sense, trying to encode some notion of type equality
 ($\tau\sim\sigma$). GADTs introduce type refinements, as seen in
-!eval! example, are type equality constraints. Instances of associated
-types introduce a type equality between the instantiated associated
-type and the concrete type (!Elem [Int] ~ Int!). The generative
-abstract type introduces an axiom, instantiations of which are type
-equalities between the defined type and its representation, for
-example for !Fun!, (!Fun ~ (Fun -> Fun)!). Thus, by introducing a
-single construct for type equality within the system, all the features
-described in \pref{sec:language-features} can be encoded
-in a fairly straightforward scheme.
+!eval! example, are type equality constraints exposed after a pattern
+is matched. Instances of associated types introduce a type equality
+between the instantiated associated type and the concrete type
+(!Elem [Int] ~ Int!). The generative abstract type introduces an axiom,
+instantiations of which are type equalities between the defined type
+and its representation. In the case of !newtype Fun! declaration:
+!Fun ~ (Fun -> Fun)!. By introducing a single construct for type equality
+within the system, all the features described in
+\pref{sec:language-features} can be encoded in a fairly
+straightforward scheme.
 
 In the following sections we describe the meta-theory of the core
 language followed by details of how each of the language features
@@ -1035,9 +1049,8 @@ GADTs (in the \pref{sec:fc-encodes-gadts}), generative abstract
 types (\pref{sec:fc-encodes-newtypes}), and associated
 types (\pref{sec:fc-encodes-assoctypes}), and also a unique feature of
 the system, open type functions (\pref{sec:fc-encodes-opentypefun}) is
-encoded in \SFC with the help of \emph{coercions} and \emph{coercion
-  axioms}
-which embody the notion of type equality.
+encoded in \SFC using \emph{coercions} and \emph{coercion
+  axioms} which embody the notion of type equality.
 
 % In one statment: \SFC is an intensional intrinsically typed programming language.
 % It is intensional, meaning each term encodes its typing derivation, and it is intrinsically typed, meaning all the terms are index by types.
@@ -1069,11 +1082,11 @@ which embody the notion of type equality.
  \text{Kinds} &&\kappa \bnfeq& \star \bnfor \kappa \to \kappa \bnfor \shl{\sigma \sim \tau}\\
  \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor \shl{F\App\many\alpha} \bnfor \shl{\Co}\\
  \shl{\text{Coercions}} &&\nu,\Co \bnfeq& c \bnfor \refl\tau \bnfor \Sym\Co \bnfor \trans\nu\Co % equiv relation
- \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction instanst
+ \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction instantiation
  \bnfor \nu\App\Co \bnfor \Left \Co \bnfor \Right \Co\\  % compose/decompose
  \text{Types/Coercions} && \phi \bnfeq& \tau \bnfor \Co\\
  \text{Patterns} &&P \bnfeq& H\App \many{\TyVar\co\kappa}\App{\many{x\co\tau}} \\
- \text{Terms} &&M,N \bnfeq& x \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau \bnfor H \bnfor \Case M \many{P \to M} \bnfor \shl{\Cast \Tm \Co}\\
+ \text{Terms} &&M,N \bnfeq& x \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\phi\co\kappa} M \bnfor M\App \tau \bnfor H \bnfor \Case M \many{P \to M} \bnfor \shl{\Cast \Tm \Co}\\
 
  \end{syntax}
  \begin{syntax}
@@ -1132,7 +1145,7 @@ the direction of equality, transitivity `$\trans {\Co_1}{\Co_2}$',
 which chains two coercions $\Co_1$ and $\Co_2$. Reflexivity, symmetry
 and transitivity together makes type equality an equivalence class in the
 system. Coercions can also be composed and decomposed using the
-`$\Co_1\Co_2$', and `$\Left\Co$' and `$\Right\Co$' constructs
+`$\nu\App\Co$', and `$\Left\Co$' and `$\Right\Co$' constructs
 respectively. Finally, coercion abstraction `$\Forall
 {\TyVar\co\kappa}\Co$' and coercion application `$\Co\At\tau$' aids
 equality reasoning on polytypes. To stress, it is important to notice
@@ -1140,7 +1153,7 @@ that the \pref{fig:sfc-syntax}, places coercions and types in two
 different rows only for the sake of a clear presentation, and in
 principal \emph{coercions are types}, and we will use $\phi$ to mean
 either when the distinction is immaterial. Coercions can also
-be introduced as equality axioms which can be thought as a templatized
+be introduced as equality axioms which can be thought as a templatized type
 equation. For example, an axiom $\Forall \alpha {F\App a \sim a}$
 says that for all types, !F a! can be treated exactly as !a!, and vice
 versa. We distinguish user defined datatypes $T$ from type function constructors
@@ -1148,8 +1161,13 @@ $F$. Only the saturated application of $F$ can appear on the left hand
 side of a coercion axiom head. Reason for this restriction will be
 made clear in the later section.
 
+Finally, types classify the terms of the system. It has the usual
+constructs: variables ($x$), term abstractions ($\Lam x \Tm$) and term
+applications ($M \App N$), type level abstraction ($\TLam \alpha \Tm$)
+and type applications ($\Tm\App\sigma$). Declaration of algebraic
+datatypes introduces data constructors $H$, the types of which are of
+the form:
 
-Finally, the types classify the terms of the system. It has the usual constructs: variables ($x$), term abstractions ($\Lam x \Tm$) and term applications ($M \App N$), type level abstraction ($\TLam \alpha \Tm$) and type applications ($\Tm\App\sigma$). Declaration of algebraic datatypes introduces data constructors $H$, the types of which are of the form:
 $$
 H \co \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa}} \many{\sigma} \to T \many\TyVar}
 $$
