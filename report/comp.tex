@@ -584,7 +584,7 @@ associated data constructors, !Mult! and !Div!, in the datatype
 declaration followed by extending the !eval! function with cases for
 !Mult!, which multiplies, and !Div! that divides.
 
-It is important to notice that the type structure bolsters our confidence
+The type structure bolsters our confidence
 about the input-output behavior of the !eval! function. While writing
 the function, the programmer can safely assume that only a well-formed
 !AlgExp! data will be accepted as a function input, and the accepted
@@ -880,7 +880,7 @@ representation can be useful for avoiding leaking information in
 secure computation contexts. A naive abstraction, however,
 will incur a runtime cost. !Html! and !String!, need to be explicitly
 converted from one form into another using pattern matching.
-This is explicit conversion is redundant as they have the same
+This explicit conversion is redundant as they have the same
 representation in memory, but the compiler cannot use this
 information to perform any optimization on the generated code.
 Just like how GADTs helped us avoid explicit tagging and un-tagging
@@ -1606,7 +1606,7 @@ FORALL (a :: *). (EXISTS (b :: *). (Eq b, b, b)) -> GAlgExp a
  {\Co : \tau_1 \to \tau_2 \sim \tau_1' \to \tau_2'}
  {\Co_1 = \Right (\Left \Co)}
  {\Co_2 = \Right \Co};
- {$\stepsto {({\Cast {\Lam x M} {\Co}}) \App N} {\Cast {(({\Lam x M})\App {(\Cast N {\Sym \Co_1})})} \Co_2}$}
+ {$\stepsto {({\Cast {(\Lam x M)} {\Co}}) \App N} {\Cast {(({\Lam x M})\App {(\Cast N {\Sym \Co_1})})} \Co_2}$}
  }
 }
 
@@ -1641,64 +1641,85 @@ FORALL (a :: *). (EXISTS (b :: *). (Eq b, b, b)) -> GAlgExp a
 
 Now that we have established the static semantics for \SFC, we
 analyze the operational semantics, or the run time behavior, of the
-types and terms of the language. The value terms are fall into two
-categories: normal values,  $\Val$, and coercion values, $C\Val$,
+types and terms of the language. The value terms fall into two
+categories: normal values,  $\Val$, or coercion values, $C\Val$,
 which are values with coercion casts.  Value terms denote the ``good''
 terms of the language which do not evaluate. For example, !True!, of
 type !Bool! is a value term. Coercion values, or cvalues, are needed
-to maintain the type preservation property.
-
+to maintain the type preservation property. To identify which sub-term
+reduces in the next step, we will use $\EvalCtxt$ notation. This
+presentation uses call by need semantics, but it may as well use call
+by value without affecting the soundness properties
+which we will state in the next section. The terms involving coercions
+can step in one of the four interesting ways given by the rules
+\trule{push}, \trule{ty-push}, \trule{co-push}, or \trule{h-push}
+shown in the \pref{fig:op-sem-sfc}.
 \begin{figure}[ht]
  \centering
  \begin{gather*}
  \fbox{$\stepsto M N$}\\
- \Beta \rsp \TBeta\\
- \CaseE \rsp \CoTransE\\
  \Push \rsp \TyPush\\
  \CoPush\\
- \HPush
+ \HPush\\
+ \Beta \rsp \TBeta\\
+ \CaseE \rsp \CoTransE
  \end{gather*}
  \caption{Operational Semantics of \SFC}
  \label{fig:op-sem-sfc}
 \end{figure}
 
-The terms involving coercions can step in one of the four interesting
-ways given by the rules \trule{push}, \trule{ty-push}, \trule{co-push},
-or \trule{h-push} shown in the \pref{fig:op-sem-sfc}. In the rule
-\trule{push}, the coercion $\Co$, which applied to the lambda term, is
-decomposed into two coercions; the first coercion, `$\Co_1$', is
-applied to the argument, and to the redux reduction
-`$\Co_2$'. Applying this rule exposes a \trule{$\beta$}-redux. The
-rule \trule{ty-push} for type application
-moves the coercion inside a type abstraction instantiated at the type
-variable. The rule \trule{co-push} is just like \trule{push} but for
-moving coercions inside a coercion abstraction. We require some type
-and coercion calculation to ensure that the types are preserved when
-we push the coercions inside the body of a lambda bound term.
+In the rule \trule{push}, the coercion $\Co$, which is applied to the
+lambda term, is decomposed into two coercions; the first coercion,
+`$\Co_1$', is used in the coercion applied to the argument, the second
+coercion `$\Co_2$', is used to apply the complete term. Applying this
+transformation rule exposes a \trule{$\beta$}-redux. This shows that
+coercions do not interfere with the function applications. The rule
+\trule{ty-push} for type application moves the coercion inside a type
+abstraction instantiated at the type variable. The rule
+\trule{co-push} is just like \trule{push} but for moving coercions
+inside a coercion abstraction. Just like in the rule \trule{push}, we see that
+the rule \trule{ty-push} enables evaluation for type functions applied
+to a coercion. The rule \trule{co-push} is similar to the rule
+\trule{ty-push} but works on coercion abstractions. The type and
+coercion calculation is not arbitrary, it ensures that the types are
+preserved when we push the coercions inside the body of a lambda bound term.
 
-The most complex rule is \trule{h-push}, which makes more sense with an
-example in hand, pushes the coercion within the case term. Consider
-the case scrutinee $\Cast {(Cons\App \texttt{Int}\App x\App y)} \Co$
+The most complex rule is \trule{h-push}, pushes the coercion within
+the case term scrutinee. This rule is best illustrated with an example: consider
+the case scrutinee
+
+\begin{CenteredBox}
+\begin{code}
+Cons (T Bool) x xs /> $\Co$
+\end{code}
+\end{CenteredBox}
+
 where, !Cons : FORALL a. a -> [a] -> [a]!,
-!$\Co$ : [Int] ~ [T Bool]!, and !T! is a type constructor.
-The cast transforms the scrutinee into a type ![T Bool]! by pushing
+!$\Co$ : [T Bool] ~ [Int]!, and !T! is a type constant.
+The cast transforms the scrutinee into a type ![Int]! by pushing
 the coercion into its sub-components.
 \[
-\stepsto {\Cast {(\texttt{Cons}\App \texttt{Int}\App \texttt{x}\App
-    \texttt{y})} \Co} {\texttt{Cons} \App (\texttt{T}\App
-  \texttt{Bool}) (\Cast {\texttt{x}} \Right\Co) (\Cast {\texttt{y}}
+\stepsto {\Cast {(\texttt{Cons}\App \texttt{(T Bool)}\App \texttt{x}\App
+    \texttt{y})} \Co} {\texttt{Cons} \App \texttt{Int}\App
+  (\Cast {\texttt{x}} \Right\Co) (\Cast {\texttt{xs}}
   {(\refl{[]}\Right\Co)})}
 \]
-Coercion lifting plays an important role: it ensures that the
-term sub-components $\Cast M_i {\Subst}\rho_i$ are of the appropriate
-type. Each rule is derived in a systematic way by making sure the type
-of the term does not change after the cast moved.
+After this transformation, the outermost application no longer is a
+coercion term, but a vanilla data constructor, and hence can be used
+to match on in the case analysis.  Coercion lifting plays an important
+role: it ensures that the term sub-components $\Cast M_i
+{\Subst}\rho_i$ are of the appropriate type. Finally, the rule \trule{co-trans}
+flattens a chain of two coercions, $\Co$ and $\nu$, into a casted term
+with one coercion, $\trans\Co\nu$.
 
-This coercion operational calculus of course is not required during
-actual runtime. The system maintains a strict phase distinction and
-the coercions and types are erased after the type checking phase. They
-are however, necessary to prove the important meta-theoretic property
-of the calculus.
+The other rules, \trule{$\beta$}, \trule{ty-$\beta$} and \trule{case}
+are straightforward and are carried over from \SF, and defer their
+explanation to \citet{pierce_tapl_2002}. The operational
+calculus of coercions is not required during
+actual runtime. These rules are only required to prove the important
+meta-theoretic property of the calculus. The system maintains a strict
+phase distinction where the coercions and types can be safely erased
+after the type checking phase.
 
 \subsubsection{Soundness}
 The above formalization can help us state, and, hopefully, prove
@@ -1743,7 +1764,20 @@ checked syntactically and it is sufficient for this purpose.
  $\Typing \TEnv {\Tm'} \tau$
 \end{theorem}
 
-The above consistency criteria is the sufficient to guarantee soundness. It is designed with modularity in mind: an extension to the system, mandates re-characterization of the consistency criteria as well. The burden of defining what consistency should look like depends on the language features the language supports, which is an obligation on the language designer. We will see in detail how the consistency naturally falls out in the following section when we try to encode language different language features in to \SFC. \pref{thm:progress-sfc} also establishes the phase distinction property\cite{harper_higher-order_1989} where where types no not interfere with the execution of the program. Thus if we erase all the type and kind annotations from a well typed term, we can be certain that the term does not crash at runtime. This gives us a way to represent programs efficiently for the purposes of execution once we typecheck them.
+The above consistency criteria is the sufficient to guarantee
+soundness. It is designed with modularity in mind: an extension to the
+system, mandates re-characterization of the consistency criteria as
+well. The burden of defining what consistency should look like depends
+on the language features the language supports. We will see in detail
+how the consistency naturally falls out in the following section when
+we try to encode language different language features in to
+\SFC. \pref{thm:progress-sfc} also establishes the phase distinction
+property\cite{harper_higher-order_1989} where types no not
+interfere with the execution of the program: even if we erase all the
+type and kind annotations from a well typed term, the term does not
+crash at runtime, or that the types do not hold any computational
+significance. This is important as it provides an efficient way to
+represent programs for the purposes of execution.
 
 \section{Encoding Language Features in \SFC}\label{sec:sfc-encoding-features}%%%%%%%%%
 \subsection{GADTs}\label{sec:fc-encodes-gadts}
