@@ -142,7 +142,7 @@ thesis. The monograph is arranged in four parts:
   concluding remarks.
 \end{enumerate}
 
-\part{I: The Landscape of Typed Functional Programming Languages}\label{part:I}%%%%%%%%%
+\part{I: The Landscape}\label{part:I}%%%%%%%%%
 \section{Program Behavior}
 \subsection{Functions}
 There can be no functional programming language without a support for first class
@@ -2189,9 +2189,8 @@ a phase distinction \SFC follows the slogan: \emph{Kinds are
   propositions for type equality, proofs are (coercion) types}
 
 
-\part{III}\label{part:III}
-\section{Extensions of \SFC}\label{sec:fc-extensions}%%%%%%%%%
-\subsection{\SFR}\label{sec:sfr} % R for roles
+\part{III: Extensions of \SFC}\label{part:III}
+\section{\SFR}\label{sec:sfr} % R for roles
 
 \begin{CenteredBox}
   \begin{code}
@@ -2239,10 +2238,10 @@ At first sight, it is puzzling to comprehend why is this even possible although 
 \SFC requires amends to ensure that such unsound coercions cannot be derived within the system.
 The main extension to \SFC is by making the equality predicate finer grained by being able to express \emph{how} the two types are equal. In the above case, we see that we have two flavors of type equality coercions: (i) nominal equality, which is established via type function instances (!F String ~ Char!), and (ii) representational equality which is established via newtype definitions (!Html ~ String!). With these different notions of equality, one can restrict coercion lifting as representational equality does not imply nominal equality.
 
-\subsubsection{Syntax}\label{sec:sfr-syntax}
+\subsection{Syntax}\label{sec:sfr-syntax}
 We formalize the syntax of the system in \pref{fig:sfr-syntax} and call it \SFR. We extend the syntax infrastructure from \pref{fig:sfc-syntax}. Although the original work by \citet{breitner_safe_2014, weirich_generative_2011} formalizes the system slightly differently, the presentation in this report is easier to understand as an simple extension of \SFC, and it is also representative to what the GHC compiler implements. \TODO{should the $\teq\rho$ still stay in the kind land or should I pull it down into types land?} The key extension to represent the notion of finer grained type equality, is done by using \emph{roles}, $\rho$. All type parameters to a type constructor are decorated with a role that answers the question how are the two types in question equal. We define the function $\roles{\TypeConst}$ that returns the roles of all the type parameters of a type constant $\TypeConst$.
 
-\subsubsection{Static Semantics}\label{sec:sfr-static-sem}
+\subsection{Static Semantics}\label{sec:sfr-static-sem}
 The main judgment is for coercions $\CoKinding \TEnv \Co {\tau\sim^\kappa_\rho\sigma}$. This is read as ``in the type environment $\TEnv$ the coercion $\Co$, witness the equality between types $\tau$ and $\sigma$ that have the same kind $\kappa$ at role $\rho$''. The ``equality at role $\rho$'' is the novel feature of \SFR. We will omit the kind $\kappa$ when it is clear from the context. \SFR has three different roles for three different purposes:
 \begin{itemize}
 \item\textbf{Nominal Equality} This is the strictest kind of equality denoted by $\teqN$ which holds exactly when the two types are the ``same''. For example, an type function axiom !F Int = Bool! makes !F int!$\teqN$!Bool!
@@ -2452,7 +2451,7 @@ This is possible because of the following chain of reasoning:
 \end{align}
 The first step (and the last step) of the reasoning is valid due to the instantiations of the coercion axiom $\texttt{coApp} : \Forall{f, a}. \texttt{App}\App f\App a \teqR f\App a$, which rises by virtue of the definition of the newtype. We do not want to allow the rule \trule{co-nth} to \pref{eqn:app-any-newtype}. Because if we did, then we would be able to produce a coercion $\texttt{Int} \teqR \texttt{Bool}$, a blunder. We thus carefully allow the \trule{co-nth} only on vanilla algebraic type constants ($T$); not on newtypes ($T_N$) and neither on type function constants $F$.
 
-\subsubsection{Meta-theory}\label{sec:sfr-metatheory}
+\subsection{Meta-theory}\label{sec:sfr-metatheory}
 The proof of progress does not change with respect to \SFC as the only additional construct is roles, which does not play any part in the operational semantics of the language. To recall, the proof of progress is necessary to show that the well typed terms are either values or they can take a step.
 
 \begin{theorem}[Progress for \SFR]\label{lem:sfr-progress}
@@ -2538,7 +2537,7 @@ ensures type soundness.
 
 To summarize, \SFR strove to find a good power to pain ratio by making minimal changes to the system for the benefit to the programmer and re-establishing type soundness by disallowing unsafe coercion lifting by virtue of roles.
 
-\subsection{\SFP}\label{sec:sfp} % P for promotion
+\section{\SFP}\label{sec:sfp} % P for promotion
 Consider a standard GADT implementation of a vector !Vec! that also stores its length at the type level.
 
 \begin{minipage}[ht]{0.4\linewidth}
@@ -2618,7 +2617,7 @@ A naive algorithm may compute the kind of the type argument !f! to be $\STAR \to
 We have identified two requirements: allowing user defined kinds, and
 more expressive kind polymorphism. An unimaginative solution for the former would involve adding a new syntax to the language that accepts kind definitions similar to the type definition. For example !kind Nat = Z | S Z!. An improvement would be by reusing the datatype declaration syntax. For any algebraic datatype that the programmer defines, each of its data constructors will be promoted along with the type constant. To encode type level naturals, the programmer declares the datatype, as they normally would, and the compiler will automatically generates new type and kind level bindings. For example, in case of datatype !Nat!, the data constructor !S : Nat -> Nat! gets promoted to the type level while !Nat! get promoted to the kind level. Kind polymorphism is straight forward by allowing kind quantification only in prenex form. For example for a datatype !T : FORALL$\many{a}$.$\many{k}$ -> *!, all the kind variables $\many{a}$ are quantified before the type arguments of kind $\many{k}$. This simplifies the semantics of the type constants.
 
-\subsubsection{Syntax}\label{sec:sfp-syntax}
+\subsection{Syntax}\label{sec:sfp-syntax}
 \begin{figure}[ht]
  \centering
  \begin{syntax}
@@ -2670,7 +2669,7 @@ Promotion of type and data constructors may result in name-space issues. It, how
 For example ``!T!'' is a type constant but ``!'T!'' is a kind constructor.
 Finally, to stop the buck on the syntax classification hierarchy \emph{all} kinds are classified by a unique sort, $\square$. To keep the kind inference tractable, there are no kind level lambdas, only promotion of higher kinded types which would stand in for kind functions.
 
-\subsubsection{Static Semantics}
+\subsection{Static Semantics}
 It is not clear which constructors can be promoted without threatening
 either the consistency, or usability of the language. Backwards
 compatibility is an important aspect while adding a new feature, as
@@ -2805,10 +2804,10 @@ The datatype declaration is type checked in a manner very similar to mutually de
 \item Finally, all the constructors are kind generalized at the end.
 \end{itemize}
 
-\subsubsection{Operational Semantics}\label{sec:sfp-opsem}
+\subsection{Operational Semantics}\label{sec:sfp-opsem}
 \TODO{Does adding kind abstraction and kind application business to terms meddle with the operational semantics? we need to make sure we can erase them and preserve the phase distinction property.}
 
-\subsubsection{Meta-theory}\label{sec:sfp-metatheory}
+\subsection{Meta-theory}\label{sec:sfp-metatheory}
 \TODO{What is the consistency criteria? how is progress and preservation guaranteed?}
 
 In \SFP, there are no kind coercions nor there are kind equality
@@ -2820,7 +2819,7 @@ A logical continuation of the work would be to answer the
 question of how can we incorporate kind equalities in the type system.
 
 
-\subsection{\SFK}\label{sec:sfk} % K for kind eq
+\section{\SFK}\label{sec:sfk} % K for kind eq
 % We have type equalities, why not kind equalities?
 % But we would then have two kinds of equalities: type and kind.
 % So why not just squish types and kinds together, making it truly impredicative
@@ -2903,7 +2902,7 @@ Adding kind equalities to the system is non-trivial owing to its interaction wit
  \item Kind indexed GADTs need to be able to abstract over coercions and use them in the types, a feature missing in \SFC.
 \end{itemize}
 
-\subsubsection{Syntax}\label{sec:sfk-syntax}
+\subsection{Syntax}\label{sec:sfk-syntax}
 In \SFP, we had disallowed promoting types that were indexed or dependent on a promoted type, we can now get rid of this restriction because we make no distinction between kinds and types.
 
 \begin{figure}[ht]
@@ -3006,7 +3005,7 @@ In \SFP, we had disallowed promoting types that were indexed or dependent on a p
  }
 }
 
-\subsubsection{Static Semantics}\label{sfk-static-sem}
+\subsection{Static Semantics}\label{sfk-static-sem}
 \begin{figure}[ht]
  \centering
  \begin{gather*}
@@ -3024,13 +3023,13 @@ In \SFP, we had disallowed promoting types that were indexed or dependent on a p
  \label{fig:sfk-typing}
 \end{figure}
 
-\subsubsection{Operational Semantics}\label{sfk-op-sem}
+\subsection{Operational Semantics}\label{sfk-op-sem}
 \TODO{How does adding kind equality change the operational semantics
   of the language? }
 
 \TODO{Push rule gets uglier?}
 
-\subsubsection{Meta-theory}\label{sfk-meta-theory}
+\subsection{Meta-theory}\label{sfk-meta-theory}
 We have the following properties due by the way of static semantics.
 All coercion proofs have no computational value, they are irrelevant
 to the proof of equality. The ensures that even for heterogenous type
@@ -3045,7 +3044,7 @@ do not want to allow only ``trivial'' equality proofs.
 \TODO{how to characterize type soundness and preservation?}
 
 
-\part{IV}\label{part:IV}
+\part{IV: The Path Ahead}\label{part:IV}
 \section{Future Work}\label{sec:future-work}
 Open problems and future direction: Are we falling in the same of
 cramming the language pit by adding equalities. give more examples.
