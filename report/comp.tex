@@ -33,7 +33,7 @@
   modern, statically typed, declarative, and functional style
   programming language. We first focus on how one single construct,
   explicit type equality, gives a unified account of seemingly different
-  language features resulting in easy to reason
+  language features resulting in an easy to reason
   and implement typed intermediate language. We then survey
   important extensions of the system and identify notable open
   research problems.
@@ -322,217 +322,6 @@ numbers, they can be compared (!<=!, !==!) and added together (!+!).
 The declarations in the \pref{fig:tc-num} can be interpreted as an
 evidence of fact that !Float! and !Int! belong to the unary relation
 !Num!, $\{$ !Int! , !Float! $\} \subseteq$ !Num!, and also !Bool $\not\subseteq$ Num!.
-
-\section{Type Computation}\label{sec:type-computation}
-\subsection{Multiparameter Typeclasses}\label{sec:multiparam-typeclasses}
-A generalization of single parameter typeclasses is multi-parameter
-typeclasses. It naturally extends the idea of having n-ary relations
-over types. For example, following\cite{jones_tcfd_2000}, the
-typeclass !Con e c! can be used to give a unified treatment of
-different containers and the elements that they contain as shown in
-the \pref{fig:tc-collection}. The type variable !e! stands in for the
-element type of the container while !c! stands in for the container
-type. The behavior of the containers is captured by the methods of the
-typeclass !empty!, which returns the empty container and !insert!,
-that inserts the element of type !e! in to the container of type !c!.
-We can imagine having instances for such a typeclass as
-!Con Int [Int]! that says that the container list of integers has
-integers as its elements, !Con Word (Tree Chars)! that says that a
-container tree of !Char! contains !Word!s as its
-elements as they are of fixed lengths. Speaking in terms of
-relations, we have $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
-
-\begin{figure}[ht]
-\centering
-\begin{minipage}[ht]{0.3\linewidth}
-\begin{CenteredBox}
-\begin{code}
-class Con e c
-where
-  empty :: c
-  insert :: e -> c -> c
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.3\linewidth}
-\begin{CenteredBox}
-\begin{code}
-instance Con Int [Int]
-where
-  empty = ...
-  insert = ...
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.3\linewidth}
-\begin{CenteredBox}
-\begin{code}
-instance Con Word (Tree Char)
-where
-  empty = ...
-  insert = ...
-\end{code}
-\end{CenteredBox}
-\end{minipage}
-\caption[\lstinline{Con} typeclass]{\lstinline{Con} typeclass and its instances}
-\label{fig:tc-collection}
-\end{figure}
-
-The use of !empty! in a polymorphic setting, however, leads to a type ambiguity during
-compilation. For example, in a term
-
-\begin{CenteredBox}
-\begin{code}
-single3 :: [Int] = insert 3 empty
-\end{code}
-\end{CenteredBox}
-
-the typechecker infers the type of !empty! as !Con e [Int] => [Int]!. The type inferred by
-the typechecker is the right one, but we have a free type variable
-!e! which appears only in the constraint. We do not have enough
-information to determine what the concrete type of !e! should be as
-we cannot rule out the existence of another instance such as !Con Float [Int]!.
-This results in an ambiguity in compilation step; the compiler cannot
-resolve the typeclass constraint to a unique instance and hence cannot
-choose the right implementation to use. Types that
-give rise to such ambiguity in compilation are called ambiguous types. Formally, if a
-type variable only appears in the constraints of the type it is called
-an \emph{ambiguous type}. The type of !empty!,
-!FORALL e c. Con e c => c!, is ambiguous due to the occurrence of !e! only in the
-constraint. Terms with ambiguous types need to be rejected by the compiler
-precisely because they do not have a well defined semantics.
-A possible solution to this problem, is to resort to assigning local
-type annotations, for example,
-
-\begin{CenteredBox}
-\begin{code}
-single3 :: [Int] = insert (3 :: Int) (empty :: [Int])
-\end{code}
-\end{CenteredBox}
-
-One might think that the typechecker can now infer the type of the term unambiguously by
-instantiating !e! to !Int!, but it still cannot$\bang$ Even if it did, this
-solution is unsatisfactory for the following reasons:
-\begin{itemize}
-\item it relies on the assumption that the programmer knows where to add the
-  type annotations by having a deep understanding of how the typechecker
-  uses the type annotation information, and;
-\item worse, it is fragile;
-  unless each sub-term is annotated, any changes to the typechecker
-  algorithm may result in unpredictable type inference causing
-  previously typecheck-able programs to now fail.
-\end{itemize}
-% The problem is that the typeclasses are relations making them too
-% general for this use case.
-
-\subsection{Functional Dependencies}
-The problem with multi-parameter type classes is that there is a
-mismatch between the programmers intention and the expressivity of the
-typeclass machinery in the type system. Continuing with the above example, the
-programmers intention is to have a functional relation between !c! and
-!e! of the typeclass !Con e c!, or that the choice of the type
-parameter !c! fixes the choice of the type parameter !e!. In general,
-there can be arbitrary functional relation between the type parameters
-of the typeclass. In the current setting, all multi-parameter
-typeclasses are treated as general n-ary relations.
-
-\begin{figure}[ht]
-\begin{CenteredBox}
-\begin{code}
-class Con e c | c ~> e where
-  empty :: c
-  extend :: e -> c -> c
-\end{code}
-\end{CenteredBox}
-\caption[\lstinline{Con} typeclass]{The \lstinline{Con} Typeclass with Functional Dependency}
-\label{fig:tc-collection-fd}
-\end{figure}
-
-The extra annotation !c ~> e!, as seen in the \pref{fig:tc-collection-fd},
-on the typeclass definition captures the functional dependency of the typeclass
-!Con e c! and it reads as ``for a given !c!, !e! can be uniquely
-determined.'' The typeclass parameter !c! is called the determiner
-and the parameter !e! is called the determinant of the
-functional dependency. This extension to typeclasses has a good power
-to weight ratio; with a minimal change to the typeclass syntax and
-complete backwards compatibility with no change to typeclass instance declarations.
-Typechecker needs to now verify that the new instance declarations do
-not violate the functional dependency: We cannot allow both the typeclass instances,
-!Con Int [Int]! and !Con Float [Int]! to exist together.
-
-Inspired by relational algebra, \citet{jones_tcfd_2000}
-introduced functional dependencies as a new conservative extension to
-the typeclass language feature. It is able to efficiently capture
-the functional nature between the typeclass parameters. Later,
-\citet{jones_language_2008} raise questions about language designs in
-presence of functional dependencies,  answer some of them while also
-clarifying the misunderstandings that had seeped deep into the
-functional programming research community.
-
-\subsection{Associated Types}
-Another way of introducing a functional relation on types, or simply
-type functions, would be via associating the determinant of the
-functional dependency within the class
-definition in a more direct fashion.
-Every multi-parameter typeclass can be normalized into having only a single
-parameter and thus completely circumvent the problem of
-ambiguous types. Using our previous !Con c e! example, if !c ~> e! then,
-another style to capture the programmers intention is to use a special
-type function, say !Elem c!, where ever the type parameter
-!e! appears. The !Elem! is a special type function that takes in a type
-and returns a type, and is associated with the typeclass.
-
-\begin{figure}[ht]
-\begin{center}
-\begin{minipage}[ht]{0.3\linewidth}
-\begin{CenteredBox}
-\begin{code}
-class Con c where
-  type Elem c
-  empty :: c
-  insert :: Elem c -> c -> c
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.3\linewidth}
-\begin{CenteredBox}
-\begin{code}
-instance Con [Int] where
-  type Elem [Int] = Int
-  empty = ...
-  insert = ...
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.3\linewidth}
-\begin{CenteredBox}
-\begin{code}
-instance Con (Tree Char) where
-  type Elem (Tree Char) = Word
-  empty = ...
-  insert = ...
-\end{code}
-\end{CenteredBox}
-\end{minipage}
-\end{center}
-\caption[Con typeclass]{\lstinline{Con} Typeclass with an Associated Type}
-\label{fig:assoc-types}
-\end{figure}
-
-In the \pref{fig:assoc-types}, the typeclass !Con! needs only one
-parameter, !c!, for the container type, with an additional field for
-the type function !Elem! that depends on the type parameter !c! of the
-typeclass. As a cascading effect, the type signature of !insert!, now only depends on
-the type parameter !c!, and the !Elem c! stands for the element
-type of container. In the instance declaration, the !Elem [Int]! is mapped to
-!Int!, meaning, the element of the list of integers is of type !Int!.
-
-Associated types were introduced by
-\citet{chakravarty_associated_2005}
-as an alternative for functional dependencies because of a more
-direct syntax; the programmers are writing programs in a functional
-programming language and hence would want to write them as type
-functions, and need to resort to a relational style of logic programming.
 
 
 \section{Program Data}
@@ -899,6 +688,219 @@ in context to ML modules systems. Generative abstract types in the
 context of Haskell are similar to \cite{montagu_modeling_2009}.
 While they have a hint of existential types, they exhibit different
 semantics.
+
+\section{Type Computation}\label{sec:type-computation}
+\subsection{Multiparameter Typeclasses}\label{sec:multiparam-typeclasses}
+A generalization of single parameter typeclasses is multi-parameter
+typeclasses. It naturally extends the idea of having n-ary relations
+over types. For example, following\cite{jones_tcfd_2000}, the
+typeclass !Con e c! can be used to give a unified treatment of
+different containers and the elements that they contain as shown in
+the \pref{fig:tc-collection}. The type variable !e! stands in for the
+element type of the container while !c! stands in for the container
+type. The behavior of the containers is captured by the methods of the
+typeclass !empty!, which returns the empty container and !insert!,
+that inserts the element of type !e! in to the container of type !c!.
+We can imagine having instances for such a typeclass as
+!Con Int [Int]! that says that the container list of integers has
+integers as its elements, !Con Word (Tree Chars)! that says that a
+container tree of !Char! contains !Word!s as its
+elements as they are of fixed lengths. Speaking in terms of
+relations, we have $\{$ !(Int, [Int])!, !(Int, Tree Int)! $\}$ $\in$ !Con!.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[ht]{0.3\linewidth}
+\begin{CenteredBox}
+\begin{code}
+class Con e c
+where
+  empty :: c
+  insert :: e -> c -> c
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.3\linewidth}
+\begin{CenteredBox}
+\begin{code}
+instance Con Int [Int]
+where
+  empty = ...
+  insert = ...
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.3\linewidth}
+\begin{CenteredBox}
+\begin{code}
+instance Con Word (Tree Char)
+where
+  empty = ...
+  insert = ...
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+\caption[\lstinline{Con} typeclass]{\lstinline{Con} typeclass and its instances}
+\label{fig:tc-collection}
+\end{figure}
+
+The use of !empty! in a polymorphic setting, however, leads to a type ambiguity during
+compilation. For example, in a term
+
+\begin{CenteredBox}
+\begin{code}
+single3 :: [Int] = insert 3 empty
+\end{code}
+\end{CenteredBox}
+
+the typechecker infers the type of !empty! as !Con e [Int] => [Int]!. The type inferred by
+the typechecker is the right one, but we have a free type variable
+!e! which appears only in the constraint. We do not have enough
+information to determine what the concrete type of !e! should be as
+we cannot rule out the existence of another instance such as !Con Float [Int]!.
+This results in an ambiguity in compilation step; the compiler cannot
+resolve the typeclass constraint to a unique instance and hence cannot
+choose the right implementation to use. Types that
+give rise to such ambiguity in compilation are called ambiguous types. Formally, if a
+type variable only appears in the constraints of the type it is called
+an \emph{ambiguous type}. The type of !empty!,
+!FORALL e c. Con e c => c!, is ambiguous due to the occurrence of !e! only in the
+constraint. Terms with ambiguous types need to be rejected by the compiler
+precisely because they do not have a well defined semantics.
+A possible solution to this problem, is to resort to assigning local
+type annotations, for example,
+
+\begin{CenteredBox}
+\begin{code}
+single3 :: [Int] = insert (3 :: Int) (empty :: [Int])
+\end{code}
+\end{CenteredBox}
+
+One might think that the typechecker can now infer the type of the term unambiguously by
+instantiating !e! to !Int!, but it still cannot$\bang$ Even if it did, this
+solution is unsatisfactory for the following reasons:
+\begin{itemize}
+\item it relies on the assumption that the programmer knows where to add the
+  type annotations by having a deep understanding of how the typechecker
+  uses the type annotation information, and;
+\item worse, it is fragile;
+  unless each sub-term is annotated, any changes to the typechecker
+  algorithm may result in unpredictable type inference causing
+  previously typecheck-able programs to now fail.
+\end{itemize}
+% The problem is that the typeclasses are relations making them too
+% general for this use case.
+
+\subsection{Functional Dependencies}
+The problem with multi-parameter type classes is that there is a
+mismatch between the programmers intention and the expressivity of the
+typeclass machinery in the type system. Continuing with the above example, the
+programmers intention is to have a functional relation between !c! and
+!e! of the typeclass !Con e c!, or that the choice of the type
+parameter !c! fixes the choice of the type parameter !e!. In general,
+there can be arbitrary functional relation between the type parameters
+of the typeclass. In the current setting, all multi-parameter
+typeclasses are treated as general n-ary relations.
+
+\begin{figure}[ht]
+\begin{CenteredBox}
+\begin{code}
+class Con e c | c ~> e where
+  empty :: c
+  extend :: e -> c -> c
+\end{code}
+\end{CenteredBox}
+\caption[\lstinline{Con} typeclass]{The \lstinline{Con} Typeclass with Functional Dependency}
+\label{fig:tc-collection-fd}
+\end{figure}
+
+The extra annotation !c ~> e!, as seen in the \pref{fig:tc-collection-fd},
+on the typeclass definition captures the functional dependency of the typeclass
+!Con e c! and it reads as ``for a given !c!, !e! can be uniquely
+determined.'' The typeclass parameter !c! is called the determiner
+and the parameter !e! is called the determinant of the
+functional dependency. This extension to typeclasses has a good power
+to weight ratio; with a minimal change to the typeclass syntax and
+complete backwards compatibility with no change to typeclass instance declarations.
+Typechecker needs to now verify that the new instance declarations do
+not violate the functional dependency: We cannot allow both the typeclass instances,
+!Con Int [Int]! and !Con Float [Int]! to exist together.
+
+Inspired by relational algebra, \citet{jones_tcfd_2000}
+introduced functional dependencies as a new conservative extension to
+the typeclass language feature. It is able to efficiently capture
+the functional nature between the typeclass parameters. Later,
+\citet{jones_language_2008} raise questions about language designs in
+presence of functional dependencies,  answer some of them while also
+clarifying the misunderstandings that had seeped deep into the
+functional programming research community.
+
+\subsection{Associated Types}
+Another way of introducing a functional relation on types, or simply
+type functions, would be via associating the determinant of the
+functional dependency within the class
+definition in a more direct fashion.
+Every multi-parameter typeclass can be normalized into having only a single
+parameter and thus completely circumvent the problem of
+ambiguous types. Using our previous !Con c e! example, if !c ~> e! then,
+another style to capture the programmers intention is to use a special
+type function, say !Elem c!, where ever the type parameter
+!e! appears. The !Elem! is a special type function that takes in a type
+and returns a type, and is associated with the typeclass.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{minipage}[ht]{0.3\linewidth}
+\begin{CenteredBox}
+\begin{code}
+class Con c where
+  type Elem c
+  empty :: c
+  insert :: Elem c -> c -> c
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.3\linewidth}
+\begin{CenteredBox}
+\begin{code}
+instance Con [Int] where
+  type Elem [Int] = Int
+  empty = ...
+  insert = ...
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.3\linewidth}
+\begin{CenteredBox}
+\begin{code}
+instance Con (Tree Char) where
+  type Elem (Tree Char) = Word
+  empty = ...
+  insert = ...
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+\end{center}
+\caption[Con typeclass]{\lstinline{Con} Typeclass with an Associated Type}
+\label{fig:assoc-types}
+\end{figure}
+
+In the \pref{fig:assoc-types}, the typeclass !Con! needs only one
+parameter, !c!, for the container type, with an additional field for
+the type function !Elem! that depends on the type parameter !c! of the
+typeclass. As a cascading effect, the type signature of !insert!, now only depends on
+the type parameter !c!, and the !Elem c! stands for the element
+type of container. In the instance declaration, the !Elem [Int]! is mapped to
+!Int!, meaning, the element of the list of integers is of type !Int!.
+
+Associated types were introduced by
+\citet{chakravarty_associated_2005}
+as an alternative for functional dependencies because of a more
+direct syntax; the programmers are writing programs in a functional
+programming language and hence would want to write them as type
+functions, and need to resort to a relational style of logic programming.
+
+
 
 \part{II: \SFC}\label{part:II}
 \section{History and Motivation}
