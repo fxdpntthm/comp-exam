@@ -229,13 +229,9 @@ example, in the function declaration, which composes any two suitable
 functions, ($\circ$), illustrates all these three properties. The
 arguments !f! and !g! are functions used as arguments, it declares an
 local anonymous function which binds the parameter !x!, !\ x -> f (g x)!.
-
 ML\cite{milner_logic_1975,milner_theory_1978}
 was the pioneer among the functional programming languages in
 introducing a declarative style implicit parametric polymorphism.
-Imperative languages also allow user defined
-polymorphic functions, but require explicit pointer casts as in the
-language C, or the use of template programming, as in the language C++.
 
 \subsection{Adhoc Polymorphism}
 Consider the following two terms, !addI! and !addF!:
@@ -266,8 +262,8 @@ different built-in subroutines. This name punning technique, which is dependent 
 type of arguments, or the context of where the function appears, is called as \emph{adhoc
 polymorphism}\cite{strachey_fundamental_2000}, while the functions
 themselves are referred to as adhoc polymorphic functions. Implicit
-operator overloading is a popular mechanism to implement adhoc
-polymorphism. The compiler resolves the overloaded operator (!+!) to
+operator overloading is a mechanism to support adhoc polymorphism.
+The compiler resolves the overloaded operator (!+!) to
 the actual operator (!int_plus! or !float_plus!) during the typechecking phase.
 
 \begin{figure}[ht]
@@ -306,35 +302,36 @@ instance Num Float where
 \label{fig:tc-num}
 \end{figure}
 
-To make implicit overloading practical in functional programming languages,
-\citet{wadler_polymorphism_1989} proposed a dictionary passing style
-mechanism. Typeclasses are the incarnation of the the dictionary passing mechanism for
-Haskell. In contrast to parametrically polymorphic functions like
-!id!, functions like !(+)! act only on some specific class of constrained or qualified
-types\cite{jones_qualified_1994}: the term !False + True! is
-meaningless, as it does not have a well defined semantics precisely
-because Booleans cannot be added together. The addition function
-(!+!), thus, has the type !Num t => t -> t -> t!. This means that the
+To make implicit overloading usable in functional programming
+languages, the type checker should be able to rule out terms such
+!id + id!---summing 2 parametrically polymorphic functions is meaningless.
+Functions like !(+)! act only on some specific class of constrained or qualified
+types\cite{jones_qualified_1994}:  The addition function
+(!+!), more precisely, has the type !Num t => t -> t -> t!. This means that the
 function can only be used on those types !t! which satisfy the !Num t!
 constraint. This !Num t! constraint is declared by the programmer as a
-typeclass The instances of the typeclass specify when the typeclass
+typeclass. The instances of the typeclass specify when the typeclass
 constraint holds, and what is the intended behavior at that type. For
 example, the !Num! typeclass and its instances are shown in the
 \pref{fig:tc-num}. The use of the function (!+!), say for
 example in the definition of !addF!, the typechecker needs to justify
 its type correctness. This amounts to satisfying the constraint !Num Float!.
 which in turn can only be satisfied, if the typechecker can find a declaration of the
-the instance declaration !Num Float!. To keep the treatment of qualified types
-tractable, the special arrow (!=>!) separates the actual type---written on
-the right hand side of the arrow---from the constraints---written on the left hand side of the arrow.
+the instance declaration !Num Float!.
 
-Typeclasses can also be viewed as relations over types\cite{morris_simple_2014}
-where, every instance declaration extends that relation. The typeclass !Num!
-represents a unary relation for those types whose values behave like
-numbers, they can be compared (!<=!, !==!) and added together (!+!).
-The declarations in the \pref{fig:tc-num} can be interpreted as an
-evidence of fact that !Float! and !Int! belong to the unary relation
-!Num!, $\{$ !Int! , !Float! $\} \subseteq$ !Num!, and also !Bool $\not\subseteq$ Num!.
+The idea of typeclasses originates from
+\citet{wadler_polymorphism_1989} which modeled typeclass instances as
+dictonaries. The implicit class constraints---such as !Num t!---are
+elaborated into special data called dictonaries\cite{hall_type_1994} internally by the
+compiler. Mathematically, typeclasses can also be viewed as relations
+over types\cite{morris_simple_2014} where, every instance declaration
+extends that relation. The typeclass !Num! represents a unary relation
+for those types whose values behave like numbers, they can be compared
+(!<=!, !==!) and added together (!+!). The declarations in the
+\pref{fig:tc-num} can be interpreted as an evidence of fact that
+!Float! and !Int! belong to the unary relation !Num!,
+$\{$ !Int!, !Float! $\} \subseteq$ !Num!, and
+also !$\tau \to \sigma \not \subseteq$ Num!.
 
 
 \section{Program Data}
