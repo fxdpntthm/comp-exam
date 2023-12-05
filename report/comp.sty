@@ -1,6 +1,7 @@
 \usepackage{amsthm,thmtools,fontawesome,enumitem,ifthen,infer,mathwidth,mathtools,multicol,multirow,xspace,xy,xspace,tikz}
 \usepackage{parskip,tabularx,mathbbol,tcolorbox,hyphenat,fancybox,relsize}
 \usepackage{algpseudocode}
+\usepackage[miama]{emf}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -40,8 +41,8 @@
 
 %% Bibliography
 %% citation style and ACM nonsense
-\setcitestyle{sort&compress}
 \citestyle{plainnat}
+\setcitestyle{authoryear,sort&compress}
 \bibliographystyle{ACM-Reference-Format}
 
 \setcopyright{none}
@@ -61,14 +62,6 @@
 
 \newcommand*\bang{!}
 
-% Math theorems
-% \declaretheorem[
-% headpunct={\vspace{\topsep}\newline}, %
-% spaceabove=3\topsep, %
-% postheadspace=0 pt ]{mytheorem}
-
-%\declaretheorem[name=lemma, style=mytheorem]{mylemma}
-%
 \newtheorem{theorem}{Theorem}
 \newtheorem{assumption}[theorem]{Assumption}
 \newtheorem{property}[theorem]{Property}
@@ -78,11 +71,13 @@
 \theoremstyle{remark}
 \newtheorem{remark}{Remark}
 \newtheorem{prop}{Proposition}
+\newtheorem{claim}{Claim}
 
 % Pretty references
 \usepackage{prettyref}
 \newcommand{\pref}[1]{\prettyref{#1}}
 \newrefformat{assn}{Assumption~\ref{#1}}
+\newrefformat{claim}{Claim~\ref{#1}}
 \newrefformat{prop}{Property~\ref{#1}}
 \newrefformat{fig}{Figure~\ref{#1}}
 \newrefformat{sec}{Section~\ref{#1}}
@@ -202,6 +197,7 @@
 \newcommand\Sub[2]{\Set{#1 \mapsto #2}}
 \newcommand\NType{\ensuremath{T_N}}
 \newcommand\TypeConst{\ensuremath{\mathcal{T}}}
+\newcommand\Unit{\ensuremath{()}}
 
 \def\FamPattern{\texttt{N}}
 
@@ -238,7 +234,7 @@
 \newcommand\stepsto[2]{\ensuremath{#1 \rightsquigarrow #2}}
 \newcommand\manystepsto[2]{#1 \rightsquigarrow^* #2}
 \newcommand\Val{\mathcal{V}}
-\newcommand\EvalCtxt{\mathbb{E}}
+\newcommand\EvalCtxt{\emf}
 \newcommand\EvalCtxtHole[1]{\mathbb{\Lparen} #1 \mathbb{\Rparen}}
 
 % Type rewriting
@@ -246,18 +242,20 @@
 \newcommand\tystepsto[3]{#1 \vdash \stepsto{#2}{#3}}
 \newcommand\manytystepsto[3]{#1 \vdash \manystepsto{#2}{#3}}
 
-% Erasure
-\newcommand\Erased[1]{|#1|}
+% % Erasure
+\newcommand\Erased[1]{|~{#1}~|}
 
 % Compilation
-\def\compile#1{\llbracket#1\rrbracket}
-\newcommand\GTranslate[5]{#1;#2 \vdash_{\tiny{\mathcal{G}}} \textcolor{blue}{#3 : #4} \Mapsto \textcolor{red}{#5}}
-\newcommand\DTranslate[3]{#1 \vdash_{\mathcal{D}} \textcolor{blue}{#2}
-  \Mapsto \textcolor{red}{#3}}
-\newcommand\NTranslate[3]{#1 \vdash_{\tiny{\mathcal{N}}}
-  \textcolor{blue}{#2} \Mapsto \textcolor{red}{#3}}
-\newcommand\NTTranslate[4]{#1 \vdash_{\tiny{\mathcal{N}}}
-  \textcolor{blue}{#2 : #3} \Mapsto \textcolor{red}{#4}}
+\newcommand\Compile[1]{\llbracket {#1} \rrbracket}
+
+\newcommand\GTranslate[5]{#1;#2 \vdash_{\mathsmaller{\mathcal{G}}} \textcolor{blue}{#3 : #4}
+     \Mapsto \textcolor{red}{#5}}
+\newcommand\DTranslate[3]{#1 \vdash_{\mathsmaller{\mathcal{D}}} \textcolor{blue}{#2}
+     \Mapsto \textcolor{red}{#3}}
+\newcommand\NTranslate[3]{#1 \vdash_{\mathsmaller{\mathcal{N}}} \textcolor{blue}{#2}
+     \Mapsto \textcolor{red}{#3}}
+\newcommand\NTTranslate[4]{#1 \vdash_{\mathsmaller{\mathcal{N}}} \textcolor{blue}{#2 : #3}
+     \Mapsto \textcolor{red}{#4}}
 
 % Haskell listings
 \usepackage{listings}
@@ -274,7 +272,7 @@
   basewidth={0.5em,0.45em},
   morekeywords={instance, class, if, where, data, then, else, type,%
     case, of, require, linear, primitive, newtype, family, module,
-    error, axiom, while},
+    error, axiom, while, left, right, sym},
   morecomment=[l]{--},
   commentstyle=\color{Gray},
   mathescape=true,
