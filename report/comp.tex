@@ -323,9 +323,9 @@ The idea of typeclasses originates from
 \citet{wadler_polymorphism_1989} which modeled typeclass instances as
 dictonaries. The implicit class constraints---such as !Num t!---are
 elaborated into special data called dictonaries\cite{hall_type_1994} internally by the
-compiler. Mathematically, typeclasses can also be viewed as relations
-over types\cite{morris_simple_2014} where, every instance declaration
-extends that relation. The typeclass !Num! represents a unary relation
+compiler. Mathematically, typeclasses can be viewed as relations
+over types\cite{morris_simple_2014}. Every typeclass instance
+declaration extends that relation. The typeclass !Num! represents a unary relation
 for those types whose values behave like numbers, they can be compared
 (!<=!, !==!) and added together (!+!). The declarations in the
 \pref{fig:tc-num} can be interpreted as an evidence of fact that
@@ -353,8 +353,8 @@ ADT in Haskell as:
 \begin{CenteredBox}
 \begin{code}
 data AlgExp where
-   Value :: Int -> AlgExp
-   Plus :: (AlgExp, AlgExp) -> AlgExp
+   Value :: Int    -> AlgExp
+   Plus  :: AlgExp -> AlgExp -> AlgExp
 \end{code}
 \end{CenteredBox}
 
@@ -369,7 +369,7 @@ function defined recursively as shown below:
 \begin{code}
 eval :: AlgExp -> Int
 eval (Value i) = i
-eval (Plus (x, y)) = eval x + eval y
+eval (Plus x y) = eval x + eval y
 \end{code}
 \end{CenteredBox}
 
@@ -387,20 +387,9 @@ straightforward. The required code changes would be to add the
 associated data constructors, !Mult! and !Div!, in the datatype
 declaration followed by extending the !eval! function with cases for
 !Mult!, which multiplies, and !Div! that divides.
-
-The type structure bolsters our confidence
-about the input-output behavior of the !eval! function. While writing
-the function, the programmer can safely assume that only a well-formed
-!AlgExp! data will be accepted as a function input, and the accepted
-return value will be an !Int!. Further, as opposed to an untyped
-programming language, a predicate function is necessary to check that certain
-structural invariants hold: the constructor !Plus! should always have
-two sub expressions. In a typed setting the typechecker will reject programs
-with ill-structured data: the expression !Plus (Value 3)! is
-ill-typed. This also helps in maintaining a separation of concern,
-where the parser's responsibility is only to parse and populate the
-AST data structure while the typecheckers responsibility is to ensure
-well-formedness of the data.
+In a typed setting the typechecker can identify and reject programs
+with ill-structured data. The pattern expression !eval (Plus x)! is
+ill-typed as !Plus! requires 2 arguments of type !AlgExp!.
 
 The declarative style of defining algebraic datatypes and pattern matching was introduced in
 Hope\cite{burstall_proving_1969, burstall_hope_1980} and has become an
@@ -466,9 +455,10 @@ would resolve if we were to constrain the return type of each of the
 data constructors to agree to the type of the value expected after
 evaluating the value of type !AlgExp!. This constrained return type
 can be used as a tag to convince the typechecker that !eval! function
-is indeed type safe. The current formulation of data
-constructors of !AlgExp! needs to be extended with the type tag
-as shown below in the \pref{fig:galgexp-eval}.
+is indeed type safe. This formulation is shown in
+\pref{fig:galgexp-eval} with the datatype !GAlgExp! along with the !eval!
+function which evaluates it.
+
 
 \begin{figure}[ht]
 \centering
@@ -507,11 +497,8 @@ Similarly, in the alternative branch labeled (3) with the pattern
 !IsZero x! is of type !AlgExp Bool! is on the left hand of the
 equation, has a right hand side of the equation
 of type !Bool!, which agrees with the type of its right hand side.
-This automatic type tagging and un-tagging displays the real power
-of GADTs, which parameterized algebraic data types inherently lacks.
 
-The type constraints that arise due to pattern matching GADTs can
-further help in identifying dead code and code
+GADTs can further help in identifying dead code and code
 optimizations\cite{xi_dead_1998,graf_lower_2020,nilsson_dynamic_2005}.
 For example, consider the function !isZero! shown below:
 
