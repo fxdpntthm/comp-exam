@@ -96,7 +96,7 @@ programs. The examples below illustrate a couple use-cases and
 their associated semantic invariants which the programmers may like to
 capture within the type structure:
 \begin{enumerate}
-\item Consider an AST where the compiler writer wants to enforce the
+\item In an AST where the compiler writer wants to enforce the
   sub-term to always be of a fixed typed. This avoids the need
   explicitly checking them in the code.
   More concretely, the AST representing the control structures, such
@@ -1025,7 +1025,7 @@ encoded in \SFC using \emph{coercions} and \emph{coercion
  \end{syntax}
  \begin{syntax}
  \text{Kinds} &&\kappa \bnfeq& \star \bnfor \kappa \to \kappa \bnfor \shl{\sigma \sim \tau}\\
- \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor \shl{F\App\many\alpha} \bnfor \shl{\Co}\\
+ \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor \shl{F\App\many\tau} \bnfor \shl{\Co}\\
  \shl{\text{Coercions}} &&\nu,\Co \bnfeq& c \bnfor \refl\tau \bnfor \Sym\Co \bnfor \trans\nu\Co % equiv relation
  \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction instantiation
  \bnfor \nu\App\Co \bnfor \Left \Co \bnfor \Right \Co\\  % compose/decompose
@@ -1173,7 +1173,10 @@ not worry about mistakenly substituting a term into a type. We will
 use the type constant $(\to)$ and kind constant $(\sim)$ in its infix
 form rather than in a prefix form: $\tau \to \sigma$ instead of
 $\to \App\tau\App\sigma$, and similarly $\tau\sim\sigma$ instead of
-$\sim \tau\App\sigma$.
+$\sim \tau\App\sigma$. We use the over bar notation $\many\alpha$ to
+mean a list of items, in this case a list of $\alpha$s. If the size of
+the list is not obvious from the context, we will use explicit
+superscript to specify it, $\many\alpha^n$
 
 A program, $P_{gm}$, is a list of programmer written type
 declarations, $D_{cl}$, followed by term bindings, $x = M$. Each
@@ -1228,7 +1231,15 @@ on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
  {\CoKinding \TEnv {\Co_1} {\tau_1 \sim \tau_2}}
  {\CoKinding \TEnv {\Co_2} {\sigma_1 \sim \sigma_2}}
  {\TyKinding \TEnv {\tau_i\App \sigma_i} \kappa};
- {\CoKinding \TEnv {\Co_1\App \Co_2} {\tau_1 \sigma_1 \sim \tau_2 \sigma_2}}
+ {\CoKinding \TEnv {\Co_1\App \Co_2} {\tau_1\App \sigma_1 \sim \tau_2\App \sigma_2}}
+ }
+}
+
+\newcommand\KCoFComp{
+ \ib{\irule[\trule{co-F-comp}]
+ {\many{\CoKinding \TEnv \Co {\sigma \sim \tau}}^n}
+ {\TyKinding \TEnv {F\App \many\sigma^n} \kappa};
+ {\CoKinding \TEnv {F \App \many\Co^n} {F\App\many\sigma^n \sim F\App\many\tau^n}}
  }
 }
 
@@ -1299,7 +1310,7 @@ on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
  \fbox{$\CoKinding \TEnv \Co \kappa$}\\
  \KReflCo \rsp \KSymCo \rsp \KTransCo \\
  \KForallCo \rsp \KInstCo \\
- \KCoComp \\
+ \KCoComp \rsp \KCoFComp\\
  \KLeftCo \rsp \KRightCo \\
  \end{gather*}
  \caption{Coercion Typing: Excerpt of Static Semantics of \SFC}
@@ -1328,7 +1339,8 @@ if two types, with a free type variable, are equal then type
 abstraction on both the types yields equal polytypes
 \trule{co-$\I\forall$}. The rule \trule{co-comp} enables lifting
 coercions for higher kinded types and enable reasoning of equalities
-between them.
+between them and similarly the rule \trule{co-F-comp} enables coercion
+lifting for fully saturated type functions.
 
 To illustrate why coercion composition is useful, consider a higher
 kinded algebraic type !Tree! and a coercion
@@ -1646,9 +1658,10 @@ the coercion into its sub-components.
 \]
 After this transformation, the term is no longer is a
 coercion term, but a data constructor, and can be used
-to match and make progress using the \trule{case}.  Coercion lifting plays an important
-role: it ensures that the term sub-components $\Cast M_i
-{\Subst}\rho_i$ are of the appropriate type. Finally, the rule \trule{co-trans}
+to match and make progress using the rule \trule{case}.
+Coercion lifting plays an important role: it ensures that the term
+sub-components $\Cast M_i {\Subst}\rho_i$ are of
+the appropriate type. Finally, the rule \trule{co-trans}
 flattens a chain of two coercions, $\Co$ and $\nu$, into a casted term
 with one coercion, $\trans\Co\nu$.
 
@@ -1659,8 +1672,12 @@ the operational semantic, we define a  multi-step reduction. It is a
 reflexive transitive closure of the single step operational semantics,
 $\stepsto \Tm N$.
 
-
 \newcommand\MultiStepRefl{
+    \ib{\irule[\trule{$\rightsquigarrow^*-r$}];
+      {\manystepsto \Tm \Tm}
+    }
+}
+\newcommand\MultiStepLift{
     \ib{\irule[\trule{$\rightsquigarrow^*-r$}]
       {\stepsto \Tm N};
       {\manystepsto \Tm N}
@@ -1676,13 +1693,13 @@ $\stepsto \Tm N$.
 
 \begin{defn}[Multi step reduction relation: $\manystepsto \Tm N$]\label{defn:multi-step-reduction}
   \begin{gather*}
-    \MultiStepRefl \rsp \MultiStepTrans
+    \MultiStepRefl \rsp \MultiStepLift \rsp \MultiStepTrans
   \end{gather*}
 \end{defn}
 
 
 The operational calculus of coercions is not required during
-actual runtime. These rules are only required to prove the important
+actual runtime. They are required to prove important
 meta-theoretic property of the calculus. The system maintains a strict
 phase distinction where the coercions and types can be safely erased
 after the type checking phase.
@@ -2038,7 +2055,7 @@ For example, in the programmer written function !mkHTML! as shown in \pref{fig:n
   \end{syntax}
   \begin{syntax}
     \text{Types}               && \tau,\sigma \bnfeq& \alpha \bnfor \cdots \bnfor T_N\\
-    \text{Newtype Declaration} && D_{cl} \bnfeq& \texttt{\textbf{newtype}}~ T_{N}~\many\alpha = D_N~\Set{ x :: \tau }\\
+    \text{Newtype Declaration} && D_{cl} \bnfeq& \texttt{\textbf{newtype}}~ T_{N}~\many\alpha = D_N\App\tau\\
   \end{syntax}
   \caption{\lstinline{newtype} support in \SFC}
   \label{fig:newtypes-sfc}
@@ -2078,7 +2095,7 @@ the translation of !unHTML!. Both the rules, \trule{nt-pack} and
    {\NTTranslate \TEnv \Tm \tau {\Tm'}}
  {\NTTranslate {\TEnv, x\co\tau} N \sigma {N'}};
  {\NTTranslate \TEnv {\Case {D_N\App \Tm} {\Set {D_N\App x \to N}}}
-   {\sigma} {\Cast {(\Set{x \mapsto \Tm'} N')} {coT_N \At \many\tau}}}
+   {\sigma} {{\Set{x \mapsto ({\Cast {\Tm'} {coT_N \At \many\tau}})} N'}}}
  }
 }
 
@@ -2093,18 +2110,18 @@ the translation of !unHTML!. Both the rules, \trule{nt-pack} and
 \label{fig:nt-elaboration}
 \end{figure}
 
-It is now easy to see: while on the surface level the functions !mkHtml!
+It is now easy to see that while on the surface level the functions !mkHtml!
 and !unHTML! seem to pack and unpack the !String! value stored in the
-!Html! type, the compiler generates code where all the packing and
-unpacking of the values are removed using explicit type casts. This
+!Html! type, the compiler generates efficient code. All the packing and
+unpacking of the values are removed by using explicit type casts. This
 optimization step cannot be performed on algebraic data types declared
 using !data! keyword. The runtime cost characteristics of types declared using
 !newtype!s and !data! are different. Due to the newtype definition
-we know that !Html! \emph{is a} !String! as !String! is the concrete
-runtime representation of !Html!, and hence we should not pay
-any runtime cost for coercing !Html! to !String! and vice versa.
-The coercion axiom, which is introduced during the elaboration step
-!coHtml :: Html ~ String!, makes this zero runtime cost cast possible.
+we know that !Html! \emph{is a} !String!. We should not pay
+any runtime cost for coercing !Html! to !String! and vice versa as
+!String! is the concrete runtime representation of !Html!.
+The coercion axiom introduced during the elaboration step of the
+newtype declaration makes this zero runtime cost cast possible.
 Similar to GADT syntactic soundness, we also have the syntactic
 soundness for newtypes:
 
@@ -2174,13 +2191,16 @@ into the typing environment. For the !Con c! typeclass the instance
 In general, each instance generates an axiom of the form
 \begin{CenteredBox}
 \begin{code}
-co: (FORALL $\many{\TyVar\co\star}$. F $\sigma$ $\sim$ $\sigma'$)
+co : FORALL $\many{\TyVar\co\star}$. F $\sigma$ $\sim$ $\sigma'$
 \end{code}
 \end{CenteredBox}
 
 where $\fvs\sigma = \many\TyVar$ and $\fvs{\sigma'} \subseteq \many\TyVar$.
-These axioms can be viewed to induce a rewrite function on types and
-hence also referred to as (type) rewrite axioms.
+These axioms can also be viewed as type rewrite inducing axioms as it
+rewrites the type $F\App\many\sigma$ to the right hand side of the
+equation, $\sigma$. However, these type rewrite axioms are indeed type
+equivalences, as the typechecker can replace an occurance of $\sigma'$
+to $F\App\many\sigma$
 
 \begin{theorem}[Associated Type Consistency]
 If $\TEnv$ contains type rewrite axioms that are confluent and
@@ -2330,17 +2350,62 @@ a phase distinction \SFC follows the slogan:
 \part{III: Extensions of \SFC}\label{part:III}
 \section{\SFR}\label{sec:sfr} % R for roles
 
-\begin{CenteredBox}
-  \begin{code}
-    type family F a :: *
-    type instance F Html = Bool
-    type instance F String = Char
-  \end{code}
-\end{CenteredBox}
+\begin{figure}[ht]
+\centering
+\begin{minipage}{0.5\linewidth}
+\begin{code}
+        newtype Html           = String
+        type family F a
+        type instance F Html   = Bool
+        type instance F String = Char
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{flalign*}
+coHtml &: \texttt{Html} \sim \texttt{String}\\
+coFHS  &: \texttt{F}~\texttt{Html} \sim \texttt{Bool}\\
+coFSC  &: \texttt{F}~\texttt{String} \sim \texttt{Char}\\
+\end{flalign*}
+\end{minipage}
+\caption{Type Functions and New Types}
+\label{fig:nt-tf-example}
+\end{figure}
+Consider the previously defined newtype data definition:
+!newtype HTML!, and a hypothetical open type
+function, !F! as shown in~\pref{fig:nt-tf-example}.
+The type family instance declarations add
+two new type equalities: !F Html ~ Bool! and !F String ~ Char!,
+along with the existing type equality !Html ~ String!
+Now, using these three equalities, and the formulation of \SFC as
+above, we can derive a type unsound coercion !Char ~ Bool!.
 
-Consider the two modules previously defined in \pref{subsubsec:gen-abs-types}: !module Html!, where the library writer defines a !newtype HTML! and the other, !module Client!, a client module that uses the library module !HTML! along with an open function !F!, that maps !HTML! to !Bool! and !String! to !Char!. This declaration adds two new type equalities namely !F Html ~ Bool! and !F String ~ Char!. But, in the presence of the equality !Html ~ String!, we can make type unsound coercions by deriving !Char ~ Bool!.
+While puzzling at first, a careful re-examination reveals the
+how we can derive the unsound coercion !Char ~ Bool!.
+By virtue of the type function axiom we have !Char ~ F String!,
+then we use coercion lifting to derive !F String ~ F Html!
+(as !String ~ Html!), and finally, obtain !Char ~ Bool!
+(by using !F Html ~ Bool!, and !F String ~ Char!):
+\[
+\trans {\trans {(\Sym coFHS)} {(F\App coHtml)}} {coFSC} : Char \sim Bool
+\]
+Although we had a characterization of $\Good\TEnv$ in
+\pref{thm:progress-sfc} to make these ``bad'' coercions
+impossible to derive, we have in fact managed to derive them.
+Type functions interacting with newtypes is just one of the cases where
+seemingly innocuous features interacting cause type unsoundness.
+\citet{weirich_generative_2011} gives similar type unsoundness behavior
+by using GADTs and newtypes. The crux of the problem is
+\emph{unconstrained coercion lifting}: the use non-parametric
+features (type functions, GADTs) of the language in the context that assumes
+parametricity (newtypes).
 
-At first sight, it is puzzling to comprehend why is this even possible although we had a characterization of $\Good\TEnv$ in \pref{thm:progress-sfc} to make these ``bad'' coercions impossible to derive. By careful examination, we can in fact derive the coercion !Char ~ Bool! as follows: by virtue of the type function axiom we have !Char ~ F String!, then we use coercion lifting to derive !F String ~ F Html! (as !String ~ Html!), and finally, obtain !Char ~ Bool! (by using !F Html ~ Bool!, and !F String ~ Char!). The problem stems from the fact that we are using unconstrained coercion lifting; the use non-parametric features (type functions) of the language in the context that assumes parametricity (newtypes). Type functions interacting with newtypes is just one case where seemingly innocuous features mingling with each other cause type unsoundness. Just limiting the use of type functions however is not enough, similar type unsoundness behavior is can be observed by using GADTs and newtypes as well~\cite{weirich_generative_2011}. In the previous \pref{sec:sfc-encoding-features}, we studied \SFC encodings of each language feature and their respective soundness criteria was straightforward when viewed independently. However, the above ``bug'' is an evidence that we need to do more work to prove type soundness.
+In the previous \pref{sec:sfc-encoding-features}, we studied \SFC
+encodings of each language feature and their respective soundness
+criteria was straightforward when viewed independently.
+However, the above ``bug'' is an evidence that we need to be more
+careful to prove type soundness while working with multiple features.
+To this effect, we need to reformulate our system to allow safe coercion lifting.
+
 
  \begin{figure}[ht]
  \begin{syntax}
@@ -2352,7 +2417,9 @@ At first sight, it is puzzling to comprehend why is this even possible although 
  \begin{syntax}
    \text{Roles} &&\rho \bnfeq& \shl{\texttt{N} \bnfor \texttt{R} \bnfor \texttt{P}}\\
    \text{Kinds} &&\kappa \bnfeq& \star \bnfor \kappa \to \kappa \bnfor \shl{\sigma \sim^\kappa_\rho \tau}\\
-   \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor \mathcal{T} \bnfor \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor F\\
+   \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor \mathcal{T} \bnfor
+   \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor
+   F\many\tau \bnfor \Co \\
     \text{Type Constants} &&\TypeConst \bnfeq& T \bnfor (\to) \bnfor \shl{\NType}\\
  \text{Coercions} &&\nu,\Co \bnfeq& c \bnfor \refl\tau \bnfor \Sym\Co \bnfor \trans\nu\Co % equiv relation
  \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction, instantiations
@@ -2365,26 +2432,63 @@ At first sight, it is puzzling to comprehend why is this even possible although 
  \begin{syntax}
  \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\TyVar\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \Co \co \tau\sim\sigma\\
  \text{Role Context} &&\mathcal{R} \bnfeq& \empt \bnfor \mathcal{R},\alpha\co\rho\\
-                     &&\roles{\TypeConst} \bnfeq& {[\rho \mid \alpha\co\rho \in Params(\TypeConst)]}\\
-                     &&Params(\TypeConst) \bnfeq& \many\alpha\co\rho\quad  \text{s.t. } (\TypeConst\App\many\alpha) \co \star% \\
+                     &&\roles{\TypeConst} \bnfeq& {\Set{\rho \mid \alpha\co\rho \in Params(\TypeConst)}}\\
+                     &&Params(\TypeConst) \bnfeq& \many{\alpha\co\rho}\quad  \text{s.t. } (\TypeConst\App\many\alpha) \co \star% \\
                      %&&\roles{F} \bnfeq& \many{\alpha\co N}\qquad\text{ where }F\many\alpha\co\star
  \end{syntax}
  \caption{Excerpt of Syntax of \SFR; extension of \SFC}
  \label{fig:sfr-syntax}
  \end{figure}
 
-\SFC requires amends to ensure that such unsound coercions cannot be derived within the system.
-The main extension to \SFC is by making the equality predicate finer grained by being able to express \emph{how} the two types are equal. In the above case, we see that we have two flavors of type equality coercions: (i) nominal equality, which is established via type function instances (!F String ~ Char!), and (ii) representational equality which is established via newtype definitions (!Html ~ String!). With these different notions of equality, one can restrict coercion lifting as representational equality does not imply nominal equality.
+The key extension to \SFC which disallows unconstrained coercion lifting
+is by making the equality predicate finer grained.
+This enriches the type equality by encoding
+\emph{how} the two types are equal. In the above case, we see that
+we have two flavors of type equality coercions:
+(i) nominal equality, which is established
+via type function instances (!F String ~ Char!), and
+(ii) representational equality which is established
+via newtype definitions (!Html ~ String!).
+With these notions of type equality made explicit we
+can restrict coercion lifting.
 
 \subsection{Syntax}\label{sec:sfr-syntax}
-We formalize the syntax of the system in \pref{fig:sfr-syntax} and call it \SFR. We extend the syntax infrastructure from \pref{fig:sfc-syntax}. Although the original work by ~\citet{breitner_safe_2014, weirich_generative_2011} formalizes the system slightly differently, the presentation in this report is easier to understand as an simple extension of \SFC, and it is also representative to what the GHC compiler implements. \TODO{should the $\teq\rho$ still stay in the kind land or should I pull it down into types land?} The key extension to represent the notion of finer grained type equality, is done by using \emph{roles}, $\rho$. All type parameters to a type constructor are decorated with a role that answers the question how are the two types in question equal. We define the function $\roles{\TypeConst}$ that returns the roles of all the type parameters of a type constant $\TypeConst$.
+We formalize the syntax of \SFR in \pref{fig:sfr-syntax}.
+The highlighted portions are the additional pieces
+\pref{fig:sfc-syntax}. Although the original work
+by \citet{breitner_safe_2014} and \citet{weirich_generative_2011}
+formalizes the system slightly differently, the presentation in
+this report is easier to understand as an extension of \SFC.
+It is also representative to what the GHC compiler implements.
+To represent finer grained type equality, we use the concept
+of \emph{roles}, $\rho$. All type parameters to a type constructor are
+decorated with a role. We define the function
+$\roles{\TypeConst}$ that returns the roles of
+all the type parameters of a type constant $\TypeConst$.
+While comparing to datatypes for equality, the role annotations
+tell us how the two type parameters are equal.
 
 \subsection{Static Semantics}\label{sec:sfr-static-sem}
-The main judgment is for coercions $\CoKinding \TEnv \Co {\tau\sim^\kappa_\rho\sigma}$. This is read as ``in the type environment $\TEnv$ the coercion $\Co$, witness the equality between types $\tau$ and $\sigma$ that have the same kind $\kappa$ at role $\rho$''. The ``equality at role $\rho$'' is the novel feature of \SFR. We will omit the kind $\kappa$ when it is clear from the context. \SFR has three different roles for three different purposes:
+The important judgment for coercions is
+$\CoKinding \TEnv \Co {\tau\sim^\kappa_\rho\sigma}$.
+It is read as ``in the type environment $\TEnv$
+the coercion $\Co$, witness the equality between types $\tau$
+and $\sigma$ that have the same kind $\kappa$ at role $\rho$''.
+The ``equality at role $\rho$'' is the novel feature of \SFR.
+We will omit the kind $\kappa$ when it is clear from the context.
+\SFR has three different roles for three different flavors of equalities:
 \begin{itemize}
-\item\textbf{Nominal Equality} This is the strictest kind of equality denoted by $\teqN$ which holds exactly when the two types are the ``same''. For example, an type function axiom !F Int = Bool! makes !F int!$\teqN$!Bool!
-\item\textbf{Representational Equality} This equality holds when the two types have the same runtime representation. For example, a new type declarations !newtype Age = Int! makes !Age!$\teqR$!Int!
-\item\textbf{Phantom Equality} This equality holds always for all types: !FORALL a b. a $\teqP$ b!.
+\item\textbf{Nominal:} The strictest kind of equality denoted by
+  $\teqN$ which holds exactly when the two types are the \emph{same}.
+  For example, an type function axiom !F Int = Bool!
+  makes !F int $\teqN$ Bool!. A type synonym is also defines nominally
+  equal types, for example, !type UserName = String!.
+\item\textbf{Representational:} This equality holds when the two types
+  have the same runtime representation.
+  For example, a new type declarations !newtype Age = Int! makes
+  !Age!$\teqR$!Int!
+\item\textbf{Phantom:} The weakest kind of equality holds for all
+  types: !a $\teqP$ b! is valid at all types !a! and !b!
 \end{itemize}
 
 \newcommand\CastR{
@@ -2480,9 +2584,35 @@ The main judgment is for coercions $\CoKinding \TEnv \Co {\tau\sim^\kappa_\rho\s
  \caption{Excerpt of Static Semantics of \SFR: Coercion Calculus}
  \label{fig:sfr-typing}
 \end{figure}
-Type safe casts can now be expressed using the typing rules \trule{cast-r} and \trule{cast-n} as shown in \pref{fig:sfr-typing}. The rule \trule{cast-r} captures our notion of equality that arises due to coercion axioms introduced by newtype definitions as the rule enables coercions between expressions that have the same representation type. The rule \trule{cast-n} captures the notion of type equalities introduced by instantiating axioms arising due to type functions. The phantom equality on types seems unnecessary and outright wrong: why would any two types be equal if they are obviously not equal? There are cases where type parameter instantiations do not influence the value structure of the type, especially in cases of multi-parameter data types. Phantom equality is useful to assert equality on those types and keeps the type system usable. An additional goal of this extension of finer grained equality is that it should be as backwards compatible as possible i.e. be able to type check all the previous code that passed type checking and rightly did so.
+Type safe casts can now be expressed using the kinding rules
+\trule{cast-r} and \trule{cast-n} as shown in \pref{fig:sfr-typing}.
+The rule \trule{cast-r} captures the notion of equality which arises
+due to newtype definitions as the rule enables coercions between
+expressions that have the same representation type. The rule
+\trule{cast-n} captures the notion of type equalities introduced by
+instantiating axioms arising due to type functions.
+The phantom equality on types seems unnecessary, and outright wrong:
+why would any two types be equal if they are obviously not equal?
+Phantom equality is useful in keeping the type system practical.
+In case of multiparameter datatypes, some type parameters are used
+only as type tags, their instantiation does not affect the
+representation of the datatype in anyway. Phantom equality is useful
+to assert equality on such data types.
 
-Extending the type system with the two rules \trule{cast-r} and \trule{cast-n} would in theory be enough to express what we want, but we can do better by realizing that the equality roles form a total relation: $N < R < P$. If two types are nominally equal, they are representationally equal as well. Similarly, if the two types are representationally equal, they are also equal at phantom role. This is captured in the \trule{co-sub} shown in \pref{fig:sfr-typing}. It says that if we \emph{want} to have equality at representational role, and we are \emph{given} that the two types are nominally equal, then we can generate a coercion that proves the wanted equality from the given equality. Nominal equality is the strictest from of equality while phantom equality is the weakest.
+Backwards compatibility is also one of the goals of this extension.
+We must be able to type check all the previous programs that passed type
+checking and rightly did so. We leverage the fact that
+the equality roles form a total relation: $N < R < P$. If two types
+are nominally equal, they are representationally equal as
+well. Similarly, if the two types are representationally equal, they
+are also equal at phantom role. This is captured in the \trule{co-sub}
+shown in \pref{fig:sfr-typing}. It says that if we \emph{want} to have
+equality at representational role, and we are \emph{given} that the
+two types are nominally equal ($\Co$), then we can generate a coercion that
+proves the wanted equality from the given equality ($\SubCo \Co$).
+Nominal equality is the strictest from of equality while phantom
+equality is the weakest.
+
 
 \newcommand\RVar{
   \ib{\irule[\trule{r-var}]
@@ -2518,7 +2648,10 @@ Extending the type system with the two rules \trule{cast-r} and \trule{cast-n} w
 
 \newcommand\RTAssign{
   \ib{\irule[\trule{r-T}]
-    {H\co \Forall{\many{\alpha\co\kappa}}{\Forall{\many{\beta\co\kappa'}}{\many\sigma \to T\many\alpha}} \in C_{trs}(T)}
+    {H\co
+      \Forall{\many{\alpha\co\kappa}}{\Forall{\many{\beta\co\kappa'}}{\many\sigma
+          \to T\many\alpha}} \in
+      C_{trs}(T)}
     {\tau \in \many\sigma}
     {\Typing {\many{\alpha\co\rho},\many{\beta\co N}} \tau R};
     {\RoleAssign {\many\rho} T}
@@ -2568,15 +2701,43 @@ Extending the type system with the two rules \trule{cast-r} and \trule{cast-n} w
 \end{figure}
 
 
-Role assignments to type parameters are performed during type checking the user defined type constant. They are formalized using the role validity as shown in \pref{fig:sfr-validity}. The judgment $\RoleAssign {\many\rho} \TypeConst$ is to be read as ``$\many\rho$ are appropriate for the type constant \TypeConst'', while the judgment $\Typing \REnv \tau \rho$ is read as ``under the role context assumptions $\REnv$, the type $\tau$ has the role $\rho$''. We do not want a global type context to claim that a type parameter's role which is in conflict with the role given to it by the definition the type constant. The role assignment algorithm plays an important role (no pun intended) in inferring the best role for the type parameters for a type constant by walking over its definition. We want to ensure that the role assignments are no too restrictive nor to permissive. In the former case, we can assign each type parameter a nominal role but we would fail to type check a huge majority of the programs that we want to be able to type check. In the later case we can assign each type parameter a phantom role but that would be type unsound.
+Role assignments to type parameters are performed during type checking
+the user defined type constant. They are formalized using the role
+validity as shown in \pref{fig:sfr-validity}. The judgment
+$\RoleAssign {\many\rho} \TypeConst$ is to be read as ``$\many\rho$
+are appropriate for the type constant \TypeConst'', while the judgment
+$\Typing \REnv \tau \rho$ is read as ``under the role context
+assumptions $\REnv$, the type $\tau$ has the role $\rho$''. We do not
+want a global type context to claim that a type parameter's role which
+is in conflict with the role given to it by the definition the type
+constant. The role assignment algorithm plays an important role (no
+pun intended) in inferring the best role for the type parameters for a
+type constant by walking over its definition. We want to ensure that
+the role assignments are no too restrictive nor to permissive. In the
+former case, we can assign each type parameter a nominal role but we
+would fail to type check a huge majority of the programs that we want
+to be able to type check. In the later case we can assign each type
+parameter a phantom role but that would be type unsound.
 
-\begin{CenteredBox}
-  \begin{code}
-    data Any a = Any
-    newtype App f a = MkApp (f a)
-  \end{code}
-\end{CenteredBox}
-Consider the following definitions shown above for !Any a! and !App f a!. With the rules given in \pref{fig:sfr-validity}, for the generative type !App!, the roles inferred will be $\roles{\texttt{App}} = R, N$. Now, due to the rules of the coercion calculus we can derive the following representational type equality:
+\begin{minipage}{0.5\linewidth}
+\begin{code}
+                 data Any a = Any
+                 newtype App f a = MkApp (f a)
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{code}
+                 $\roles{\texttt{Any}} = \Set{P}$
+                 App f a ~ (f a)
+                 $\roles{\texttt{App}} = \Set{R, N}$
+\end{code}
+\end{minipage}
+
+Consider the following definitions shown above for !Any a! and !App f a!.
+With the rules given in \pref{fig:sfr-validity}, for the
+generative type !App!, the roles inferred will be
+$\roles{\texttt{App}} = \Set{R, N}$. Now, due to the rules of the coercion
+calculus we can derive the following representational type equality:
 \begin{align}\label{eqn:app-any-newtype}
   \texttt{App } \App \texttt{Any}\App \texttt{Int} \teqR \texttt{App}\App\texttt{Any} \App{Bool}\tag{app-co}
 \end{align}
@@ -2587,26 +2748,43 @@ This is possible because of the following chain of reasoning:
   \teqR \texttt{Any}\App \texttt{Bool}%
   \teqR \texttt{App}\App\texttt{Any} \App{Bool}\nonumber
 \end{align}
-The first step (and the last step) of the reasoning is valid due to the instantiations of the coercion axiom $\texttt{coApp} : \Forall{f, a}. \texttt{App}\App f\App a \teqR f\App a$, which rises by virtue of the definition of the newtype. We do not want to allow the rule \trule{co-nth} to \pref{eqn:app-any-newtype}. Because if we did, then we would be able to produce a coercion $\texttt{Int} \teqR \texttt{Bool}$, a blunder. We thus carefully allow the \trule{co-nth} only on vanilla algebraic type constants ($T$); not on newtypes ($T_N$) and neither on type function constants $F$.
+The first step and the last step of the reasoning chain is valid due to
+the instantiations of the coercion axiom,
+$\texttt{coApp} : \Forall{f,a}. \texttt{App}\App f\App a \teqR f\App a$.
+We do not want to allow the rule
+\trule{co-nth} to \pref{eqn:app-any-newtype}. Because if we did, then
+we would be able to produce a coercion $\texttt{Int} \teqR
+\texttt{Bool}$, a blunder. We thus allow the \trule{co-nth}
+only on vanilla algebraic type constants ($T$); not on newtypes
+($T_N$) and neither on type function constants $F$.
 
 \subsection{Meta-theory}\label{sec:sfr-metatheory}
-The proof of progress does not change with respect to \SFC as the only additional construct is roles, which does not play any part in the operational semantics of the language. To recall, the proof of progress is necessary to show that the well typed terms are either values or they can take a step.
-
+The proof of progress does not change with respect to \SFC as the only
+additional construct is roles, which does not play any part in the
+operational semantics of the language. To recall, the proof of
+progress is necessary to show that the well typed terms are either
+values or they can take a step.
 \begin{theorem}[Progress for \SFR]\label{lem:sfr-progress}
- If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ then, either $\Tm \in C\Val$ or, $\stepsto \Tm \Tm'$
+ If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ then, either $\Tm \in C\Val$ or, $\stepsto \Tm N$
 \end{theorem}
-
-The proof of preservation uses the formulation of coercion calculus extended with roles and thus requires some attention. The reason for type unsoundness was that we allowed too many coercions with unrestricted coercion lifting in \SFC.
-
+The proof of preservation uses the formulation of coercion calculus
+extended with roles and thus requires some attention. The reason for
+type unsoundness was that we allowed too many coercions with
+unrestricted coercion lifting in \SFC.
 \begin{lemma}[Soundness of Role Narrowing]\label{lem:role-narrowing}
-If $\RoleAssign{\many\rho}{\TypeConst}$, and $\many\rho' = \Set{\rho' \mid \rho \in \many\rho, \rho' \leq \rho}$ then $\RoleAssign{\many\rho'}{\TypeConst}$
+If $\RoleAssign{\many\rho}{\TypeConst}$, and $\many\rho' = \Set{\rho'
+  \mid \rho \in \many\rho, \rho' \leq \rho}$ then $\RoleAssign{\many\rho'}{\TypeConst}$
 \end{lemma}
-
-The above \pref{lem:role-narrowing} says that it is sound to make the role assignments stricter for any type constant. It formalizes the argument we hinted at in \pref{sec:sfr-static-sem}. Narrowed role assignments will reject more programs so the programmer will find it difficult to work with even if it guarantees type safety.
-We now need a role assignment algorithm which ensures that the typechecker can assign the roles automatically. This characterization of role inference runs parallel to type inference: we want to develop an algorithm, possibly efficient, such that when the typechecker assigns the roles, it is most general, in the sense we do not want to make the system unusable, but also we want to have roles to be correctly assigned.
-
-\newcommand\RoleInfer{$\mathcal{R}_{infer}$\xspace}
-\newcommand\walk[2]{\texttt{walk}(#1,~#2)}
+\pref{lem:role-narrowing} claims that it is sound to make the role
+assignments stricter for any type constant. Narrowed role assignments
+will reject more programs so the programmer will find it difficult to
+work with even if it guarantees type safety. We now need a role
+assignment algorithm which ensures that the typechecker can assign the
+roles automatically. This characterization of role inference runs
+parallel to type inference: we want to develop an algorithm, possibly
+efficient, such that when the typechecker assigns the roles, it is
+most general, in the sense we do not want to make the system unusable,
+but also we want to have roles to be correctly assigned.
 \begin{figure}[ht]
   \begin{algorithmic}[1]
     \Procedure{\RoleInfer}{[$\TypeConst$]}\Comment{Infer the roles of type parameters of all $\TypeConst$s}
@@ -2619,7 +2797,6 @@ We now need a role assignment algorithm which ensures that the typechecker can a
     \State For all $\TypeConst$, Check $\RoleAssign {\roles\TypeConst} \TypeConst$. Error on inconsistency.
     \EndProcedure
   \end{algorithmic}
-
   \begin{algorithmic}[1]
     \Procedure{\texttt{walk}}{$\TypeConst, \sigma$}\Comment{Role marking for $\TypeConst$}
     \State $\walk \TypeConst {\alpha} \bnfeq$ Mark $\alpha$ to $R$, if not already marked.
@@ -2637,8 +2814,18 @@ We now need a role assignment algorithm which ensures that the typechecker can a
 \caption{\RoleInfer algorithm and $\walk\TypeConst\sigma$}\label{alg:role-infer}
 \end{figure}
 
-The role inference algorithm, \RoleInfer is much simpler than type inference algorithm, as there are only three choices to be made for the type parameters for each type constant in question. We will use the following role defaulting policy for type parameters that are unspecified by the programmer: ADT and newtypes get phantom roles type functions get nominal roles. To allow the programmer to override the defaulting role assignment for a type constant declaration, we introduce a new optional syntax.
-This syntax is not backwards compatible but it is lightweight and can be easily incorporated by using compiler pre-processor pragmas. GHC already supports CPP style macros\footnote{\url{https://downloads.haskell.org/ghc/latest/docs/users\_guide/phases.html\#standard-cpp-macros}} which can decide by checking the compiler version if these type role annotations are to be kept in the source code to be passed to the typechecker or not.
+The role inference algorithm, \RoleInfer, as shown in the \pref{alg:role-infer}
+has three choices to make for the type parameters of each type constant.
+The role defaulting policy for type parameters is to assign phantom
+roles to algebraic datatypes ($H$), nominal role for function type
+($\to$) and type function constants. This is a way for the programmer
+to override the defaulting role assignment, using a new optional
+syntax. This syntax is not backwards compatible but it is lightweight
+and can be easily incorporated by using compiler pre-processor pragmas
+which GHC already supports CPP style macros\footnote{\url{https://downloads.haskell.org/ghc/latest/docs/users\_guide/phases.html\#standard-cpp-macros}}
+which can decide by checking the compiler version if these type role
+annotations are to be kept in the source code to be passed to the
+typechecker or not.
 
 \begin{CenteredBox}
 \begin{code}
@@ -2646,15 +2833,18 @@ type role App representational nominal
 newtype App f a = MkApp (f a)
 \end{code}
 \end{CenteredBox}
-In the above code, for the !App! user defined type, the type parameter !f! is assigned representational while !a! is assigned nominal, or that $\roles{App} = [R, N]$
-% \TODO{The role inference with some defaulting works well in practice,}
-% \TODO{Where it does not work give the role using an annotation.}
-% \TODO{We have a role sub-tying relation, it is okay as there is total ordering.}
-% \TODO{The role check/inference is be performed during or after kind checking.}
-% \TODO{how does it avoid unrestricted coercion lifting?}
+In the above code, for the !App! user defined type, the type parameter
+!f! is assigned representational while !a! is assigned nominal, or
+that $\roles{App} = \Set{R, N}$
 
-\RoleInfer is described in a declarative style in \pref{alg:role-infer}
-The $\walk{\TypeConst}{\sigma}$ is the workhorse that marks the type parameters of the $\TypeConst$ with appropriate roles. The algorithm \RoleInfer runs $\walk{\TypeConst}{\sigma}$ for every new $\TypeConst$ defined by the programmer. In the first case of $\walk\TypeConst\sigma$, if $\sigma$ is a type variable, $\alpha$, which is not a type parameter, we can just ignore it.
+The $\walk{\TypeConst}{\sigma}$ is the workhorse for \RoleInfer.
+It assigns the type parameters of the $\TypeConst$ with appropriate
+roles. The algorithm \RoleInfer runs $\walk{\TypeConst}{\sigma}$ for
+every new $\TypeConst$
+defined by the programmer. In the first case of
+$\walk\TypeConst\sigma$, if $\sigma$ is a type variable, $\alpha$,
+which is not a type parameter, we can just ignore it. The other cases
+are easy to follow from the algorithm snippet.
 
 We have the following properties for \RoleInfer algorithm:
 \begin{enumerate}
@@ -2663,20 +2853,38 @@ We have the following properties for \RoleInfer algorithm:
 \item optimal role choice for all type parameters and
 \end{enumerate}
 
-The algorithm is terminating as at every call to $\walk{\TypeConst}\sigma$, we either mark the type parameter role stricter that the previous one we never touch it again. Due to the lower bound on the role ordering, and there being a finite number of type parameters, we are guaranteed to reach a fixed point. The role assignment soundness property follows directly from \pref{lem:role-narrowing}, as each walk essentially narrows the role. The algorithm a greedy algorithm which proves that the role assignment is optimal, as if there was a valid role assignment that was wider than the one assigned by the algorithm, then the algorithm would have chosen that before narrowing it.
-
+The algorithm is terminating as at every call to
+$\walk{\TypeConst}\sigma$, we either mark the type parameter role
+stricter that the previous one, or we never touch it again. Due to the
+lower bound on the role ordering, and there being a finite number of
+type parameters, the algorithm is guaranteed to terminate. The role
+assignment soundness property follows directly from
+\pref{lem:role-narrowing}, as each walk essentially narrows the
+role. The algorithm is greedy which proves that the role
+assignment is optimal, as if there was a valid role assignment that
+was wider than the one assigned by the algorithm, then the algorithm
+would have chosen that before narrowing it.
 \begin{lemma}[Type Preservation for \SFR]\label{lem:sfr-preservation}
 If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ and $\stepsto \Tm \Tm'$, then $\Typing \TEnv {\Tm'} \tau$
 \end{lemma}
-The role directed coercion calculus can be proved to be confluent only if the right hand sides of the coercion axioms have linear patterns. Confluence of type rewriting guarantees consistency for the complete system. In case of overlapping non-linear patterns, the proof of confluence is an open problem~\cite{mizuhito_rta_1995}.
-Finally, The type preservation lemma, \pref{lem:sfr-preservation},
-along with \pref{lem:sfr-progress} is the formal guarantee that
+The role directed coercion calculus can be proved to be confluent only
+if the right hand sides of the coercion axioms have linear
+patterns. Confluence of type rewriting guarantees consistency for the
+complete system. In case of overlapping non-linear patterns, the proof
+of confluence is an open problem~\cite{mizuhito_rta_1995}.
+Finally, type preservation, \pref{lem:sfr-preservation}, along
+with progress, \pref{lem:sfr-progress} is the formal guarantee that
 ensures type soundness.
 
-To summarize, \SFR strove to find a good power to pain ratio by making minimal changes to the system for the benefit to the programmer and re-establishing type soundness by disallowing unsafe coercion lifting by virtue of roles.
+The goal of \SFR is to find a good power to pain ratio: making
+minimal changes to the system to the benefit the programmer, and
+re-establishing type soundness in presence of newtypes, type functions
+and GADTs by disallowing unsafe coercion lifting.
 
 \section{\SFP}\label{sec:sfp} % P for promotion
-Consider a standard GADT implementation of a vector !Vec! that also stores its length at the type level.
+Consider a GADT implementation of a vector datatype, !Vec!.
+This encoding stores the length of the vector at the level of types
+along with the type of the element.
 
 \begin{minipage}[ht]{0.4\linewidth}
 \begin{code}
