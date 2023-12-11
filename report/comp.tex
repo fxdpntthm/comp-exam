@@ -1020,13 +1020,13 @@ encoded in \SFC using \emph{coercions} and \emph{coercion
  \centering
  \begin{syntax}
  \text{Type Variables} &\TyVar,\beta,\Co &\qquad\text{Type Constants} &T \\
- \text{Term Variables} &x,y &\qquad\text{Indices} &i,n \in \mathbb{N} \\
- \text{Coercion Vars} &c & &
+ \text{Term Variables} &x,y &\qquad\text{Type Functions} &F\\
+ \text{Coercion Vars} &c &\qquad\text{Indices} &i,n \in \mathbb{N}
  \end{syntax}
  \begin{syntax}
  \text{Kinds} &&\kappa \bnfeq& \star \bnfor \kappa \to \kappa \bnfor \shl{\sigma \sim \tau}\\
  \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor \shl{F\App\many\tau} \bnfor \shl{\Co}\\
- \shl{\text{Coercions}} &&\nu,\Co \bnfeq& c \bnfor \refl\tau \bnfor \Sym\Co \bnfor \trans\nu\Co % equiv relation
+ \shl{\text{Coercions}} &&\nu,\Co \bnfeq& c \bnfor \Refl\tau \bnfor \Sym\Co \bnfor \Trans\nu\Co % equiv relation
  \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction instantiation
  \bnfor \nu\App\Co \bnfor \Left \Co \bnfor \Right \Co\\  % compose/decompose
  \text{Types/Coercions} && \phi \bnfeq& \tau \bnfor \Co\\
@@ -1083,10 +1083,10 @@ abstracted over by using the special coercion infrastructure.
 \SFC supports a full fledged coercion calculus where
 each syntactic construct corresponds to a logical equation between two
 types. The first basic coercion construct is the
-reflexivity construct `$\refl\tau$': the type $\tau$
+reflexivity construct `$\Refl\tau$': the type $\tau$
 witness the (obvious) fact that it is equal to itself. The two other
 basic constructs on coercions are symmetry `$\Sym\Co$', which flips
-the direction of equality, transitivity `$\trans {\Co_1}{\Co_2}$',
+the direction of equality, transitivity `$\Trans {\Co_1}{\Co_2}$',
 which chains two coercions $\Co_1$ and $\Co_2$. Reflexivity, symmetry
 and transitivity together makes type equality an equivalence class in the
 system. Coercions can also be composed and decomposed using the
@@ -1116,8 +1116,8 @@ expects a term $\Tm$ of type $\sigma$, we can freely use the term $\Cast M \Co$,
 without worrying that the term will get stuck or crash when we run the
 program. The ``will not crash'' guarantee is called as the \emph{type
   soundness property} of the system.
-For type theory enthusiasts, type coercions should be
-thought of as extensional type equality, similar to axiomatizing functional
+The type coercions introduced in the system should be
+thought of as axiomatic type equality, similar to axiomatizing functional
 extensionality. However, the type soundness argument of the system, as we
 will see later, does not rely on any specific
 semantic notion of type equality.
@@ -1192,7 +1192,7 @@ on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
 \newcommand\KReflCo{
  \ib{\irule[\trule{co-refl}]
  {\TyKinding \TEnv \tau \kappa};
- {\CoKinding \TEnv {\refl \tau} {\tau \sim \tau}}
+ {\CoKinding \TEnv {\Refl \tau} {\tau \sim \tau}}
  }
 }
 
@@ -1207,7 +1207,7 @@ on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
  \ib{\irule[\trule{co-trans}]
  {\CoKinding\TEnv {\Co_1} {\tau \sim \tau_2}}
  {\CoKinding\TEnv {\Co_2} {\tau_2 \sim \sigma}};
- {\CoKinding\TEnv {\trans {\Co_1} \Co_2} {\tau \sim \sigma}}
+ {\CoKinding\TEnv {\Trans {\Co_1} \Co_2} {\tau \sim \sigma}}
  }
 }
 
@@ -1304,6 +1304,12 @@ on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
  {\TyKinding \TEnv {\Forall {\TyVar\co\kappa} \sigma} \star}
  }
 }
+\newcommand{\KCoConst}{
+ \ib{\irule[\trule{co-const}]
+ {c\co{\tau \sim\sigma}\in\TEnv};
+ {\CoKinding \TEnv c {\tau \sim\sigma}}
+ }
+}
 
 \begin{figure}[ht]
  \begin{gather*}
@@ -1312,6 +1318,7 @@ on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
  \KForallCo \rsp \KInstCo \\
  \KCoComp \rsp \KCoFComp\\
  \KLeftCo \rsp \KRightCo \\
+ \KCoConst
  \end{gather*}
  \caption{Coercion Typing: Excerpt of Static Semantics of \SFC}
  \label{fig:sfc-typing-co}
@@ -1342,10 +1349,31 @@ coercions for higher kinded types and enable reasoning of equalities
 between them and similarly the rule \trule{co-F-comp} enables coercion
 lifting for fully saturated type functions.
 
+
+\begin{figure}[ht]
+\begin{gather*}
+ \fbox{$\TyKinding \TEnv \tau \kappa$}\\
+ \KTyVar \rsp \KTyApp \\
+ \KTyCon \rsp \KFCon \rsp \KTyAll
+\end{gather*}
+ \caption{Kinding Judgments: Excerpt of Static Semantics of \SFC}
+ \label{fig:sfc-typing-ki}
+\end{figure}
+
+The kinding rules for types, \fbox{$\TyKinding \TEnv \tau \kappa$},
+which are not coercions, are listed in \pref{fig:sfc-typing-ki}.
+They are fairly standard in comparison to \SF. The rule $\trule{ty-app}$
+enables kinding applications of higher kinded types like !List Int! or
+!Tree Float!. Note that the kinding judgment rules $\trule{ty-fcon}$
+and $\trule{ty-con}$ are distinct as only fully saturated type
+function constructors are valid types in the system. The impredicative
+nature of \SFC is evident from the rule $\trule{ty-all}$: type
+quantification is a closed operation over types in the universe of kinds.
+
 To illustrate why coercion composition is useful, consider a higher
 kinded algebraic type !Tree! and a coercion
 $\Co\co\sigma_1\sim\sigma_2$, then using $\tau_1$ and $\tau_2$ to be
-equal to !Tree!, we have that $\refl{\texttt{Tree}} \App\Co :
+equal to !Tree!, we have that $\Refl{\texttt{Tree}} \App\Co :
 \texttt{Tree}\App\sigma_1 \sim \texttt{Tree}\App\sigma_2$. On the
 other hand, if we have a coercion $\texttt{Tree}\App\sigma_1 \sim
 \texttt{Tree}\App\sigma_1$ then we can recover the coercion components
@@ -1360,7 +1388,7 @@ in them maintains the type equality.
  If $\TyKinding {\TEnv,\TyVar\co\kappa'}\phi\kappa$, where $\TyVar$ is free in $\phi$
  and does not appear free in $\TEnv$,
  $\CoKinding\TEnv\Co{\sigma_1\sim\sigma_2}$, and $\TyKinding\TEnv{\sigma_i}\kappa'$
- then, $\CoKinding\TEnv{\Set{\TyVar\mapsto \Co}\refl\phi}
+ then, $\CoKinding\TEnv{\Set{\TyVar\mapsto \Co}\Refl\phi}
  {\Set{\TyVar\mapsto\sigma_1}\phi\sim\Set{\TyVar\mapsto\sigma_2}\phi}$
 \end{theorem}
 \begin{proof}[Proof Sketch \pref{thm:sfc-coercion-lifting}]
@@ -1369,26 +1397,6 @@ in them maintains the type equality.
  derivation the rule \trule{co-refl} was used, it is replaced by the
  derivation of $\CoKinding \TEnv \Co {\sigma_1\sim\sigma_2}$
 \end{proof}
-
-\begin{figure}[ht]
-\begin{gather*}
- \fbox{$\TyKinding \TEnv \tau \kappa$}\\
- \KTyVar \rsp \KTyApp \\
- \KTyCon \rsp \KFCon \rsp \KTyAll
-\end{gather*}
- \caption{Kinding Judgments: Excerpt of Static Semantics of \SFC}
- \label{fig:sfc-typing-ki}
-\end{figure}
-
-The kinding rules for types, \fbox{$\TyKinding \TEnv \tau \kappa$},
-which are not coercions, are listed in \pref{fig:sfc-typing-ty}.
-They are fairly standard in comparison to \SF. The rule $\trule{ty-app}$
-enables kinding applications of higher kinded types like !List Int! or
-!Tree Float!. Note that the kinding judgment rules $\trule{ty-fcon}$
-and $\trule{ty-con}$ are distinct as only fully saturated type
-function constructors are valid types in the system. The impredicative
-nature of \SFC is evident from the rule $\trule{ty-all}$: type
-quantification is a closed operation over types in the universe of kinds.
 
 \newcommand\TVar{
  \ib{\irule[\trule{var}]
@@ -1480,7 +1488,7 @@ $\many\beta$ are brought into scope explicitly in the pattern.
 The reason to do this is to ensure that the continuation term, $N$, can use
 the existentially bounded variables. However, we should be careful to
 not let the existential variables escape their scope. This invariant
-needs to be satisfied by the translation step from surface syntax into
+needs to be enforced by the elaboration step from surface syntax into
 the core language as \SFC is a general calculus.
 For example, consider the data constructor !IsEquals! and its type
 with explicit kind annotations from the previous section.
@@ -1533,7 +1541,7 @@ FORALL (a :: *). (EXISTS (b :: *). (Eq b, b, b)) -> GAlgExp a
 \newcommand{\CoTransE}{
  \ib{\irule[\trule{Co-Trans}]
  {};
- {$\stepsto {\Cast {(\Cast \Val \Co)} {\nu}} {\Cast \Val {(\trans{\Co} {\nu})}}$}
+ {$\stepsto {\Cast {(\Cast \Val \Co)} {\nu}} {\Cast \Val {(\Trans{\Co} {\nu})}}$}
  }
 }
 
@@ -1654,7 +1662,7 @@ the coercion into its sub-components.
 \stepsto {\Cast {(\texttt{Cons}\App \texttt{(T Bool)}\App \texttt{x}\App
     \texttt{y})} \Co} {\texttt{Cons} \App \texttt{Int}\App
   (\Cast {\texttt{x}} \Right\Co) (\Cast {\texttt{xs}}
-  {(\refl{[]}\Right\Co)})}
+  {(\Refl{[]}\Right\Co)})}
 \]
 After this transformation, the term is no longer is a
 coercion term, but a data constructor, and can be used
@@ -1663,7 +1671,7 @@ Coercion lifting plays an important role: it ensures that the term
 sub-components $\Cast M_i {\Subst}\rho_i$ are of
 the appropriate type. Finally, the rule \trule{co-trans}
 flattens a chain of two coercions, $\Co$ and $\nu$, into a casted term
-with one coercion, $\trans\Co\nu$.
+with one coercion, $\Trans\Co\nu$.
 
 The other rules, \trule{$\beta$}, \trule{ty-$\beta$} and \trule{case}
 are straightforward and are carried over from
@@ -2386,7 +2394,7 @@ then we use coercion lifting to derive !F String ~ F Html!
 (as !String ~ Html!), and finally, obtain !Char ~ Bool!
 (by using !F Html ~ Bool!, and !F String ~ Char!):
 \[
-\trans {\trans {(\Sym coFHS)} {(F\App coHtml)}} {coFSC} : Char \sim Bool
+\Trans {\Trans {(\Sym coFHS)} {(F\App coHtml)}} {coFSC} : Char \sim Bool
 \]
 Although we had a characterization of $\Good\TEnv$ in
 \pref{thm:progress-sfc} to make these ``bad'' coercions
@@ -2421,7 +2429,7 @@ To this effect, we need to reformulate our system to allow safe coercion lifting
    \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor
    F\many\tau \bnfor \Co \\
     \text{Type Constants} &&\TypeConst \bnfeq& T \bnfor (\to) \bnfor \shl{\NType}\\
- \text{Coercions} &&\nu,\Co \bnfeq& c \bnfor \refl\tau \bnfor \Sym\Co \bnfor \trans\nu\Co % equiv relation
+ \text{Coercions} &&\nu,\Co \bnfeq& c \bnfor \Refl\tau \bnfor \Sym\Co \bnfor \Trans\nu\Co % equiv relation
  \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction, instantiations
  \bnfor \nu\App\Co \\
                   &&              &\bnfor \Left \Co \bnfor \Right \Co \bnfor \Nth i \Co \bnfor \TypeConst\App\many\Co \bnfor F\many\Co \bnfor \shl{\SubCo \Co} \\  % compose/decompose
@@ -2982,7 +2990,7 @@ more expressive kind polymorphism. An unimaginative solution for the former woul
                                   \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau  \bnfor F_n
                                   \bnfor \shl{\Forall \chi \tau} \bnfor \shl{\tau\App\kappa} \bnfor \shl{H}\\
  \text{Type Constants} && T \bnfeq& T \bnfor T_N\\
- \text{Coercions} &&\nu,\Co \bnfeq& c \bnfor \refl\tau \bnfor \Sym\Co \bnfor \trans\nu\Co % equiv relation
+ \text{Coercions} &&\nu,\Co \bnfeq& c \bnfor \Refl\tau \bnfor \Sym\Co \bnfor \Trans\nu\Co % equiv relation
  \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction instanst
  \bnfor \nu\App\Co \bnfor \Left \Co \bnfor \Right \Co  % compose/decompose
  \bnfor \shl{\Forall \chi \Co} \bnfor \shl{\Co\App\chi} %
@@ -3265,7 +3273,7 @@ In \SFP, we had disallowed promoting types that were indexed or dependent on a p
  \text{Types and Kinds} &&\tau,\sigma,\kappa \bnfeq& w \bnfor \tau\App\tau %
  \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor %
  \Forall {c\co\Prop}\tau \bnfor \Cast\tau\Co \bnfor \tau\App\Co\\
- \text{Coercions} &&\MCo,\Co \bnfeq& c \bnfor \refl\tau \bnfor \Sym\Co \bnfor \trans\MCo\Co \\ % equiv relation
+ \text{Coercions} &&\MCo,\Co \bnfeq& c \bnfor \Refl\tau \bnfor \Sym\Co \bnfor \Trans\MCo\Co \\ % equiv relation
  && \bnfor& \shl{\ForallC {\MCo} {(\TyVar_1, \TyVar_2, c)} \Co} \bnfor \shl{ \MCo\App(\Co, \Co')} %
  \bnfor \shl{\ForallC {(\MCo_1, \MCo_2)} {(c_1, c_2)} \Co} %
  \bnfor \Co\At\MCo \bnfor \shl{\Co\At(\MCo, \MCo')}\\ % abstraction instanst
@@ -3773,6 +3781,66 @@ by understanding the real requirements of practice.
 %\newpage
 %%%% Bibliography
 \bibliography{comp}%%%%%%%%%
+
+
+\part{V: Proofs and Definitions for the Rainy Days}\label{part:appendix}
+
+\begin{defn}[Coercion Substitution in Types]
+The special case is $\Refl\tau$. Let $\Subst = \Sub{\alpha}{\Co}$\\
+\begin{minipage}{0.5\linewidth}
+\begin{flalign*}
+\Subst c &:= c\\
+\Subst T &:= T\\
+\Subst\Refl{\beta} &:= \texttt{if}~ \alpha = \beta~ \texttt{then}~ \Co~ \texttt{else}~\Refl\beta\\
+\Subst\Sym\nu     &:= \Sym{\Subst\nu}\\
+\Subst\Trans\nu{\nu'} &= \Trans{\Sub\alpha\Co\nu}{\Sub\alpha\Co\nu'}\\
+\Subst\Right\nu     &:= \Right\Subst\nu
+\end{flalign*}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{flalign*}
+\Subst{\beta} &:= \texttt{if}~ \alpha = \beta~ \texttt{then}~ \Co~ \texttt{else}\beta\\
+\Subst(\tau\to\sigma)  &:= (\Subst\tau)\to(\Subst\sigma)\\
+\Subst(\tau\App\sigma) &:= (\Subst\tau)\App(\Subst\sigma)\\
+\Subst(\Forall {\beta\co\kappa}\tau) &:= \Forall {\beta\co\kappa}{(\Subst\tau)}\\
+\Subst(\nu\At\tau)     &:= (\Subst\nu)\At(\Subst\tau)\\
+\Subst\Left\nu     &:= \Left\Subst\nu\\
+\Subst(F\App\many\tau) &= F\App\Subst\many\tau
+\end{flalign*}
+\end{minipage}
+\end{defn}
+
+% \begin{theorem}[Coercion Lifting]\label{thm:sfc-coercion-lifting-appendix}
+%  If $\TyKinding {\TEnv,\TyVar\co\kappa'}\phi\kappa$, where $\TyVar$ is free in $\phi$
+%  and does not appear free in $\TEnv$, and
+%  $\CoKinding\TEnv\Co{\sigma_1\sim\sigma_2}$, and $\TyKinding\TEnv{\sigma_i}\kappa'$
+%  then, $\CoKinding\TEnv {\Sub{\TyVar}{\Co}\Refl{\phi}}
+%  {\Set{\TyVar\mapsto\sigma_1}\phi\sim\Set{\TyVar\mapsto\sigma_2}\phi}$
+% \end{theorem}
+\begin{proof}[\pref{thm:sfc-coercion-lifting}]
+By induction on the structure of the derivation of the well kinded
+types we have the following cases:
+
+\begin{itemize}
+\item[\trule{ty-var}] $\alpha$: It is a well formed type (assumption), the coercion
+  substitution is well formed (assumption), so the claim holds,
+  $\TyKinding \TEnv {\Sub{\alpha}{\Co}\Refl{\alpha}}
+  {\Sub{\alpha}{\sigma_1}\alpha \sim \Sub{\alpha}{\sigma_2}\alpha}$.
+  If the type variable is not $\alpha$, the substitution has no effect
+\item[\trule{ty-con}] $T$ is a constant, so the substitution does not
+  have any effect.
+\item[\trule{ty-fcon}] $F\App{\many\sigma}$: By
+  induction principle application on the well kinded type arguments
+  $\many{\TyKinding \TEnv \sigma \kappa}$
+\item[\trule{ty-all}] $\Forall{\alpha\co\kappa}{\tau}$:
+  after necessary renaming gymnastics to avoid variable capture,
+  induction hypothesis with weakening applies to $\TyKinding {\TEnv,\alpha\co\kappa} \tau \kappa$
+\item[\trule{ty-app}] $\tau\App\sigma$: substitution distributes
+  over the type application and induction on the derivations of
+  $\TyKinding \TEnv \tau {\kappa \to \kappa'}$
+  and $\TyKinding \TEnv \sigma {\kappa}$
+\end{itemize}
+\end{proof}
 
 \end{document}
 
