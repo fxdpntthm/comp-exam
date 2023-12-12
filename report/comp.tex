@@ -22,9 +22,9 @@
 
 \begin{document}
 \begin{abstract}
-  Understanding the principles of programming language's design
-  and implementation is crucial as they are a primary interface between humans
-  and computers. Programming languages need to encode unambiguous yet
+  Programming languages are a primary interface between humans
+  and computers. This makes it crucial to understand their principles of design
+  and implementation. Programming languages need to encode unambiguous yet
   expressive instructions for computers. The
   features of a typed programming language strive to provide machine
   verified guarantees about the programs by following the  ``correct
@@ -33,8 +33,9 @@
   modern, statically typed, declarative, and functional
   programming language. We focus on how one single construct,
   explicit type equality, gives a unified account of several seemingly
-  unrelated language features. The consequence of which is an easy to
-  reason about and implement typed intermediate language. We also
+  unrelated language features. As a consequence we obtain a typed
+  intermediate language that is an easy to
+  reason about and implement. We also
   study important extensions of this language and identify notable open
   research problems.
 \end{abstract}
@@ -67,8 +68,8 @@ compiler~\cite{siek_compilation_2023}. It is a more suitable
 representation of the surface syntax AST to perform code analysis and
 runtime optimizations~\cite{aho_compilers_1986}.
 If there is a way of encoding the new language feature by using the
-existing language features the second step, of operation extension, can be
-skipped. However, some exotic language features cannot be encoded
+existing language features, the second step---of the operation extension---can be
+skipped. However, not all language features can be encoded
 into existing language features. In such cases, the compiler writer, needs
 to enrich the intermediate language to support the
 new language feature. Extensions to the intermediate language,
@@ -2887,7 +2888,9 @@ ensures type soundness.
 The goal of \SFR is to find a good power to pain ratio: making
 minimal changes to the system to the benefit the programmer, and
 re-establishing type soundness in presence of newtypes, type functions
-and GADTs by disallowing unsafe coercion lifting.
+and GADTs by disallowing unrestricted coercion lifting. The key
+challenge was to identify and solve the problem of generating fewer
+type coercions but enough to be backwards compatible.
 
 \section{\SFP}\label{sec:sfp} % P for promotion
 Consider a GADT implementation of a vector datatype, !Vec!.
@@ -3400,135 +3403,234 @@ do not want to allow only ``trivial'' equality proofs.
 
 \part{IV: The Path Ahead and The Detours}\label{part:IV}
 \section{Future Work}\label{sec:future-work}
-\subsubsection{Functional Dependencies and Coercions}\label{sec:fc-encodes-fundeps}
 Consider the !Con e c! from \pref{fig:tc-collection-fd}.
-
-\begin{minipage}[ht]{0.5\linewidth}
+\begin{figure}[ht]
+\begin{minipage}{0.5\linewidth}
 \begin{code}
-class Con e c | c ~> e where ...
-instance Con Int [Int] where ...
+class Con e c | c ~> e where
   empty :: FORALL e c. Con e c => c
   extend :: FORALL e c. Con e c => e -> c -> c
+
+instance Con Int [Int] where
+  empty = ...
+  extend = ...
 \end{code}
 \end{minipage}%
-\begin{minipage}[ht]{0.5\linewidth}
+\begin{minipage}{0.5\linewidth}
 \begin{code}
-type FDCon c : *
-axiom FDConInt : FDCon [Int] ~ Int
-  empty  : FORALL c. Con (FDCon c) c => c
-  extend : FORALL c. Con (FDCon c) c => e -> c -> c
+type family FDCon c : *
+empty : FORALL c. Con (FDCon c) c => c
+extend : FORALL c. Con (FDCon c) c => e -> c -> c
+
+axiom coFDCon[Int]Int : FDCon [Int] ~ Int
+empty_[Int]  : Con [Int] (FDCon [Int]) => Int
+extend_[Int] : Con [Int] (FDCon [Int]) => Int -> [Int] -> [Int]
+
 \end{code}
 \end{minipage}
+\caption[FunDeps in \SFC]{Elaborating Functional Dependencies into \SFC}
+\label{fig:elab-fundeps-sfc}
+\end{figure}
+Functional dependencies introduce the
+uniqueness criteria for a subset of the multiparameter type classes.
+We may expect obtaining a natural encoding of functional dependencies
+via the mechanism of open type functions. In this encoding scheme,
+each functional dependency induces a special
+type function that relates the determiner of the functional dependency
+to the determinant. Each typeclass instance introduces an axiom that
+encodes this mapping. Further, every type that mentions the
+determinant of the functional dependency gets replaced by the type
+function. For example, as shown in \pref{fig:elab-fundeps-sfc},
+!Con e c! gets converted to !Con (FCCon c) c!. While this encoding is
+sound, and works for simple cases, it does not cover all the use cases.
 
-There is a way to encode functional dependencies via the mechanism of open type functions. Each functional dependency induces a special type function that relates determiner to the determinant. Each typeclass instance introduces an axiom that encodes the functional mapping. Further, every type that mentions the determinant of the functional dependency gets replaced by the type function: !Con e c! gets converted to !Con (FCCon c) c!.
-We skip the formalization for encoding functional dependencies until further \pref{sec:conclusion}; while there is an encoding mechanism that is sound, a complete encoding that covers all cases is an open problem.
-
-Open problems and future direction: Are we falling in the same of
-cramming the language pit by adding equalities. give more examples.
-
-Why are fundeps good?
-\begin{itemize}
-\item
-\end{itemize}
-
-Why are fundeps bad?
-\begin{itemize}
-\item
-\end{itemize}
-
-Why are type functions good?
-\begin{itemize}
-\item
-\end{itemize}
-
-Why are type functions bad?
-\begin{itemize}
-\item
-\end{itemize}
-
-fun deps + typefuctions cause a bomb
-Associated types https://gitlab.haskell.org/ghc/ghc/-/issues/11534
-
-GADTs and fun deps don't interact well (type inference improvement problem)
-https://gitlab.haskell.org/ghc/ghc/-/issues/345
-
-Why did type functions were started in the first place?
-https://gitlab.haskell.org/ghc/ghc/-/issues/11534
-``If someone can explain how to elaborate functional dependencies into well-typed evidence in System FC, that would be good. My inability to do so was one of the reasons we developed type families and System FC in the first place.''
-
-Deriving machinery does not play well with fundeps
-The issue is that
-
-Research question:
-can we get the best of both worlds?
-
-and on the way liberate the compiler writer to make a choice between
-having fundeps and type functions?
-
-Closed type classes should fall out directly from
-
-
-There is no satisfactory account of functional
-dependencies in any of these system although they inherently exhibit
-type equality. Functional dependencies have the following nice
-properties~\cite{jones_simplifying_1995}:
-\begin{itemize}
-\item They aid type inference by improving and simplifying types
-\item Each type equality is embedded in a typeclass constraint
-\end{itemize}
-
-The first point is good from a programmers perspective. The types that
-are inferred by the typechecker may be ambiguous, but with the presence of
-functional dependencies, the inferred type can be matched exactly with
-the semantics.
-
+\begin{CenteredBox}
 \begin{code}
-  t :: C Int b => Int -> Int
-  class C a b | a ~> b
+class Con elem con => UCon con
 \end{code}
+\end{CenteredBox}
 
-there can only be one unique value of b, and hence this type is not
-ambiguous. The compiler has only one option to choose from.
-The improving and simplifying types goes beyond just the above
-``simple'' example.
+Representing the typeclass constraints in a first order predicate logic, we get the following
+(seemingly broken) formula:
+\[
+\Forall{con}{\texttt{UCon}\App con \then \texttt{Con}\App elem\App con}
+\]
+It is broken, as the type variable !elem! is out of scope.
+The intended meaning of the class declaration is:
+whenever we have an evidence that says the typeclass constraint
+!UCon con! is satisfied, we can also assume, or produce, an
+evidence for typeclass constraint !Con elem con!.
+Although it may seem that the type parameter
+!elem! is free in this definition, it is uniquely
+determined due to the functional dependency, !con ~> elem!.
+The type parameter !con! is existentially
+bound; now made explicit in the formula below:
+\[
+\Forall{con}{\texttt{UCon}\App con \then \Exists{\bang elem}\texttt{Con}\App con\App elem}
+\]
+To tackle this problem \citet{karachalias_elaboration_2017} develop an
+elaboration scheme for typeclass and instance declarations which
+elaborates functional dependencies. However,
+their work cannot provide an explanation of the general theory of
+the simplifying and improvement of types\cite{jones_simplifying_1995}
+as functional dependencies may introduce partial type
+refinements. Functional dependencies remain a type inference level
+artifact and encoding the evidence of type improvement due to function
+dependencies in \SFC is an open problem. This is evident from one of
+the comments from the GHC developers, ``If someone can explain how to
+elaborate functional dependencies into well-typed evidence in System
+FC, that would be good. My inability to do so was one of the reasons
+we developed type families and System FC in the first
+place.''\footnote{Comment on GHC Issue
+  \#9627\url{https://gitlab.haskell.org/ghc/ghc/-/issues/9627}}
+The consequence of the incomplete encoding of functional
+dependencies is reflected in GHC implementation:
+unexplainable type errors where the type checker is too
+restrictive. For example, cases where funtional dependencies interacts
+with associated typeclasses\footnote{GHC Issue \#11534:
+  \url{https://gitlab.haskell.org/ghc/ghc/-/issues/11534}},
+GADTs\footnote{GHC Issue \#345:
+  \url{https://gitlab.haskell.org/ghc/ghc/-/issues/345}},
+or more generally causing non-confluence issues in the GHC constraint
+solver \footnote{GHC issue \#18851:
+  \url{https://gitlab.haskell.org/ghc/ghc/-/issues/18851}}
 
-For the second point, the current typechecker implementation is
-plagued with cases that handle class constraints and those that handle
-type equality constraints. With functional dependencies, we would have
-type equalities only due to class constraints. The typechecker can
-then be simplified by having only once case that handles typeclasses
-and it embeds type equalities uniformly. \TODO{Is this safer that
-  having bare type equalities? maybe we can relax $\Good\TEnv$
-  condition?}
+The functional dependency style has advantages over the
+functional style\cite{jones_language_2008}. Consider the !extendWithOne!
+function which uses the !extend! method from !Con con elem!
+typeclass as shown in \pref{fig:fundeps-vs-tfs}.
+\begin{figure}[ht]
+\centering
+\begin{minipage}{0.5\linewidth}
+\begin{code}
+       extendWithOne :: Con con Int
+                     => con -> con
+       extendWithOne 1 c = extend 1 c
+\end{code}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{code}
+      extendWithOne :: (Elem con ~ Int, Con con)
+                    => con -> con
+      extendWithOne 1 c = extend 1 c
+\end{code}
+\end{minipage}
+\caption[FundDeps or TFs]{Functional Dependencies vs Type Functions}
+\label{fig:fundep-vs-tfs}
+\end{figure}
 
-Both functional dependencies and associated types provide the same set
-of features: improve type inference by resolving ambiguous types and
-enable type level computations. It would be logical to pose
-questions such as: is one style more expressive than the other or is
-it just a matter of stylistic preference? In other works, are
-functional dependencies equivalent to associate types? Jones' original
-work does not delve into formalization aspects of functional
-dependencies feature. ~\citet{jones_language_2008} claim (without
-proof) that they  are equivalent in expressiveness but favor
-functional dependencies as it introduces minimal overhead in terms of
-type system implementation. ~\citet{karachalias_elaboration_2017} use
-an elaboration technique go the other way around. They however fail to
-compare how their system translates improvement in type inference
-which is offered by a functional dependencies and pose it as an open
-question.
+In a associated type class setting as the associated type is
+independent of the typeclass itself, the !extendWithOne! function will
+need to have two constraints. One that fixes the Element of the
+container. In general, writing a polymorphic function over the
+determiner of the typeclass will require such redundant
+constraints. This means that the user has to provide more hints to the
+constraint solver to convince it that the program is type correct,
+while the compiler writer needs to write a solver that now accepts and
+verifies explicit equality constraints. This verification makes the
+solver complicated.
+
+\begin{figure}[ht]
+  \centering
+\begin{tikzpicture}[->,>=stealth,auto,
+roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=8mm},
+squarednode/.style={rectangle, draw=red!60, fill=red!5, very thick, minimum size=8mm},
+node distance=1.5cm
+]
+
+%Nodes
+\node[squarednode]      (centercirc)  {$\substack{Typed\\Intermediate\\ Language}$};
+\node[roundnode]        (leftcirc)    [left=of centercirc] {$\substack{Functional\\Dependencies}$};
+\node[roundnode]        (rightcirc)   [right=of centercirc] {$\substack{Type\\Functions}$};
+
+%Lines
+\draw[dashed, -{Stealth[length=3mm, width=2mm]}] (leftcirc.east)  -- (centercirc.west);
+\draw[dashed, -{Stealth[length=3mm, width=2mm]}] (rightcirc.west) -- (centercirc.east);
+
+\draw[-{Stealth[length=3mm, width=2mm]}] (leftcirc.north)  to
+[out=30,in=150] (rightcirc.north) node[midway, above=1.6cm] {\cite{karachalias_elaboration_2017}};
+\draw[-{Stealth[length=3mm, width=2mm]}] (rightcirc.south) to
+[out=210,in=340] (leftcirc.south) node[midway, below=1.6cm] {\cite{jones_language_2008}};
+\end{tikzpicture}
+  \caption[Open Problem]{Compiling Functional Dependencies and Type
+    Functions to a unified Typed Intermediate Language}
+  \label{fig:future-work}
+\end{figure}
 
 
-It is worthwhile to consider the alternative design of \SFC: what if
-the type equality proofs were at the level of types instead of at the kind
-level. The consequence of which would be that the formalization would
-have to take into consideration the computational complexity that
-might arise due to operational semantics of the coercions within the
-typechecker. An interesting research question still remains: Is it
-better to have equality proofs as types or equality proofs as kinds?
-There are systems designed with both, type equalities at the level of
-kinds and type equalities at the level of types. There is no study of
-whether both of them are equivalent or one may want to prefer the
-other over which use cases.
+The hope is to find an acceptable solution to find a good representation
+of the behavior of functional dependencies in a core typed
+intermediate language. This would liberate the language designer from
+the choosing one language feature over another, and in turn give the
+user the flexibility to choose the style of their liking.
+
+% and on the way liberate the compiler writer to make a choice between
+% having fundeps and type functions?
+
+% Closed type classes should fall out directly from
+
+
+% There is no satisfactory account of functional
+% dependencies in any of these system although they inherently exhibit
+% type equality. Functional dependencies have the following nice
+% properties~\cite{jones_simplifying_1995}:
+% \begin{itemize}
+% \item They aid type inference by improving and simplifying types
+% \item Each type equality is embedded in a typeclass constraint
+% \end{itemize}
+
+% The first point is good from a programmers perspective. The types that
+% are inferred by the typechecker may be ambiguous, but with the presence of
+% functional dependencies, the inferred type can be matched exactly with
+% the semantics.
+
+% \begin{code}
+%   t :: C Int b => Int -> Int
+%   class C a b | a ~> b
+% \end{code}
+
+% there can only be one unique value of b, and hence this type is not
+% ambiguous. The compiler has only one option to choose from.
+% The improving and simplifying types goes beyond just the above
+% ``simple'' example.
+
+% For the second point, the current typechecker implementation is
+% plagued with cases that handle class constraints and those that handle
+% type equality constraints. With functional dependencies, we would have
+% type equalities only due to class constraints. The typechecker can
+% then be simplified by having only once case that handles typeclasses
+% and it embeds type equalities uniformly. \TODO{Is this safer that
+%   having bare type equalities? maybe we can relax $\Good\TEnv$
+%   condition?}
+
+% Both functional dependencies and associated types provide the same set
+% of features: improve type inference by resolving ambiguous types and
+% enable type level computations. It would be logical to pose
+% questions such as: is one style more expressive than the other or is
+% it just a matter of stylistic preference? In other works, are
+% functional dependencies equivalent to associate types? Jones' original
+% work does not delve into formalization aspects of functional
+% dependencies feature. ~\citet{jones_language_2008} claim (without
+% proof) that they  are equivalent in expressiveness but favor
+% functional dependencies as it introduces minimal overhead in terms of
+% type system implementation. ~\citet{karachalias_elaboration_2017} use
+% an elaboration technique go the other way around. They however fail to
+% compare how their system translates improvement in type inference
+% which is offered by a functional dependencies and pose it as an open
+% question.
+
+
+% It is worthwhile to consider the alternative design of \SFC: what if
+% the type equality proofs were at the level of types instead of at the kind
+% level. The consequence of which would be that the formalization would
+% have to take into consideration the computational complexity that
+% might arise due to operational semantics of the coercions within the
+% typechecker. An interesting research question still remains: Is it
+% better to have equality proofs as types or equality proofs as kinds?
+% There are systems designed with both, type equalities at the level of
+% kinds and type equalities at the level of types. There is no study of
+% whether both of them are equivalent or one may want to prefer the
+% other over which use cases.
 
 \section{Related Work}\label{sec:related-work}
 %%%%%%%%%
@@ -3644,18 +3746,6 @@ above, it should be considered as a failure.
 
 
 \subsection{Type Functions}\label{sec:rw-type-fun}
-\subsubsection{Injective type famililes}
-Type functions are non-injective by default. It can be a useful programming idiom to declare a type function to be injective so that the typechecker can use this information to rule out programs which violate this property and further use the injective property to refine the type information. For example, consider an injective type function !F! declared to be injective below:
-
-\begin{CenteredBox}
-\begin{code}
-type family F a = r | r ~> a
-type instance F Int = Char
-type instance F Bool = Int
-\end{code}
-\end{CenteredBox}
-This syntax is direct inspiration from functional dependencies for typeclasses. The declaration !r ~> a! says that the result of the type function !r!, can uniquely determine the argument of the type family !a!. Now, during type checking the instances of type functions, the typechecker would reject any axiom which would make !F! non-injective. For example, in the above code, the declaration !type instance F Char = Char! would be rejected by the typechecker. Further while trying to solve a wanted type equality constraint such as, !F a ~ Char!, the typechecker can leverage the fact that !F! is injective, and hence, there can be only one solution for the equation: !a ~ Int!, thus aiding the solver with extra information to solve the original wanted constraint. Injective type families~\cite{stolarek_injective_2015} can be extended for closed type families as well.
-
 \subsubsection{Closed type families}
 The programmer may want to write type functions to intentionally restrict extensions. For example, the previously defined !Add! type function is defined only on !Z! and !S n! types. Closed type families~\cite{eisenberg_typefamilies_2014} help in precisely expressing such use cases as shown below:
 
@@ -3668,6 +3758,18 @@ type family Add m n where
 \end{CenteredBox}
 
 An additional advantage is that the programmer can also define a default case handler (!Add _ n = n!) for such type functions. This declaration is impossible with just open type functions as there is no guarantee of the order in which the axioms are matched. The syntax for writing closed type functions is very similar to writing case statements at term level but for types. Closed type families cannot prove confluence of type rewriting with non-linear type patterns (!Add x x!) as it is reducible to open problem in term rewriting community~\cite{mizuhito_rta_1995}. It has to appeal to infinitary unification~\cite{jaffar_efficient_1984} of types to claim consistency, which is unsatisfactory, as Haskell does not have infinite types.
+
+\subsubsection{Injective type famililes}
+Type functions are non-injective by default. It can be a useful programming idiom to declare a type function to be injective so that the typechecker can use this information to rule out programs which violate this property and further use the injective property to refine the type information. For example, consider an injective type function !F! declared to be injective below:
+
+\begin{CenteredBox}
+\begin{code}
+type family F a = r | r ~> a
+type instance F Int = Char
+type instance F Bool = Int
+\end{code}
+\end{CenteredBox}
+This syntax is direct inspiration from functional dependencies for typeclasses. The declaration !r ~> a! says that the result of the type function !r!, can uniquely determine the argument of the type family !a!. Now, during type checking the instances of type functions, the typechecker would reject any axiom which would make !F! non-injective. For example, in the above code, the declaration !type instance F Char = Char! would be rejected by the typechecker. Further while trying to solve a wanted type equality constraint such as, !F a ~ Char!, the typechecker can leverage the fact that !F! is injective, and hence, there can be only one solution for the equation: !a ~ Int!, thus aiding the solver with extra information to solve the original wanted constraint. Injective type families~\cite{stolarek_injective_2015} can be extended for closed type families as well.
 
 \subsubsection{Constrained type families}
 Constrained type families~\cite{morris_typefamilies_2017} allows type computation to proceed only when the type family application can be provably reduced to a ground type. This simplifies the meta-theory of the language significantly. Constrained type families can prove confluence of type rewriting hence gives stronger type soundness guarantees. It avoids the pitfall of having to prove consistency by resorting to the use of infinitary unification and a conjecture to prove consistency. Closed type classes, which otherwise would need special infrastructure, fall out naturally in this system. The formalized system however, does not have a corresponding  working implementation, and there is no clear way of retrofitting representational type equality without resorting to the roles infrastructure as in \SFR.
@@ -3684,7 +3786,7 @@ typechecker to reject unsafe programs which could violate the
 safety property.
 
 \subsubsection{Partial Type Constructors}
-Recall the associated types appearing as type arguments within a data
+Consider the associated type appearing as type argument within a data
 constructor:
 
 \begin{CenteredBox}
@@ -3695,7 +3797,7 @@ data E a = MkE (Elem a)
 
 GHC designers decided to ignore the question of whether typechecking
 an instance of an element of !E a! should check for satisfaction of
-the !Coll a! typeclass. This makes the type system restrictive as to
+the associated !Con a! typeclass. This makes the type system restrictive as to
 ensure safety, certain typeclass abstraction machinery cannot be used
 leverage coding patterns such as the constrained monad
 problem~\cite{sculthorpe_constrained-monad_2013} or its generalized
@@ -3783,7 +3885,7 @@ by understanding the real requirements of practice.
 \bibliography{comp}%%%%%%%%%
 
 
-\part{V: Proofs and Definitions for the Rainy Days}\label{part:appendix}
+\part{V: Appendix for Proofs, Definitions, and Thorny Bushes}\label{part:appendix}
 
 \begin{defn}[Coercion Substitution in Types]
 The special case is $\Refl\tau$. Let $\Subst = \Sub{\alpha}{\Co}$\\

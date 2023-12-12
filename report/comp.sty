@@ -15,7 +15,7 @@
 \setlist{nosep}
 \setlist{nolistsep}
 
-\usetikzlibrary{arrows,positioning,shapes,fit,calc}
+\usetikzlibrary{arrows,positioning,arrows.meta,shapes,fit,calc,decorations.markings}
 
 \makeatletter
 \DeclareFontFamily{U}{tipa}{}
@@ -187,6 +187,7 @@
 \newcommand{\Let}[3]{\mathsf{let}\;#1 = #2\;\mathsf{in}\;#3}
 \newcommand{\Case}[2]{\mathsf{case}\;#1\;\mathsf{of}\;#2}
 \newcommand\Forall[2]{\forall#1.~#2}
+\newcommand\Exists[2]{\exists#1.~#2}
 \newcommand\ForallC[3]{\forall_{#1}#2.~#3}
 \newcommand\tassume[2]{\texttt{assume}~{#1}~\texttt{in}~{#2}}
 \newcommand{\ClassCtrs}{\texttt{C}}
