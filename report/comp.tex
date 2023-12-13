@@ -3443,6 +3443,9 @@ determinant of the functional dependency gets replaced by the type
 function. For example, as shown in \pref{fig:elab-fundeps-sfc},
 !Con e c! gets converted to !Con (FCCon c) c!. While this encoding is
 sound, and works for simple cases, it does not cover all the use cases.
+Consider a specialized case of containers, !UCon con!, for unsorted containers,
+where the container elements may not have a ordering function defined
+on them.
 
 \begin{CenteredBox}
 \begin{code}
@@ -3475,23 +3478,22 @@ their work cannot provide an explanation of the general theory of
 the simplifying and improvement of types\cite{jones_simplifying_1995}
 as functional dependencies may introduce partial type
 refinements. Functional dependencies remain a type inference level
-artifact and encoding the evidence of type improvement due to function
-dependencies in \SFC is an open problem. This is evident from one of
-the comments from the GHC developers, ``If someone can explain how to
+artifact and have no evidence at the level of \SFC. This gap is evident
+from the comments from the GHC developers, ``If someone can explain how to
 elaborate functional dependencies into well-typed evidence in System
 FC, that would be good. My inability to do so was one of the reasons
 we developed type families and System FC in the first
-place.''\footnote{Comment on GHC Issue
-  \#9627\url{https://gitlab.haskell.org/ghc/ghc/-/issues/9627}}
+place.''\footnote{Comment on GHC Issue \#9627:
+  \url{https://gitlab.haskell.org/ghc/ghc/-/issues/9627\#note\_88529}}
 The consequence of the incomplete encoding of functional
 dependencies is reflected in GHC implementation:
-unexplainable type errors where the type checker is too
-restrictive. For example, cases where funtional dependencies interacts
-with associated typeclasses\footnote{GHC Issue \#11534:
+obscure type errors, and worse the type checker is unnecessarily more
+restrictive than it should be. For example, issues with functional
+dependencies interacting with associated typeclasses\footnote{GHC Issue \#11534:
   \url{https://gitlab.haskell.org/ghc/ghc/-/issues/11534}},
 GADTs\footnote{GHC Issue \#345:
   \url{https://gitlab.haskell.org/ghc/ghc/-/issues/345}},
-or more generally causing non-confluence issues in the GHC constraint
+or more generally, causing non-confluence issues in the GHC constraint
 solver \footnote{GHC issue \#18851:
   \url{https://gitlab.haskell.org/ghc/ghc/-/issues/18851}}
 
@@ -3516,19 +3518,19 @@ typeclass as shown in \pref{fig:fundeps-vs-tfs}.
 \end{code}
 \end{minipage}
 \caption[FundDeps or TFs]{Functional Dependencies vs Type Functions}
-\label{fig:fundep-vs-tfs}
+\label{fig:fundeps-vs-tfs}
 \end{figure}
 
-In a associated type class setting as the associated type is
+In the associated type class setting as the associated type is
 independent of the typeclass itself, the !extendWithOne! function will
-need to have two constraints. One that fixes the Element of the
-container. In general, writing a polymorphic function over the
+need to have two constraints. One that fixes the element of the
+container, the other that constrains the container type.
+In general, writing a polymorphic function over the
 determiner of the typeclass will require such redundant
 constraints. This means that the user has to provide more hints to the
-constraint solver to convince it that the program is type correct,
-while the compiler writer needs to write a solver that now accepts and
-verifies explicit equality constraints. This verification makes the
-solver complicated.
+constraint solver to convince it that the program is type correct.
+Further, the compiler writer needs to write a non-trivial solver that
+now accepts and verifies explicit equality constraints.
 
 \begin{figure}[ht]
   \centering
@@ -3636,7 +3638,7 @@ user the flexibility to choose the style of their liking.
 %%%%%%%%%
 \subsection{Ad-hoc polymorphism}\label{sec:rw-adhoc-poly}
 \subsubsection{Typeclass alternatives}
-~\citet{kaes_parametric_1988} had similar ideas related to
+\citet{kaes_parametric_1988} had very similar ideas related to
 implementation aspects of adhoc polymorphism before
 ~\citet{wadler_polymorphism_1989}. The work on functional dependencies
 for multi-parameter typeclasses is directly influenced by parametric
@@ -3715,11 +3717,30 @@ by superclasses is contained in the sub-classes.
 % \end{code}
 % \end{CenteredBox}
 
-\subsubsection{Closed typeclasses}
-GHC/Haskell does not support closed typeclasses out of the box. In Scala, sealed traits accomplish this behaviour. Closed typeclasses, as opposed to the open typeclasses, cannot be extended with instances. This can be useful in cases where we want the typechecker to be able to deduce that certain typeclass constraints can never be satisfied. In current Haskell unsatisfiable typeclass constraints, amout to functions that cannot be called. However, with closed typeclasses, the typechecker would be able to identify such cases and warn the programmer about unusablity of the functions. Only parital behaviour of closed typeclasses can be emulated in current Haskell, by limiting the export names from modules. This just allows closedness property of closed typeclasses. The typechecker cannot use the information that the unexported typeclass is effectively closed to reason about whether the constraint can be solvable or can never be solved.
+\subsubsection{Closed Typeclasses}
+Closed typeclasses, as
+opposed to the open typeclasses, cannot be extended with
+instances. GHC/Haskell does not support closed typeclasses out of the
+box. In Scala, sealed traits accomplish this behavior by using modules
+as implicit boundaries to prohibit extensions. This can be useful in
+cases where we want the typechecker to be able to deduce that certain
+typeclass constraints can never be satisfied. In current Haskell,
+unsatisfiable typeclass constraints for a function type, amounts dead
+code as such functions cannot be used.
+With a support to closed typeclasses, the typechecker would be
+able to identify such cases and warn the programmer about the dead code.
+Only partial behavior of closed typeclasses can be
+encoded in current Haskell. This is achieved by limiting the export
+names from modules. While this establishes the closed-ness property of
+the typeclass. The typechecker cannot use this information that the
+unexported typeclass cannot be extended and use it to reason about
+whether the constraint can be solvable or not.
 
 \subsubsection{Instance Chains}
-Instance chains~\cite{morris_instance_2010} enable finer grained control of which instance can be used to satisfy a typeclass constraint. The typeclass !Show! specifies how a value can be converted to a string to be printed as shown below:
+Instance chains~\cite{morris_instance_2010} enable finer grained
+control of which instance should be used to satisfy
+a typeclass constraint. The instances for !Show! typeclass defines how
+a value can be converted to a string:
 
 \begin{CenteredBox}
 \begin{code}
@@ -3729,25 +3750,37 @@ class Show a => Show [a] where show = ...
 class Show String where show = ...
 \end{code}
 \end{CenteredBox}
-Now, if we know how to show a type, we can write a generic instance of
-show on a list of those types. However, we may want to override this
-behaviour for some specific instances of types such as !String!, which
-is declared as a type synonym for a list of !Char!. The typechecker
-now has two ways of resolving the typeclass constraint !Show String!:
-it can either use the generic instance via !Show [Char]!, or it can
-use the specific instance !Show String!. The typechecker cannot know a
-priori which is the more appropriate option. Such instances are called
-overlapping instances. Standard Haskell disallows such overlapping
-instances. Instance chains solves this problem by allowing programmers
+If we know how to write a !show! function for any value of a particular
+type, we can write a generic instance of show on a list of such types.
+However, we may want to override this behavior for some specific
+instances. For example, the type !String! in GHC is declared as a
+type synonym for a list of !Char!---(!type String = [Char]!).
+The typechecker now has two ways of resolving the typeclass
+constraint !Show String!: it can either use the generic instance via
+!Show [Char]!, or it can use the specific instance !Show String!. The
+typechecker has no way cannot decide which instance is more appropriate.
+Such instances are called \emph{overlapping instances}.
+Haskell disallows overlapping instances as this gives rise to
+incoherence issues\cite{jones_coherence_1993}.
+Instance chains solves this problem by allowing programmers
 to specify in what order the the instances can be resolved. It also
-subsumes closed typeclasses by providing the capability to express
-that any instance that does not match with any of the instances listed
-above, it should be considered as a failure.
+subsumes closed typeclasses by providing a capability to express
+a default failure clause in an instance chain declaration.
 
+\begin{CenteredBox}
+\begin{code}
+instance Show String where show s = ...
+else instance Show a => [a] where show s = ...
+\end{code}
+\end{CenteredBox}
 
 \subsection{Type Functions}\label{sec:rw-type-fun}
 \subsubsection{Closed type families}
-The programmer may want to write type functions to intentionally restrict extensions. For example, the previously defined !Add! type function is defined only on !Z! and !S n! types. Closed type families~\cite{eisenberg_typefamilies_2014} help in precisely expressing such use cases as shown below:
+The programmer may want to write type functions which has a restricted
+extension. For example, the previously defined !Add! type
+function is defined only on !Z! and !S n! types. Closed type
+families~\cite{eisenberg_typefamilies_2014} help in
+expressing such use cases. For example, consider the code snippet shown below:
 
 \begin{CenteredBox}
 \begin{code}
@@ -3757,7 +3790,23 @@ type family Add m n where
 \end{code}
 \end{CenteredBox}
 
-An additional advantage is that the programmer can also define a default case handler (!Add _ n = n!) for such type functions. This declaration is impossible with just open type functions as there is no guarantee of the order in which the axioms are matched. The syntax for writing closed type functions is very similar to writing case statements at term level but for types. Closed type families cannot prove confluence of type rewriting with non-linear type patterns (!Add x x!) as it is reducible to open problem in term rewriting community~\cite{mizuhito_rta_1995}. It has to appeal to infinitary unification~\cite{jaffar_efficient_1984} of types to claim consistency, which is unsatisfactory, as Haskell does not have infinite types.
+An additional advantage is that the programmer can also define a
+default case handler (!Add _ n = n!) for such type function
+definitions. This declaration is inexpressible using open type
+functions as the axioms which are introduced by type function
+instances are order independent: the order in which the instances
+are declared is independent of the order in which they are searched by
+the solver. Writing closed type functions is very similar to writing case
+statements at term level. The difference is that instead of writing
+equations for terms, the user write equations for types. While this
+makes the system expressive and helps in making error messages related
+to type functions more user friendly, closed type families with
+non-linear type patterns---such as, !Add x x!---are reducible to
+term rewriting theories\cite{mizuhito_rta_1995}, which are conjectured
+to guarantee confluence. The meta-theory needs to appeal to infinitary
+unification~\cite{jaffar_efficient_1984} of types to claim
+consistency. This is unsatisfactory, as Haskell does not have
+infinite types.
 
 \subsubsection{Injective type famililes}
 Type functions are non-injective by default. It can be a useful programming idiom to declare a type function to be injective so that the typechecker can use this information to rule out programs which violate this property and further use the injective property to refine the type information. For example, consider an injective type function !F! declared to be injective below:
@@ -3817,7 +3866,7 @@ Various attempts~\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} ha
 
 
 \subsection{Type Inference}\label{sec:rw-type-inf}
-We did not delve into the surface syntax typechecking aspects of the
+The monograph did not delve into the surface syntax typechecking aspects of the
 compiler. We assumed that there either exists an algorithm which can
 efficiently compute the types of a programmer provided term, which
 does not contain any types via a complete type
