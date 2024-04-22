@@ -89,6 +89,7 @@
 \newrefformat{eqn}{Equation~\ref{#1}}
 \newrefformat{part}{Part~\ref{#1}}
 \newrefformat{alg}{Algorithm~\ref{#1}}
+\newrefformat{proof}{Proof~\ref{#1}}
 
 % Names & utils for Typing rules
 \newcommand\ib[1]{\infbox{#1}}
@@ -171,15 +172,18 @@
 \newcommand\Right[1]{\textbf{right}~#1}
 \newcommand\Co{\gamma}
 \newcommand\MCo{\nu}
-\newcommand\Prop{\phi}
+\newcommand\Prop{\mathcal C}
+\newcommand\TyCo{\phi}
 \newcommand\AxiomEq{\Phi}
 \newcommand\AxiomTy{\Psi}
-\newcommand\Telescope{\psi}
-
+\newcommand\Telescope{\Delta}
+\newcommand\Lift[1]{\Psi(#1)}
 %% Types and Term Syntax
-\newcommand\Tm{M}
+\newcommand\KVarX{\mathcal{X}}
+\newcommand\KVarY{\mathcal{Y}}
 \newcommand\TyVar{\alpha}
 \newcommand\TmVar{x}
+\newcommand\Tm{M}
 \newcommand\val{V}
 \newcommand{\App}{\,}
 \newcommand\Lam[2]{\lambda #1.\App #2}
@@ -215,8 +219,9 @@
 \def\match#1#2{\texttt{match}(#1, #2)}
 \def\flatten#1{\texttt{flatten}(#1)}
 \newcommand\Good[1]{\texttt{Good~}#1}
+\newcommand\GoodP[1]{\texttt{Good}_\uparrow~#1}
 \newcommand\roles[1]{\texttt{roles}(#1)}
-
+\newcommand\Promote[3]{#1 \vdash #2 \hookrightarrow #3}
 
 \newcommand\Typing[3]{#1 \vdash #2 : #3}
 \newcommand\CoKinding[3]{#1 \vdash_{c} #2 : #3}
@@ -277,7 +282,7 @@
   basewidth={0.5em,0.45em},
   morekeywords={instance, class, if, where, data, then, else, type,%
     case, of, require, linear, primitive, newtype, family, module,
-    error, axiom, while, left, right, sym},
+    error, axiom, while, left, right, sym, kind, nth},
   morecomment=[l]{--},
   commentstyle=\color{Gray},
   mathescape=true,
@@ -300,7 +305,7 @@
     {||-}{{$\entails$}}2
     {@}{{$@$}}1
     {~~>}{{$\leadsto$}}2
-    {TYPE}{{$\KType$}}1
+    {TYPE}{{$\star$}}1
     {CONSTRAINT}{{$\KPred$}}1
     {FORALL}{{$\forall$}}1
     {EXISTS}{{$\exists$}}1
