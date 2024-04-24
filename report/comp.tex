@@ -571,7 +571,7 @@ term !(eval x) == (eval y)! is well typed.
 \begin{CenteredBox}
 \begin{code}
 data GAlgExp a where
-...
+   ...
    Equals :: Eq a => GAlgExp a -> GAlgExp a
                   -> GAlgExp Bool
 \end{code}
@@ -618,8 +618,8 @@ visibility of the representation details of a type
 exclusively within a module. External to the module the client program
 cannot know how the type is represented or in other words,
 representation of the generative types is opaque to the client
-module. In Haskell generative types are defined by hiding the type
-declarations in the signatures. Consider an HTML module defined in
+module. In Haskell, generative types are defined by hiding the data constructors
+from the module exports. Consider an HTML module defined in
 Haskell as shown in the \pref{fig:html-generative-type}.
 
 \begin{figure}[ht]
@@ -666,17 +666,18 @@ Within the scope of !Html! module, the types !String! and !HTML! are
 synonymous, however the type !Html! will be opaque for any
 external client using the type !HTML!. The !Client! module will not be
 able to directly manipulate a value of type !Html!---unless
-of course by using the specific functions exposed in the
-signature. Inhibiting manipulations and views of the data
-representation can be useful for avoiding leaking information in
+of course by using the specific functions exposed by the module.
+Inhibiting manipulations and views of the data
+representation is useful for avoiding leaking information in
 secure computation contexts. A naive abstraction, however,
 will incur a runtime cost. !Html! and !String!, need to be explicitly
 converted from one form into another using pattern matching.
 This explicit conversion is redundant as they have the same
 representation in memory, but the compiler cannot use this
 information to perform any optimization on the generated code.
-Is it possible for the runtime semantics of the code be liberated from
-the extra overhead?
+A smart implementation should be able to remove the extra runtime overhead
+of converting !String! to !Html! and vice versa.
+
 
 The idea of generative abstract types first appeared in work of
 ~\citet{leroy_applicative_1995} and ~\citet{milner_definition_1997}
@@ -907,29 +908,32 @@ representation, second, the \emph{typechecking phase},
 checks for type correctness of the surface syntax, and finally the
 third \emph{desugaring phase}, compiles the program into a core intermediate
 language. Colloquially, these three major phases--parsing,
-typechecking, desugaring---are lumped together and called
+typechecking, desugaring---are together called
 the front end of the compiler. Haskell is statically typed,
 which has practical and theoretical implications;
-in practice, only those terms whose types can be verified by the
-typechecker can be compiled to the core intermediate language, and in theory,
-terms without types have no meanings. The first iteration of GHC
+in practice, only the terms which can be verified to be type correct by
+the typechecker is compiled to the core intermediate language, and in theory,
+terms without types have no meanings. The prior iterations of GHC
 compiler, used \SF as its core intermediate language with
 separate extensions to support different language features. In the
 rest of this section, We will briefly re-visit the extensions  from
-the previous section and motivate why \SF with extensions was
+the previous section and motivate why \SF with extensions is
 insufficient to encode the advanced language features.
 
 To achieve decidable and complete type inference, Haskell follows the suit
 of Hindley-Milner type system~\cite{milner_theory_1978}; the
 programmers are not burdened with decorating the terms with explicit
 type annotations as the type checking algorithm can infer the most
-general type of the term. Implicit parametric~\cite{reynolds_user-defined_1978}, and adhoc
+general, or pricipal, type of the term. Implicit parametric~\cite{reynolds_user-defined_1978}, and adhoc
 polymorphism~\cite{hall_type_1994} in Haskell can be
-translated into \SF as Hindley-Milner type system is just a restricted
-version of \SF. The functions from the surface
-level language are elaborated to have explicit type arguments. This
-means, at the function use site, explicit types need to be applied
-before their value arguments can be applied.
+translated into \SF~\cite{girard_proofs_1989,reynolds_towards_1974}.
+The Hindley-Milner type system can be viewed as a restricted
+version of \SF. All the types in Hindley-Milner type system
+are of the prenex form: the universally quantified type variables appear
+at the outermost level and there are no existentially quantified type variables.
+The functions from the surface level language are elaborated
+to have explicit type arguments. The function's use site  in the elaborated
+form needs to have all the type argument applied before the value arguments.
 For example, the elaborated function !id! in \SF will have a type
 !id : FORALL a. a -> a!, while for the term, !id 3!, it will be elaborated
 to !id Int 3!. The typeclasses are converted into record types called
@@ -959,26 +963,26 @@ below:
 The data constructor !MkT! is of type !FORALL a. a -> T a! in the
 core language. The programmer written term !MkT 42! for the type
 !T Int! will be elaborated to !MkT Int 42!. The example illustrates
-that types need to be explicitly applied in the core language and the
-elaboration procedure needs to find unique (type) values to fill into the
-placeholder arguments for core level functions. In the previous
-example, the type !Int! had to be inferred by the typechecker so as
-to include it in the elaborated term. The uniqueness criteria for
-elaboration is important for the same type ambiguity reason that we saw
-in the previous section for multiparameter typeclasses and functional
-dependencies: we do not want the compiler to make arbitrary decisions
-for the programmer.
+that the types, which need to be explicitly applied in the elaborated language,
+needs to be computed by a procedure. Further, there needs to be
+a unique value type to fill into the placeholder arguments in the elaborated term.
+The burden of finding or inferring the types naturally falls on the typechecker
+The uniqueness criteria for inferred type is important as the meaning
+of the term is inherently tied to the type argument it is applied to and
+we do not want the compiler to make arbitrary decisions for the programmer.
 
-However, the co-existence of GADTs, generative abstract
-types, and associated types would be too cumbersome, if not impossible,
-to express using orthogonal extensions of pure \SF. Further, the
-interaction of each of these seemingly different features together would
+Although typeclasses and algebraic data types can be encoded in \SF,
+GADTs, generative abstract types, and associated types are cumbersome,
+if not impossible, to express using orthogonal extensions of pure \SF.
+Further, the interaction of each of these seemingly different features together would
 be painful for the compiler writer to implement, and programming
 language theorists to argue about its
 correctness. \SFC~\cite{sulzmann_system_2007} was designed as an
 alternative to having separate extensions for
-each language feature. The key insight is that each language feature
-is, in a sense, trying to encode some notion of type equality
+each language feature.
+
+The key insight is that each language feature
+is, encoding a notion of type equality
 ($\tau\sim\sigma$). GADTs introduce type refinements, as seen in
 !eval! example, are type equality constraints exposed after a pattern
 is matched. Instances of associated types introduce a type equality
@@ -991,13 +995,16 @@ type equalities between the new defined type and its representation.
 % encoded in a fairly straightforward fashion.
 
 In the following sections we describe the meta-theory of the core intermediate
-language followed by details of how each of the language features
+language followed by details of how each of the language features:
 GADTs (in the \pref{sec:fc-encodes-gadts}), generative abstract
 types (\pref{sec:fc-encodes-newtypes}), and associated
-types (\pref{sec:fc-encodes-assoctypes}), and also a unique feature of
-the system, open type functions (\pref{sec:fc-encodes-opentypefun}) are
-encoded in \SFC using \emph{coercions} and \emph{coercion
+types (\pref{sec:fc-encodes-assoctypes}) are encoded in \SFC
+using \emph{coercions} and \emph{coercion
   axioms} which embody the notion of type equality.
+We also describe a unique feature of the system,
+open type functions (\pref{sec:fc-encodes-opentypefun}) which expose
+the type equality functionality to the user as a direct
+programming language feature.
 
 % In one statment: \SFC is an intensional intrinsically typed programming language.
 % It is intensional, meaning each term encodes its typing derivation, and it is intrinsically typed, meaning all the terms are index by types.
@@ -1066,22 +1073,17 @@ for supporting polymorphic functions. Function types ($\tau \to
 \sigma$), can very well be considered as a type constructor $T$, but
 we give it a special status for the sake of presentation. The absence
 of type level lambdas make the type level calculus less expressive by
-disallowing certain types such as $\Lam a {T\App a\App Int}$. This is
+disallowing certain types such as $\TLam a {T\App a\App Int}$. This is
 a cautious decision to ensure type checking remains tractable and
 efficient. To make up for the lack of type level lambdas, the system
 allows higher kinded types. This allows programmers to define
-inductive algebraic datatypes such as !List!s and !Tree!s. \SFC is
-impredicative; there is no stratification between the polytypes---the
-ones with explicit type abstraction---and
-the monotypes---the types with no explicit type abstraction, and they
-both have the kind $\STAR$.
+inductive algebraic datatypes such as !List!s and !Tree!s.
 
-
-The type equality coercion, $\shl{\Co}$, is the novel construct.
-It is classified by kind level type equality predicate,
+The novel construct, coercions, $\shl{\Co}$ are proofs of type equality.
+They are classified by kind level type equality predicate,
 $\shl{\tau\sim\sigma}$. Coercions are first class at the level of types:
 they can be constructed, applied to and passed in as arguments, and also
-abstracted over by using the special coercion infrastructure.
+abstracted over by using the special coercion syntax infrastructure.
 \SFC supports a full fledged coercion calculus where
 each syntactic construct corresponds to a logical equation between two
 types. The first basic coercion construct is the
@@ -1095,11 +1097,10 @@ system. Coercions can also be composed and decomposed using the
 `$\nu\App\Co$', and `$\Left\Co$' and `$\Right\Co$' constructs
 respectively. Finally, coercion abstraction `$\Forall
 {\TyVar\co\kappa}\Co$' and coercion application `$\Co\At\tau$' aids
-equality reasoning on polytypes. To stress, it is important to notice
-that the \pref{fig:sfc-syntax}, places coercions and types in two
-different rows only for the sake of a clear presentation, and in
-principal \emph{coercions are types}, and we will use $\phi$ to mean
-either when the distinction is immaterial. Coercions can also
+equality reasoning on polytypes.
+In principle, \emph{coercions are types}. They are shown separately
+only for the sake of presentation in \pref{fig:sfc-syntax}.
+and we will use $\phi$ when the distinction is immaterial. Coercions can also
 be introduced as equality axioms which can be thought as a templatized type
 equation. For example, an axiom $\Forall \alpha {F\App a \sim a}$
 says that for all types, !F a! can be treated exactly as !a!, and vice
@@ -1108,86 +1109,35 @@ $F$. Only the saturated application of $F$ can appear on the left hand
 side of a coercion axiom head.
 
 Finally, types classify the terms of the system.
-The novel term construct of the system is $\shl{\Cast \Tm \Co}$.
+The novel term construct of the system is the type cast, $\shl{\Cast \Tm \Co}$.
 It denotes that if a term $M$ is of type $\tau$
 and we have a coercion, $\Co$, which says that $\tau\sim\sigma$
 then, the term, $\Cast M \Co$, justifies treating $M$ as if it has type
 $\sigma$. Alternatively, the type equality coercion can be thought of
 as: if $\Co$ justifies $\tau \sim \sigma$ then, within a context that
-expects a term $\Tm$ of type $\sigma$, we can freely use the term $\Cast M \Co$,
-without worrying that the term will get stuck or crash when we run the
-program. The ``will not crash'' guarantee is called as the \emph{type
-  soundness property} of the system.
-The type coercions introduced in the system should be
-thought of as axiomatic type equality, similar to axiomatizing functional
-extensionality. However, the type soundness argument of the system, as we
-will see later, does not rely on any specific
-semantic notion of type equality.
+expects a term of type $\sigma$, we can freely use the term $\Cast M \Co$.
+The type coercions in the system can be thought of as axiomatic type equality,
+similar to axiomatizing functional extensionality.
+However, the type soundness argument of the system,
+does not rely on any specific semantic notion of type equality.
 
 The system has the usual term constructs: term variables `$x$',
 term abstractions `$\Lam {x\co\tau} \Tm$' and term applications `$M \App N$',
 type level abstraction `$\TLam \TyVar \Tm$' and type applications
 `$\Tm\App\sigma$'. Declaration of algebraic datatypes introduces data
-constructors $H$, the types of which are of the form:
+constructors, $H$, the types of which are of the form:
 \[
 H \co \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa}} \many{\sigma} \to T\App\many\TyVar}
 \]
 Here, the type variables, $\many\TyVar$, appear in the same order as in
 the algebraic datatype declarations, $T\App\many\TyVar$.
 The type variables $\many\beta$ are special; they
-do not appear in the return type, $\many\TyVar \cap \many\beta = \emptyset$. This
-characterization of splitting the type variables into $\many\alpha$
-and $\many\beta$ plays a crucial role in encoding GADTs and
-existential types. We will describe this encoding scheme in more
-detail in the next \pref{sec:fc-encodes-gadts}.
+do not appear in the return type. And are disjoint from the type variables $\alpha$,
+$\many\TyVar \cap \many\beta = \emptyset$.
 The $\Case M {\overline{P \to N}}$
 discriminates on the shape of the term $M$ and chooses one of the
 alternatives $N$ after a successful match on the one of the patterns
 $P$.
-
-% The
-% soundness property of the type
-% system guarantees that after the
-% types (including casts) have been
-% erased, the program will not crash
-% or get stuck. Unlike other regular
-% types, however, coercions do not
-% classify values, i.e. there are no
-% term level constructs that have a
-% type $\tau\sim\sigma$.
-
-
-\subsection{Intermettzo: Notations}\label{sec:notations}
-Before we dive deep into the system formalization any further, for the
-sake of presentation, we need some helper notations.
-The type environment $\TEnv$ contains type mapping for free term variables
-`$x\co\tau$', kind mapping for free type variables,
-`$\alpha\co\kappa$', along with the term constants `$H\co\tau$', type
-function constants `$F\co \tau$', and coercion axioms
-`$coAx:\sigma\sim\tau$'. The convention of naming
-coercion axioms will be with a $co$ prefix to distinguish them from
-non-coercion types. The freshness condition, or that $\alpha$ does not appear in the
-domain of $\TEnv$, is denoted by $\fresh \alpha \TEnv$: $\alpha$,, or
-$(\TyVar\co\kappa) \not\in \TEnv$. Substitutions, $\Subst$, are mappings from term variables to
-types and by abuse of notation, we will also use it to denote type
-variables to their kind mappings. Due to naming conventions, we need
-not worry about mistakenly substituting a term into a type. We will
-use the type constant $(\to)$ and kind constant $(\sim)$ in its infix
-form rather than in a prefix form: $\tau \to \sigma$ instead of
-$\to \App\tau\App\sigma$, and similarly $\tau\sim\sigma$ instead of
-$\sim \tau\App\sigma$. We use the over bar notation $\many\alpha$ to
-mean a list of items, in this case a list of $\alpha$s. If the size of
-the list is not obvious from the context, we will use explicit
-superscript to specify it, $\many\alpha^n$
-
-A program, $P_{gm}$, is a list of programmer written type
-declarations, $D_{cl}$, followed by term bindings, $x = M$. Each
-$D_{cl}$ introduces a new user defined datatype, a type function, or
-an axiom. We assume the convention that the declarations are correctly
-ordered, i.e. defined or at least declared before their use. We use
-!M :: t! (stress on double colons) to assign (or check) type
-!t! for actual program expression !M!, and $\Tm \co \tau$ (stress
-on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
 
 \subsection{Static Semantics}\label{sec:sfc-static-sem}
 
@@ -1327,14 +1277,7 @@ on single colon) to mean $\Tm$ has type $\tau$ in the formalization.
 \end{figure}
 
 To formalize our intuitions of how coercions ought to behave, we
-provide static semantics in the form of declarative style typing (or kinding)
-judgments rules in \pref{fig:sfc-typing-co}. These judgment rules
-are templates, instantiations of which become the building blocks of the
-proof. In general, the proofs in this system look like trees. The root of the tree
-is the subject theorem judgment, while the leaves are the instantiated axioms, and
-the internal nodes of proof tree are the instantiated rules of the
-system~\cite{wadler_propositions_2015}.
-
+provide static semantics in the form judgments rules in \pref{fig:sfc-typing-co}.
 All coercions are types such that their kinds tell us which two types
 considered equal. We read the coercion kinding judgment
 \fbox{$\CoKinding \TEnv \Co \kappa$} as, ``under the assumptions in
@@ -1375,7 +1318,7 @@ quantification is a closed operation over types in the universe of kinds.
 To illustrate why coercion composition is useful, consider a higher
 kinded algebraic type !Tree! and a coercion
 $\Co\co\sigma_1\sim\sigma_2$, then using $\tau_1$ and $\tau_2$ to be
-equal to !Tree!, we have that $\Refl{\texttt{Tree}} \App\Co :
+equal to !Tree!, we have that $\Refl{\texttt{Tree}\App\Co} :
 \texttt{Tree}\App\sigma_1 \sim \texttt{Tree}\App\sigma_2$. On the
 other hand, if we have a coercion $\texttt{Tree}\App\sigma_1 \sim
 \texttt{Tree}\App\sigma_1$ then we can recover the coercion components
@@ -1477,9 +1420,9 @@ in them maintains the type equality.
 A typing rule for terms, \fbox{$\Typing \TEnv \Tm \tau$}, is
 shown in \pref{fig:sfc-typing-ty}. The rules inherited from \SF
 are $\trule{var}$, $\trule{\I\to}$, $\trule{\E\to}$,
-$\trule{\I\forall}$, and $\trule{\E\forall}$. The novel rule
-$\trule{cast}$ transforms a term $M\co\tau$ to a term $M\co\sigma$ with
-a witness coercion $\Co\co\tau\sim\sigma$.
+$\trule{\I\forall}$, and $\trule{\E\forall}$. The rule
+$\trule{cast}$ transforms a term $\Tm$ of type $\tau$ to a term
+of type $\sigma$ using a witness coercion $\Co\co\tau\sim\sigma$.
 
 The two typing rules worth discussing are the ones for typing case
 statements $\trule{ty-case}$ and typing alternatives
@@ -1489,11 +1432,11 @@ N$ have the same type $\sigma \to \tau$. For alternatives, if the
 pattern is a data constructor, only the existential type variables
 $\many\beta$ are brought into scope explicitly in the pattern.
 The reason to do this is to ensure that the continuation term, $N$, can use
-the existentially bounded variables. However, we should be careful to
-not let the existential variables escape their scope. This invariant
+the existentially bounded variables. However, the existential variables
+should not escape their scope. This invariant
 needs to be enforced by the elaboration step from surface syntax into
 the core language as \SFC is a general calculus.
-For example, consider the data constructor !IsEquals! and its type
+Consider the data constructor !IsEquals! and its type
 with explicit kind annotations from the previous section.
 
 \begin{CenteredBox}
@@ -1603,18 +1546,16 @@ FORALL (a :: *). (EXISTS (b :: *). (Eq b, b, b)) -> GAlgExp a
  \end{syntax}
 \end{figure}
 
-Now that we have established the static semantics for \SFC, we
-analyze the operational semantics, or the run time behavior, of the
-types and terms of the language. The value terms fall into two
+We now analyze the runtime or the operational semantics,
+of the terms of the language. The value terms fall into two
 categories: normal values,  $\Val$, or coercion values, $C\Val$,
 which are values with coercion casts.  Value terms denote the ``good''
 terms of the language which do not evaluate. For example, !True!, of
 type !Bool! is a value term. Coercion values, or cvalues, are needed
 to maintain the type preservation property. We use $\EvalCtxt$
 notation to identify which sub-term reduces in the next step. This
-presentation uses call by need semantics, but it may as well use call
-by value without affecting the soundness properties.
-The terms involving coercions can step in one of the four interesting
+presentation uses call by need semantics. The terms involving
+coercions can step in one of the four interesting
 ways given by the rules \trule{push}, \trule{ty-push},
 \trule{co-push}, or \trule{h-push} shown in the \pref{fig:op-sem-sfc}.
 \begin{figure}[ht]
@@ -1644,10 +1585,9 @@ inside a coercion abstraction. Just like in the rule \trule{push}, we see that
 the rule \trule{ty-push} enables evaluation for type functions applied
 to a coercion. The rule \trule{co-push} is similar to the rule
 \trule{ty-push} but works on coercion abstractions. The type and
-coercion calculation is not arbitrary, it ensures that the types are
+coercion computation ensures that the types are
 preserved when we push the coercions inside the body of a lambda bound term.
-
-The most complex rule, \trule{h-push}, pushes the coercion within
+ The most complex rule, \trule{h-push}, pushes the coercion within
 the case term scrutinee. This rule is best illustrated with an example: consider
 the case scrutinee
 
@@ -2142,8 +2082,9 @@ soundness for newtypes:
  a ground type, or $\Tm$ diverges.
 \end{theorem}
 
-\subsection{Type Computation}
-\subsubsection{Associated Types}\label{sec:fc-encodes-assoctypes}
+\subsection{Type Computation}\label{sec:fc-encodes-assoctypes}
+
+\subsubsection{Associated Types}
 Elaborating associated types to \SFC is very similar to translating
 GADTs. The constraint context now contains class predicates along with
 equality predicates. This extension is also needed if GADT data
@@ -2381,7 +2322,7 @@ coFSC  &: \texttt{F}~\texttt{String} \sim \texttt{Char}\\
 \caption{Type Functions and New Types}
 \label{fig:nt-tf-example}
 \end{figure}
-\AI{Fix all We's to impersonal}
+
 Consider the previously defined newtype data definition:
 !newtype HTML!, and a hypothetical open type
 function, !F! as shown in~\pref{fig:nt-tf-example}.
@@ -2978,7 +2919,7 @@ the kind level more expressive. The system can now have more than
 one concrete kind, $\star$. To get more power out of a system which
 has more than one base kind is to enable kind polymorphism.
 Consider a higher kinded datatype !TApp! which is useful
-for generic programming that encodes type application~\cite{magalhaes_generic_2010}:
+for generic programming by encoding type application~\cite{magalhaes_generic_2010}:
 
 \begin{CenteredBox}
 \begin{code}
@@ -3333,75 +3274,10 @@ Finally the progress and preservation theorems:
 If $\TEnv$ is a top level environment, $\GoodP\TEnv$, and $\Typing \TEnv \Tm\tau$ then either e is a value or a coersion value, or there exists a term $\Tm'$ such that $\stepsto \Tm \Tm'$.
 \end{theorem}
 
-The proof does not require any ingenuity than proving type safety for \SFR or \SFC.
-The theorems do need to account for kind substitutions with term substitutions.
-
-% This keeps the design and implementation simple but at
-% the expense of leaving out certain programs that can be well
-% typed. This gives us some confidence over the claim that we should also be able to carry over the type
-% safety results from \SFC. A logical continuation of kind abstraction
-% and application would be introduce kind equalities within the
-% system. This will help in making the type system even more expressive.
-
-% \subsection{Practical Aspects}\label{sec:sfp-practical}
-% Due to the presense of non-trivial kinds in the system,
-% The type system implementer needs to make a design decision of
-% whether the programmer is expected to provide minimal (if any)
-% kind annotations to the programs or the type system can infer all
-% the kind information. In either case, the type checking algorithm needs
-% to change. One design decision is to kind generalize exactly
-% at those places where types are generalized. However, while
-% computing kind unifications during kind instantiations, there
-% are no evidences generated. Type equalities, on the other hand,
-% generate evidences which are witnessed by coercions.
-% However due to the restricion imposed by the type system---there are no
-% kind non-syntactic equalities---kind equalities get no evidences.
-% This helps in performing kind unification on the fly.
-
-% The datatype declaration is type checked in a manner very similar to mutually dependent terms:
-% \begin{itemize}
-% \item The type declarations are sorted into strongly connected components;
-% \item The kind inference assigns a new unification kind variable
-%       to each of the type constant and then walks over the definitions
-%       solving for kind constraints that may arise;
-% \item Finally, all the constructors are kind generalized at the end.
-% \end{itemize}
-
-
+The proof of the theorems need to account for kind substitutions along with term substitutions,
+but the proofs are otherwise routine tedious induction on the small step operational semantics.
 
 \section{\SFK}\label{sec:sfk} % K for kind eq
-% We have type equalities, why not kind equalities?
-% But we would then have two kinds of equalities: type and kind.
-% So why not just squish types and kinds together, making it truly impredicative
-% \AI{Motivation Needs a rewrite. Pushing $\tau \sim \sigma$ to the level of kinds
-% makes sure that phase distinction is maintained.}
-% While \SFP provided a lightweight method to make the system more expressive
-% that \SFC by introducing a non-trivial kind system, the equality judegments can only be made
-% at kind level. The only way to introduce a coercion $\tau \sim \sigma$ is by defining a
-% type family and then instantiations of the induced axioms will give rise to the needed equalities.
-% Consider a GADT example below which encodes the representation of types:
-
-% \begin{CenteredBox}
-% \begin{code}
-% data TyRep :: TYPE -> TYPE where
-%     TyInt :: a ~ Int => TyRep a
-%     TyBool :: a ~ Bool => TyRep a
-% \end{code}
-% \end{CenteredBox}
-% The intension of the user is to fix the type of each of the data constructors. However,
-% in the formalization this definition is syntactically illegal in \SFP. There is no syntactic notion of
-% $a \sim \texttt{Int}$ at the level of types. It would be beneficial to empower
-% the programmers to express equalities at the level of types rather than at the level of kinds.
-% Consider the function !zero! as defined below:
-
-% \begin{CenteredBox}
-% \begin{code}
-% zero :: forall a. a ~ Int => TyRep a -> a
-% zero TyInt = 0
-% \end{code}
-% \end{CenteredBox}
-% The function !zero! is well typed only when !a! is of type !Int! and it returns !0! when applied to !TyInt!.
-% The term !zero TyBool! is ill-typed. The definition of !zero! is also ill-formed in \SFP.
 Programmers may want to encode more complex constraints via GADTs. For example,
 consider the extension of !TyRep! from the previous section and a function, !baseElem!
 which accepts !TyRep a! as shown below:
@@ -3462,7 +3338,7 @@ rejected in \SFP due to the restriction which disallows non-trivial equalities b
  \bnfor \Co\At\MCo \bnfor \shl{\Co\At(\MCo, \MCo')}\\ % abstraction instanst
  && \bnfor& \MCo\App\Co \bnfor \Left \Co \bnfor \Right \Co %
  \bnfor \Nth i \Co \bnfor \shl{\Kind \Co} \bnfor T\App\many\phi \\  % compose/decompose
- \text{Patterns} &&P \bnfeq& H\App \shl{\many{\Telescope}}\App{\many{x\co\tau}} \\
+ \text{Patterns} &&P \bnfeq& H\App \many\alpha\co\kappa \shl{\Telescope}\App{\many{x\co\tau}} \\
  \text{Telescopes} &&\Telescope \bnfeq& \empt \bnfor \Telescope, \TyVar\co\kappa \bnfor \Telescope, c\co\Prop\\
  \text{Terms} &&M,N \bnfeq& x \bnfor \Lam {x\co\tau} M \bnfor M\App N %
  \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau \\
@@ -3470,7 +3346,7 @@ rejected in \SFP due to the restriction which disallows non-trivial equalities b
  \bnfor H \bnfor \Case M \many{P \to M} \bnfor \Cast \Tm \Co
  \end{syntax}
  \begin{syntax}
- \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\TyVar\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \Co \co \tau\sim\sigma
+ \text{Typing Context} &&\TEnv \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\TyVar\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \Co \co \tau\sim\sigma
  % \text{Substitutions} &&\Subst \bnfeq& \empt \bnfor \Set{\many{\TyVar \mapsto \tau}}
  \end{syntax}
 \caption{The Syntax of \SFK}\label{fig:sfk-syntax}
@@ -3575,9 +3451,10 @@ kinds as a classifier for types.
 
 \newcommand\KTyCast{
  \ib{\irule[\trule{Ty-Cast}]
- {\Kinding \TEnv {\tau} \kappa}
- {\CoKinding \TEnv \Co {\kappa \sim \kappa'}};
- {\Kinding \TEnv {\Cast \tau {\Co}} {\kappa'}}
+ {\TyKinding \TEnv {\tau} \kappa}
+ {\CoKinding \TEnv \Co {\kappa \sim \kappa'}}
+ {\TyKinding \TEnv {\kappa'} \star};
+ {\TyKinding \TEnv {\Cast \tau {\Co}} {\kappa'}}
  }
 }
 
@@ -3661,7 +3538,7 @@ The most interesting rule of the system is $\trule{S-KPush}$
 which transforms a data constructor applied
 to a cast into an ``equivalent'' data constructor by pushing in the cercions.
 This is achieved by using lifting operation.
-\begin{definition}[Lifting, $\Lift -$]
+\begin{definition}[Lifting operation, $\Lift -$]
 The lifting operation is defined inductively on the type structure:
 \begin{flalign*}
   \Lift \alpha &= \Co \text{~when~} a\co\kappa \mapsto (\tau_1, \tau_2, \Co) \in \Psi\\
@@ -3703,71 +3580,68 @@ of the data constructor telescope.
 \end{definition}
 
 
-As an illustration of how the lifting context aids the push rule,
+As an illustration of how the lifting context aids the push rule consider the example:
 
+\begin{CenteredBox}
+\begin{code}
+Cons (T Bool) x xs /> $\Co$
+\end{code}
+\end{CenteredBox}
+
+where, $\texttt{Cons} \co \Forall {k\co\star, a\co k} {\Forall {co\co k\sim \star}{a \to [a] \to [a]}}$,
+!$\Co$ : [T Bool] ~ [Int]!, and !T! is a type constant. The lifting context in this case:
+\[\Context\Co = \Set{ a\co\kappa \mapsto (\texttt{T~Bool}, \texttt{Int}, \Nth 1 \Co)}\]
+and the extension will be:
+\[\Psi = \Extend{\Context\Co} = \Set{a\co\kappa \mapsto (\texttt{T~Bool}, \texttt{Int}, \Nth 1 \Co), co\co\kappa\sim\star \mapsto (coK, \Refl{\star})}\]
+ And thus,
+
+\begin{CenteredBox}
+\begin{code}
+    Cons k (T Bool) coK x xs /> $\Co$
+$\stepsto{}{}$ Cons $\star$ Int ($\Refl{\star}$) (x /> $\Psi(a)$) (xs /> $\Psi([a])$)
+\end{code}
+\end{CenteredBox}
 
 \subsection{Meta-theory}\label{sfk-meta-theory}
+With all the machinery built to allow kind hetrogenous equalities, it remains to argue whether
+the system still enjoys type safety.
+
+\begin{theorem}[Preservation for \SFK]\label{lem:sfk-preservation}
+If $\Typing \TEnv \Tm \tau$  and $\stepsto \Tm \Tm'$ then $\Typing \TEnv {\Tm'} \tau$
+\end{theorem}
+The proof is inspection of all the rules and making sure that the operational semantics rules
+do not change the type of the reduced term. The push rules are the most interesting rule to analyze.
+To ensure the push rules preserve types it is enough to check that erasure of type (an coercion) annotations
+from the term has no effect on the operational semantics.
+
+
+\begin{theorem}[Progress for \SFK]\label{lem:sfk-progress}
+If $\Typing \TEnv \Tm \tau$ and $\Tm \not\in \Val or~ C\Val$, and $\TEnv$ is consistent context, then
+there exists a $\Tm'$ such that $\stepsto \Tm {\Tm'}$
+\end{theorem}
+
+The consistency criteria for the typing environment is captured using $\Good\TEnv$ as in \SFP and \SFC. It is
+more involved owing to the fact that \SFK is more complex than its predecessor systems.
+There are some types in the system which are equal but cannot be proven so within the system.
+For example the two types $\Forall {c_1\co Int \sim b} Int$ and $\Forall {c_2\co Int \sim b} b$ are equal,
+but the system cannot prove them to be equal. Such incompleteness is a non-issue as the the surface level
+syntax disallows writing type equalities of the form $(Int \sim b) \then Int \sim (Int \sim b) \then b$
+and these equalities are quite exotic.
+
+
+
 \SFK is a significantly more expressive type system than its predecessors. It achieves this by squashing
 the distinction between types and kinds. The judgement $\Kinding \TEnv \star \star$,
 or the type in type axiom, is one of the kinding axioms.
 It is usually responsible to creep inconsistencies in logics.
-However, \SFK is no more inconsistent than \SFC, where all kinds are are inhabited.
-The typechecking problem for \SFK is decidable. Neither does inclusion of this judgement
-causes any undecidability problems for type checking, as all the terms are explicitly typed,
-and the type equalities are always accompanied with a finite equality proof.
-At the heart of the \SFC, which allows programmers write interesting programs by enabling encoding
-complex type (and kind) equalities, lies an important question: what exactly does $\tau \sim \sigma$
-mean? The proposition $\tau \sim \sigma$ says that the types $\tau$ and $\sigma$ are
-equal and their kinds are equal. The system also maintains a distinction between the (equality)
+However, \SFK is no more inconsistent than \SFC, where all kinds are inhabited.
+The typechecking problem for \SFK is decidable and all the terms are explicitly type annotated.
+and the type equalities are always accompanied with a finitely sized equality proof.
+The system also maintains a distinction between the (equality)
 proofs and objects. This allows proofs to be independent of any computational value.
-
-It is important to note that the type in type axiom is not included in the source level language.
-\SFK is designed to be used as an internal language of the compiler and there is an
-evident gap between the expressivity of the source level language to the internal language.
-
-The following meta-theory of the system proceeds in a routine fashion via showing that the system
-enjoy the property of progress---well typed terms are either a value or they can evaluate---, and
-preservation---evalutation does not affect the type of the term.
-The progress property is uninteresting, however, the proof of preservatioin is more complex.
-The previous proof techniques used to argue about consistency are ill-suited for this system
-due to the involvement of kind level equalities.
-
-We have the following properties by the way of static semantics.
-All coercion proofs have no computational value, they are irrelevant
-to the proof of equality. The ensures that even for heterogenous type
-equalities, the proof of coercions between kinds, plays no value
-during runtime. But is this limiting the expressivity in any way? We
-do not want to allow only ``trivial'' equality proofs.
-
-
-The lifting operation, $\Lift -$, plays an important role in defining the rule $\trule{S-KPush}$. This rule
-plays an important role to establish the invarient property of the system: coercions do not
-interfere with the operational semantics of the terms.
-
-
-\TODO{\SFK is a representative formalization of the current GHC compiler. It supports kind heterogeneous type equality or in other words, the type language is un-kinded due to impredicativity.
-}
-
-\TODO{how to characterize type soundness and preservation?}
-
-There are some types in the system which are equal but cannot be proven so within the system.
-For example the two types $\Forall {c_1\co Int \sim b} Int$ and $\Forall {c_2\co Int \sim b} b$ are equal,
-but the system cannot prove them to be equal. Such incompleteness is a non-issue as the the surface level
-syntax disallows writing type equalities of the form $(Int \sim b) \then Int \sim (Int \sim b) \then b$.
-
-
-From the previous section on \SFP, we can now also relax some of the contraints on promotion.
-This restriction on promotions of type constants is because promoting higher kinded types, such as $(\star \to \star) \to \star$ would not be possible without having a richer kind classification system. Further, promotion of type constant that themselves accept promoted types such as !Vec : * -> 'Nat -> *! are not promoted as that would involve double promotion of the type !Nat! or would require type and kind levels to be fully dependent, making the system complex. Kind polymorphic type constant are also not promoted as that would require polymorphic sorts, which is absent from the system.
-
-\begin{itemize}
- \item \SFK squashes the types and kinds to be the same by adding the axiom $\star : \star$, or ``type is of kind type''. This necessitates a new formalism that proves that the meta-theoretic properties of \SFK are carried over from \SFC. In dependently type languages $\star : \star$ axiom amounts to adding inconsistency, however this is not a problem in Haskell as all kinds are already inhabited;
- \item in \SFC, equalities could only exist between types of the same kind, but now, due to explicit kind equalities, it is possible to construct equalities between heterogeneous types. The matters get more complicated with polymorphic types;
- \item coercions should not interfere with the operational semantics of the language;
- \item Kind indexed GADTs need to be able to abstract over coercions and use them in the types, a feature missing in \SFC.
-\end{itemize}
-In \SFP, we had disallowed promoting types that were indexed or dependent on a promoted type, we can now get rid of this restriction because we make no distinction between kinds and types.
-
-
+From the previous section on \SFP, some types could not be
+promoted because of a weak kind system. In \SFK, the kind language is as expressive
+as the type langauge and thus any data type can be promoted.
 
 \part{IV: The Path Ahead and The Detours}\label{part:IV}
 \section{Future Work}\label{sec:future-work}
@@ -4210,7 +4084,7 @@ construction~\cite{milner_theory_1978}, or the  programmer supplies
 sufficient typing annotations so that the type construction problem
 becomes tractable via partial type
 construction~\cite{pierce_local_2000, dunfield_bidirectional_2021}.
-\HMX and its variants is the state of the art type modular inference
+\HMX and its variants are the state of the art type modular inference
 framework that is based on by using constraint handling rules. The
 stratified type inference algorithm~\cite{pottier_stratified_2006} works in two
 phases: the first phase collects the typing constraints and then the
@@ -4244,7 +4118,7 @@ We surveyed some important language features--the ones which functional
 programmers prefer---and seen in depth, a theoretical
 foundation of a modern day declarative functional programming
 language. The language features are tabulated in the
-\pref{fig:haskell-lang-features}. The features that we have
+\pref{fig:haskell-lang-features}. The features in
 covered in some detail in this monograph are emphasized.
 There are two ways of supporting a new programming language
 feature, either via encoding them with the help of libraries or, via
@@ -4257,7 +4131,10 @@ functions can be encoded using a simple single construct: type
 equality. We then showed how non-parametric features
 interacting with parametric features of the language that contain
 explicit type equalities can cause type unsoundness bugs, unless they are
-treated carefully. Taming ad-hoc language features is non-trivial and requires
+treated carefully. Along the way we saw how the the type system evolved
+with different flavors of type equality: \SFC had a primitive notion defining when two
+types are equal, but \SFR, \SFP and \SFK made the type equality relation
+more explicit. Taming ad-hoc language features is non-trivial and requires
 sophisticated proof techniques to formalize and argue about their
 correctness. As new programming languages are designed, built and
 used, it is not only important to identify and carry over the good design principles
