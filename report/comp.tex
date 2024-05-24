@@ -6,11 +6,10 @@
 \usepackage{comp}
 
 \title{Practical Functional Programming with \SFC and its Extensions}
-% \subtitle{Extensions to System F}
 
 \author{Apoorv Ingle}
-%   \orcid{0000-0002-7399-9762}
-\affiliation{%
+   \orcid{0000-0002-7399-9762}
+   \affiliation{%
   \institution{University of Iowa} \department{Department of Computer Science} \streetaddress{McLean Hall} \city{Iowa City} \state{Iowa} \country{USA}}
 % \keywords{typeclass, type family}
 
@@ -33,7 +32,7 @@
   modern, statically typed, declarative, and functional
   programming language. We focus on how one single construct,
   explicit type equality, gives a unified account of several seemingly
-  unrelated language features. As a consequence we obtain a typed
+  unrelated language features. As a consequence, we obtain a typed
   intermediate language that is an easy to
   reason about and implement. We also
   study important extensions of this language and identify notable open
@@ -50,33 +49,33 @@ Mathematicians work from top to bottom; they first build the abstractions
 and then enrich them to represent real world
 problems. Programmers turn the process on its head.
 They first write a software program that solves a very specific
-task. They then build the right level of abstraction by means of
+task and then build the right level of abstraction by means of
 iterative code refactoring. This phenomenon is a well established
 observation in computer science: Curry-Howard or the
 Brouwer–Heyting–Kolmogorov correspondence~\cite{wadler_propositions_2015,han_deep_2023}
 and it forms the basis for the field of type
 theory~\cite{barendregt_lambda_2013,hottbook_2013,nordstrom_programming_1990}.
 
-From a programmers perspective, a programming language compiler is
-a software that evolves by means of extensions. A new language feature
+A programming language compiler, like any other software,
+evolves by means of extensions. A new language feature
 is implemented in two steps. First, the abstract syntax tree (AST)---the
-data structure that represents the surface syntax of the language---is
-extended to represent the new feature, and second, the operations
+data structure that encodes the surface syntax of the language---is
+extended to represent the new feature. Second, the operations
 performed on the AST are extended to cater for this new feature. These
-operations transform the AST into an intermediate language which is internal to the
-compiler~\cite{siek_compilation_2023}. It is a more suitable
-representation of the surface syntax AST to perform code analysis and
+operations transform the AST into an intermediate language internal to the
+compiler~\cite{siek_compilation_2023}. The intermediate language is more suitable
+representation of the surface level AST to perform code analysis and
 runtime optimizations~\cite{aho_compilers_1986}.
-If there is a way of encoding the new language feature by using the
-existing language features, the second step---of the operation extension---can be
+If there is a way of encoding the new language feature by using
+existing language features, the second step can be
 skipped. However, not all language features can be encoded
 into existing language features. In such cases, the compiler writer, needs
 to enrich the intermediate language to support the
 new language feature. Extensions to the intermediate language,
 however, do not scale. Multiple extensions to the intermediate
-language causes a feature clutter, making it difficult to
-maintain and reason about its correctness. The intermediate language
-requires a reformulation, which amounts to finding the right
+language makes it difficult to maintain, and reason about its correctness.
+The intermediate language requires a reformulation,
+which amounts to finding the right
 abstraction that can encode the different high level language features
 into a simplified intermediate language.
 
@@ -85,37 +84,35 @@ typechecker, is the gate keeper. Its purpose is to ensure that it does
 not let \emph{bad} programs pass, and flag the appropriate offending
 parts of programs to the programmer. This gate keeping is desirable;
 it aids the programmer, by guaranteeing that a class of program
-errors---such as runtime null pointer exceptions due to incorrect
-function arguments---can never occur. They can then concentrate on the
+errors, such as runtime null pointer exceptions due to incorrect
+function arguments, can never occur. They can then concentrate on the
 other, more important aspects of the program, which cannot be verified
 by the typechecker. On the other hand, the typechecker needs to allow
 the \emph{good} programs---the ones that are definitely bug free---to
 pass without the programmer's intense struggle. For
-this reason, the structure of types needs to be sufficiently rich
-to express programmer's complex ideas, while rejecting incorrect
-programs. The examples below illustrate a couple use-cases and
-their associated semantic invariants which the programmers may like to
-capture within the type structure:
+this reason, the type structure needs to be sufficiently rich
+to express programmer's complex ideas and invariants.
+The examples below illustrate the invariants
+that the programmers may like to capture within the type structure:
 \begin{enumerate}
 \item In an AST where the compiler writer wants to enforce the
-  sub-term to always be of a fixed typed. This avoids the need
-  explicitly checking them in the code.
+  sub-term to always be of a fixed typed. This avoids the need to
+  explicitly check them in the code.
   More concretely, the AST representing the control structures, such
   as !if! or !while! loop, is well formed only when the sub-term
-  representing the condition is of !Boolean! type.
+  representing the condition is of type !Boolean!.
 \item In a multi-stage compiler, the AST is gradually enriched with
   more information after each analysis stage. The type structure can
   enforce that the information is accessed only after it is populated,
-  otherwise, the typechecker raises a type
-  error~\cite{peyton_jones_trees_2017}.
+  or it raises a type error~\cite{peyton_jones_trees_2017}.
 \end{enumerate}
 
-The thesis of this monograph is that \emph{using explicit type
+The thesis of this monograph is: \emph{using explicit type
   equality, a novel construct, in the intermediate language is an
   appropriate abstraction to encode semantic invariants without
   compromising safety or efficiency.}
 Type equalities denote explicit proofs in the system which assert when
-two types can be considered are synonymous. The monograph
+two types can be considered synonymous. The monograph
 is arranged in four parts:
 \begin{enumerate}
 \item[Part I] serves as a reminder of the essential features
@@ -127,14 +124,14 @@ is arranged in four parts:
   gives the \emph{compiler writers' view} of the language. To this
   effect, we show how the language features described in Part I can be
   trivially encoded within \SFC.
-\item[Part III] describes three important extensions of vanilla \SFC
+\item[Part III] describes two important extensions of vanilla \SFC
   which make it even more expressive:
   (1) \SFR makes type equality finer grained while
-  providing stronger type soundness guarantees, (2) \SFP makes the kind
-  system more expressive, and (3) \SFK squashes the distinction between
+  providing stronger type soundness guarantees and
+  (2) \SFK squashes the distinction between
   types and kinds making the type (and kind) level computation even
-  more expressive. Each of these extensions are formalized along with
-  an overview its correctness argument.
+  more expressive. Both of these extensions are formalized along with
+  their correctness argument sketch.
 \item[Part IV] describes notable open problems in the area.
   It is followed by important work adjacent to the principal topic
   of this monograph, and concluding remarks.
@@ -166,28 +163,29 @@ idC i = i
 \end{minipage}
 
 The type signature !idI :: Int -> Int! specifies the input-output behavior of the
-function: !idI! accepts an argument of type !Int! and returns a value of type !Int!. The
-function definition !idI i = i! specifies how the function satisfies the typing
-specification: it takes an argument !i! and returns it unmodified. Functions declared in a
-functional programming language resemble mathematical functions in two ways: first, they
-are referentially transparent, i.e. a call to the same function twice with the same
-arguments will always return the same result. The expression, !idI 3!, will always
-evaluate to !3!. Second, they are declarative, in a sense they abstract away the
-implementation and execution details of how the function executes on the actual underlying
-hardware; there is no mention of allocating and freeing program memory or even an explicit
-return.
+function: !idI! accepts an argument of type !Int! and returns a value of
+type !Int!. The definition !idI i = i! specifies how the function satisfies the
+typing specification: it takes an argument !i!
+and returns it unmodified. Functions declared in a
+functional programming language resemble mathematical functions
+in two ways: first, they are referentially transparent,
+i.e. invoking a function with the same
+arguments will always return the same result:
+the expression, !idI 3!, will always evaluate to !3!.
+Second, they are declarative, in a sense they abstract away the
+implementation and execution details of how the function executes on the
+actual underlying hardware; there is no mention of allocating
+and freeing program memory or even an explicit return.
 
 \subsection{Parametric Polymorphism}
-Functions like !idI!, while enough to build large programs, are too cumbersome in
-practice to program with. It is necessary to define the same functionality over
-different types to aid re-usability of programs. For example, an
+Re-usablity of programs improves the programming experience. For example, an
 identity function over !Char!, !idC! has the exact same
-definition as !idI!. The functions that work on base types, such as !Int!, are called as
-monomorphic functions. To enhance re-usability of programs, it is necessary to be able to
+definition as !idI! over !Int!. The functions that work on base types,
+such as !Int!, are called monomorphic functions.
+To enhance re-usability of programs, it is necessary to
 abstract over types.
 
-
-\begin{minipage}{0.3\linewidth}
+\begin{minipage}{0.5\linewidth}
 \begin{CenteredBox}
 \begin{code}
 id :: t -> t
@@ -195,15 +193,7 @@ id a = a
 \end{code}
 \end{CenteredBox}
 \end{minipage}%
-\begin{minipage}[ht]{0.3\linewidth}
-\begin{CenteredBox}
-\begin{code}
-hotm :: t -> t
-hotm = id id
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.3\linewidth}
+\begin{minipage}[ht]{0.5\linewidth}
 \begin{CenteredBox}
 \begin{code}
 ($\circ$) :: (a -> b) -> (b -> c) -> (a -> c)
@@ -212,18 +202,13 @@ f $\circ$ g  = \ x -> f (g x)
 \end{CenteredBox}
 \end{minipage}
 
-
 The function !id!, shown above, abstracts over all types by an implicit universal
-quantification over the type variable !t!. Such functions are called \emph{parametrically
-polymorphic} functions~\cite{strachey_fundamental_2000}. The compiler
-can deduce which instance of the polymorphic function is required when
+quantification over the type variable !t!. Such functions are called
+\emph{parametrically polymorphic} functions~\cite{strachey_fundamental_2000}.
+The compiler can deduce which instance of the polymorphic function is required when
 an argument of a concrete type is passed as an argument to a
-polymorphic function. Parametric polymorphism also aids the language
-feature for defining and using higher order functions as functions can
-now be passed as arguments to other functions. For example, the
-typechecker will infer the type of the left hand side !id! in the
-definition of !hotm! as !(t -> t) -> (t -> t)!. The language is said
-to support functions as first class when the functions can be
+polymorphic function. The language is said
+to support functions as first class citizens when they can be
 used as arguments to other functions, new functions can be declared
 locally and also be able to compose without saturating them. For
 example, in the function declaration, which composes any two suitable
@@ -260,7 +245,7 @@ distinct: !addI! adds two !Int!s and returns an !Int! while the !addF!
 adds two !Float!s and returns a !Float!. The low level compiler generated code
 for each of them would also differ as they would make a call to two
 different built-in subroutines. This name punning technique, which is dependent on the
-type of arguments, or the context of where the function appears, is called as \emph{adhoc
+type of arguments, or the context of where the function appears, is called \emph{adhoc
 polymorphism}~\cite{strachey_fundamental_2000}, while the functions
 themselves are referred to as adhoc polymorphic functions. Implicit
 operator overloading is a mechanism to support adhoc polymorphism.
@@ -300,6 +285,7 @@ instance Num Float where
 \end{CenteredBox}
 \end{minipage}
 \caption{\lstinline{Num} typeclass and instances}
+\Description[Num typeclass and instances]{Num typeclass and instances}
 \label{fig:tc-num}
 \end{figure}
 
@@ -331,8 +317,7 @@ for those types whose values behave like numbers, they can be compared
 (!<=!, !==!) and added together (!+!). The declarations in the
 \pref{fig:tc-num} can be interpreted as an evidence of fact that
 !Float! and !Int! belong to the unary relation !Num!,
-$\{$ !Int!, !Float! $\} \subseteq$ !Num!, and
-also !$\tau \to \sigma \not \subseteq$ Num!.
+$\{$ !Int!, !Float! $\} \subseteq$ !Num!.
 
 
 \section{Program Data}
@@ -350,7 +335,8 @@ sums of products. As an example, consider modeling a simple calculator
 application which performs addition operation on integers. The domain,
 in this case, are arithmetic expressions and can be represented using an
 ADT in Haskell as:
-
+\begin{figure}
+\begin{minipage}[ht]{0.5\linewidth}
 \begin{CenteredBox}
 \begin{code}
 data AlgExp where
@@ -358,14 +344,8 @@ data AlgExp where
    Plus  :: AlgExp -> AlgExp -> AlgExp
 \end{code}
 \end{CenteredBox}
-
-The !data! keyword defines a new user defined datatype with name
-!AlgExp!. The data constructor !Value! stores evaluated !Int! values,
-while !Plus! encodes the operation of adding the two expressions. Now,
-the function of the calculator---to compute expressions---is simulated
-by evaluating the encoded expression. This is performed by an !eval!
-function defined recursively as shown below:
-
+\end{minipage}%
+\begin{minipage}[ht]{0.5\linewidth}
 \begin{CenteredBox}
 \begin{code}
 eval :: AlgExp -> Int
@@ -373,11 +353,24 @@ eval (Value i) = i
 eval (Plus x y) = eval x + eval y
 \end{code}
 \end{CenteredBox}
+\end{minipage}
+    \caption{\texttt{AlgExp} and its evaluation}
+    \Description{AlgExp and its evaluation}
+    \label{fig:algexp-data}
+\end{figure}
+
+The !data! keyword defines a new user defined datatype with name
+!AlgExp! as shown in \pref{fig:algexp-data}. The data constructor
+!Value! stores !Int! values, while !Plus! encodes addition
+of two !AlgExp! expressions. The function of the
+calculator---to compute expressions---is simulated
+by evaluating the encoded expression performed by an !eval!
+function defined recursively.
 
 The declarative style of programming allows us to write the !eval!
 function on a case by case basis via pattern
 matching. There are exactly two ways in which we could have obtained a
-value of type !AlgExp! by virtue of this definition. The first case says
+value of type !AlgExp!. The first case says
 that if we have a !Value i!, we can deduce that
 !i! is an !Int! and return it. In the second case, !Plus!, we first
 evaluate the expressions !x! and !y! recursively, and then return the
@@ -392,235 +385,20 @@ In a typed setting the typechecker can identify and reject programs
 with ill-structured data. The pattern expression !eval (Plus x)! is
 ill-typed as !Plus! requires 2 arguments of type !AlgExp!.
 
-The declarative style of defining algebraic datatypes and pattern matching was introduced in
+The declarative style of defining algebraic datatypes
+and pattern matching was introduced in
 Hope~\cite{burstall_proving_1969, burstall_hope_1980} and has become an
 essential feature of all modern typed functional programming languages.
 
-\subsection{Generalized Algebraic Datatypes}
-Consider extending the previously defined !AlgExp! to now
-include a data constructor !IsZero!. The intention of the constructor is to
-check if the expression of type !AlgExp! is evaluated to zero.
-
-\begin{figure}[ht]
-\centering
-\begin{minipage}{0.5\linewidth}
-\begin{CenteredBox}
-\begin{code}
-data AlgExp where
-  Value  :: Int              -> AlgExp
-  Plus   :: AlgExp -> AlgExp -> AlgExp
-  IsZero :: AlgExp           -> AlgExp
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}{0.5\linewidth}
-\begin{CenteredBox}
-\begin{code}
-eval :: AlgExp -> Int
-eval (Value i) = i
-eval (Plus x y) = (eval x) + (eval y)
-eval (IsZero x) = (eval x) == 0 -- type error!
-\end{code}
-\end{CenteredBox}
-\end{minipage}
-\caption{\texttt{AlgExp} datatype and \texttt{eval} function}
-\label{fig:algexp-eval}
-\end{figure}
-
-How should the !eval! function handle the !IsZero! case? The naive
-definition, !(eval x) == 0!, fails to type check as the !eval!
-function requires the return type of the expression to be an !Int! but
-it is of type !Bool!. A possible solution is to change the return type
-of the the !eval! function to be !Either Int Bool!. This would mean
-that the evaluator either returns an !Int! or a !Bool!. While this would work as
-expected, it requires a complete rewrite of the !eval! function. The
-situation of maintaining this !eval! function would become even more
-cumbersome if later we wanted to add a new facility, say, to store and use user
-defined functions. Extending !AlgExp! with new constructs would mean
-nesting of !Either! datatype and then checking at each recursive
-call the value returned is the one that we expect.
-
-To reflect on the situation: the programmer
-expects the !eval! function to compositionally evaluate an
-expression, then why should they be bothered to wrap the
-evaluated values of the !AlgExp! into a datatype? This certainly
-looks like a code smell, and we should be able to find an appropriate
-abstraction to handle this wrapping and unwrapping automatically.
-It is important to note that, in full generality, the evaluation of the expression
-may not result in the same type. In our case, the !IsZero! evaluates
-an expression to a Boolean value, while the !Plus! operator evaluates
-to an Integer. Thus, the type signature of the !eval! function should
-abstract over the expression result type:
-!eval :: FORALL a. AlgExp a -> a!. The problem
-would resolve if we were to constrain the return type of each of the
-data constructors to agree to the type of the value expected after
-evaluating the value of type !AlgExp!. This constrained return type
-can be used as a tag to convince the typechecker that !eval! function
-is indeed type safe. This formulation is shown in
-\pref{fig:galgexp-eval} with the datatype !GAlgExp! along with the !eval!
-function which evaluates it.
-
-
-\begin{figure}[ht]
-\centering
-\begin{minipage}[ht]{0.6\linewidth}
-\begin{CenteredBox}
-\begin{code}
-data GAlgExp a where
-  Value  :: Int                        -> GAlgExp Int
-  Plus   :: GAlgExp Int -> GAlgExp Int -> GAlgExp Int
-  IsZero :: GAlgExp Int                -> GAlgExp Bool
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.4\linewidth}
-\begin{CenteredBox}
-\begin{code}
-eval :: GAlgExp a -> a
-eval (Value i) = i                    --(1)
-eval (Plus x y) = (eval x) + (eval y) --(2)
-eval (IsZero x) = (eval x) == 0       --(3)
-                   -- typechecks okay!
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\caption{\texttt{GAlgExp} datatype and \texttt{eval} function}
-\label{fig:galgexp-eval}
-\end{figure}
-
-In each of the case alternative branches, the type of the right hand side of a
-pattern match agrees with the type constraint introduced by the
-pattern. For example, in the alternative case branch labeled (2)
-in the \pref{fig:galgexp-eval}, the
-pattern !Plus x y! is of type !GAlgExp Int! and the type of the
-resultant on the right hand side of the equation is of type !Int!.
-Similarly, in the alternative branch labeled (3) with the pattern
-!IsZero x! is of type !AlgExp Bool! is on the left hand of the
-equation, has a right hand side of the equation
-of type !Bool!, which agrees with the type of its right hand side.
-
-GADTs can further help in identifying dead code and code
-optimizations~\cite{xi_dead_1998,graf_lower_2020,nilsson_dynamic_2005}.
-For example, consider the function !isZero! shown below:
-
-\begin{minipage}[ht]{0.5\linewidth}
-\begin{CenteredBox}
-\begin{code}
-isZero :: GAlgExp Int -> Bool
-isZero (Value i) = i == 0
-isZero (Plus x y) = isZero x && isZero y
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}{0.5\linewidth}
-\begin{CenteredBox}
-\begin{code}
-isZero :: AlgExp Int -> Bool
-isZero (Value i) = i == 0
-isZero (Plus x y) = isZero x && isZero y
-isZero (IsZero x) = error "impossible"
-\end{code}
-\end{CenteredBox}
-\end{minipage}
-
-The typechecker has the necessary information to identify that the case
-!IsZero x! is impossible as it is of type !GAlgExp Bool! while the
-function only expects an argument of type !GAlgExp Int!. If we were to
-define the same function for !AlgExp Int!, the function
-would have to include a bogus case for !IsZero x!.
-
-\begin{minipage}[ht]{0.6\linewidth}
-\begin{CenteredBox}
-\begin{code}
-data GAlgExp a where
-  ...
-  Equals :: GAlgExp a -> GAlgExp a -> GAlgExp Bool
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.4\linewidth}
-\begin{CenteredBox}
-\begin{code}
-eval :: GAlgExp a -> a
-...
-eval (Equals x y) = (eval x) == (eval y)
-                           -- Type error!
-\end{code}
-\end{CenteredBox}
-\end{minipage}
-
-Consider a generalization of !IsZero x! namely, !Equals x y! as shown
-in the above code block. The intention of !Equals x y! to
-encode comparing the arguments !x! and !y! and decide if they are
-equal. The !eval! function case that evaluates !Equals x y! fails
-to type check. The problem is not that the return type does not match,
-it is indeed !Bool!, but there is no reason to believe that
-!eval x! and !eval y! can be compared using the !(==)! operator. The
-only information we can infer from the pattern match is that
-the type of !eval x! and !eval y! are of some generic type variable
-!a!. Such types are called existential as they do not appear in
-the return type. We need to constrain the types of the
-arguments to !Equal! to only those that can be compared.
-Haskell already supports such a mechanism: \emph{typeclasses}.
-By constraining the type variable to only those which satisfy
-the !Eq! typeclass, we can convince the typechecker that the
-term !(eval x) == (eval y)! is well typed.
-
-
-\begin{minipage}[ht]{0.5\linewidth}
-\begin{CenteredBox}
-\begin{code}
-data GAlgExp a where
-   ...
-   Equals :: Eq a => GAlgExp a -> GAlgExp a
-                  -> GAlgExp Bool
-\end{code}
-\end{CenteredBox}
-\end{minipage}%
-\begin{minipage}[ht]{0.4\linewidth}
-\begin{CenteredBox}
-\begin{code}
-eval :: GAlgExp a -> ac
-...
-eval (Equals x y) = (eval x) == (eval y)
-                              -- Okay!
-\end{code}
-\end{CenteredBox}
-\end{minipage}
-
-To summarize GADTs generalize the notion of algebraic datatypes in two
-distinct ways by uniformly supporting:
-\begin{enumerate}
-\item phantom or tagged types, where the return type of the data
-  constructor is no longer a generic type variable and it is refined
-  to be a fixed type;
-\item existential types, where it is possible for the type variables
-  that appear in the types of the arguments to the data
-  constructors to not appear in the return type.
-\end{enumerate}
-
-While there is a rich literature of GADTs (inductive type families)
-for dependently typed languages~\cite{dybjer_inductive_1991,
-  dybjer_inductive_1994}, the idea of GADTs for non-dependently typed
-languages appeared under different names such as indexed
-types~\cite{zenger_indexed_1997}, first class phantom
-types~\cite{cheney_first-class_2003}, guarded recursive
-datatypes~\cite{xi_guarded_2003}, equality qualified
-types~\cite{sheard_meta-programming_2008}. GHC/Haskell was the only
-language compiler that supported GADTs~\cite{peyton_jones_wobbly_2004}
-until recently OCaml 4.0~\cite{garrigue_gadt_2011}, Scala 3~\cite{xu_implementing_2021},
-and other languages started following the lead of Haskell.
-
-
-\subsection{Generative Abstract Types}\label{subsubsec:gen-abs-types}
-Generative types provide a mechanism for the programmer to confine the
+\subsection{Newtypes}\label{subsubsec:gen-abs-types}
+A special case of algebraic datatype is when there is only
+one data constructor for the user defined datatype. This wrapping
+of an existing type is to achieve data hiding.
+Newtype provides the mechanism which confines the
 visibility of the representation details of a type
-exclusively within a module. External to the module the client program
-cannot know how the type is represented or in other words,
-representation of the generative types is opaque to the client
-module. In Haskell, generative types are defined by hiding the data constructors
-from the module exports. Consider an HTML module defined in
-Haskell as shown in the \pref{fig:html-generative-type}.
+exclusively within a module. External to the module type
+representation is opaque to the client
+module. Consider an !HTML! module as shown in the \pref{fig:html-generative-type}.
 
 \begin{figure}[ht]
 \centering
@@ -659,6 +437,7 @@ page = mkHTML "<html><body>Text</body></html>"
 \end{CenteredBox}
 \end{minipage}
 \caption{HTML as a generative type}
+\Description{HTML as a generative type}
 \label{fig:html-generative-type}
 \end{figure}
 
@@ -666,29 +445,270 @@ Within the scope of !Html! module, the types !String! and !HTML! are
 synonymous, however the type !Html! will be opaque for any
 external client using the type !HTML!. The !Client! module will not be
 able to directly manipulate a value of type !Html!---unless
-of course by using the specific functions exposed by the module.
-Inhibiting manipulations and views of the data
-representation is useful for avoiding leaking information in
+of course by using the specific functions exposed in the
+signature. Inhibiting manipulations and views of the data
+representation is useful to avoid leaking information in
 secure computation contexts. A naive abstraction, however,
 will incur a runtime cost. !Html! and !String!, need to be explicitly
 converted from one form into another using pattern matching.
 This explicit conversion is redundant as they have the same
 representation in memory, but the compiler cannot use this
 information to perform any optimization on the generated code.
-A smart implementation should be able to remove the extra runtime overhead
-of converting !String! to !Html! and vice versa.
+Is it possible for the runtime semantics of the code be liberated from
+the extra overhead?
 
-
-The idea of generative abstract types first appeared in work of
+The idea of newtypes can be traced back to
+generative abstract types, which first appeared in work of
 ~\citet{leroy_applicative_1995} and ~\citet{milner_definition_1997}
-in context to ML modules systems. Generative abstract types in the
-context of Haskell are similar to ~\cite{montagu_modeling_2009}.
-While they have a hint of existential types, they exhibit different
-semantics.
+in the context of ML module systems. Generative abstract types in the
+context of Haskell are similar to ~\cite{montagu_modeling_2009}. The idea of
+abstract types is even older due to \citet{TODO}
+
+\subsection{Generalized Algebraic Datatypes}
+Consider extending the previously defined !AlgExp! from~\pref{fig:algexp-data} to also
+include a data constructor !IsZero!. The intention of the constructor is to encode the
+check if the expression of type !AlgExp! is evaluated to zero.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+data AlgExp where
+  Value  :: Int              -> AlgExp
+  Plus   :: AlgExp -> AlgExp -> AlgExp
+  IsZero :: AlgExp           -> AlgExp
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+eval :: AlgExp -> Int
+eval (Value i) = i
+eval (Plus x y) = (eval x) + (eval y)
+eval (IsZero x) = (eval x) == 0 -- type error!
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+\begin{minipage}{0.3\linewidth}
+\begin{CenteredBox}
+\begin{code}
+data Either a b where
+    Left  :: a  -> Either a b
+    Right :: b  -> Either a b
+
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}{0.6\linewidth}
+\begin{CenteredBox}
+\begin{code}
+eval :: AlgExp -> Either Bool Int
+eval (Value i) = Right i
+eval (Plus x y) =
+  case (eval x, eval y) of
+    (Right x', Right y') -> Right (x' + y')
+    _                    -> error "should not happen"
+eval (IsZero x) = case (eval x) of
+                    Left i -> Left (i == 0)
+                    _      -> error "should not happen"
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+\caption{Extending the \texttt{AlgExp} datatype and \texttt{eval} function}
+\Description[AlgExp]{AlgExp is inexpressive}
+\label{fig:algexp-eval}
+\end{figure}
+
+How should the !eval! function handle the !IsZero! case? The naive
+definition, !(eval x) == 0! as shown in \pref{fig:algexp-eval},
+fails to type check as the !eval! function requires the return
+type of the expression to be an !Int! but
+it is of type !Bool!. A possible solution is to change the return type
+of the the !eval! function to be !Either Int Bool!. This would mean
+that the evaluator either returns an !Int! or a !Bool!. While this works as
+expected, it requires a complete rewrite of the !eval! function. The
+situation of maintaining this !eval! function becomes even more
+cumbersome if later we wanted to add a new facility, say, to store and use user
+defined functions. Extending !AlgExp! with new constructs would mean
+nesting of !Either! datatype and then checking at each recursive
+call the value returned is the one that we expect.
+
+To reflect on the situation: the programmer
+expects the !eval! function to compositionally evaluate an
+expression, then why should they be bothered to wrap the
+evaluated values of the !AlgExp! into an !Either! datatype?
+There needs to be an appropriate abstraction to handle
+this wrapping and unwrapping automatically.
+It is important to note that, in full generality,
+the evaluation of the expression may not result in the same type.
+In our case, the !IsZero! evaluates
+an expression to a Boolean value, while the !Plus! operator evaluates
+to an Integer. Thus, the type signature of the !eval! function should
+abstract over the expression result type:
+!eval :: FORALL a. AlgExp a -> a!. The problem
+would resolve if we were to constrain the return type of each of the
+data constructors to agree to the type of the value expected after
+evaluating the value of type !AlgExp!. This constrained return type
+can be used as a tag to convince the typechecker that !eval! function
+is indeed type safe. This formulation is shown in
+\pref{fig:galgexp-eval} with the datatype !GAlgExp! along with the !eval!
+function which evaluates it.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[ht]{0.6\linewidth}
+\begin{CenteredBox}
+\begin{code}
+data GAlgExp a where
+  Value  :: Int                        -> GAlgExp Int
+  Plus   :: GAlgExp Int -> GAlgExp Int -> GAlgExp Int
+  IsZero :: GAlgExp Int                -> GAlgExp Bool
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.4\linewidth}
+\begin{CenteredBox}
+\begin{code}
+eval :: GAlgExp a -> a
+eval (Value i) = i                    --(1)
+eval (Plus x y) = (eval x) + (eval y) --(2)
+eval (IsZero x) = (eval x) == 0       --(3)
+                   -- typechecks okay!
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\caption{\texttt{GAlgExp} datatype and \texttt{eval} function}
+\Description[GAlgExp]{GAlgExp datatype and \eval function}
+\label{fig:galgexp-eval}
+\end{figure}
+
+In each of the case alternative branches, the type of the right hand side of a
+pattern match agrees with the type constraint introduced by the
+pattern. For example, in the alternative case branch labeled (2)
+in the \pref{fig:galgexp-eval}, the
+pattern !Plus x y! is of type !GAlgExp Int! and the type of the
+resultant on the right hand side of the equation is of type !Int!.
+Similarly, in the alternative branch labeled (3) with the pattern
+!IsZero x! is of type !AlgExp Bool! is on the left hand of the
+equation, has a right hand side of the equation
+of type !Bool!, which agrees with the type of its right hand side.
+
+GADTs can further help in identifying dead code and code
+optimizations~\cite{xi_dead_1998,graf_lower_2020,nilsson_dynamic_2005}.
+For example, consider the function !isZero! shown below:
+
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+isZero :: AlgExp -> Bool
+isZero (Value i) = i == 0
+isZero (Plus x y) = isZero x && isZero y
+isZero (IsZero x) = error "impossible"
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+isZero :: GAlgExp Int -> Bool
+isZero (Value i) = i == 0
+isZero (Plus x y) = isZero x && isZero y
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+
+The typechecker has the necessary information to identify that the case
+!IsZero x! is impossible as it is of type !GAlgExp Bool! while the
+function only expects an argument of type !GAlgExp Int!. If we were to
+define the same function for !AlgExp!, the function
+would have to include an impossible case for !IsZero x!.
+
+\begin{minipage}[ht]{0.6\linewidth}
+\begin{CenteredBox}
+\begin{code}
+data GAlgExp a where
+  ...
+  Equals :: GAlgExp a -> GAlgExp a -> GAlgExp Bool
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.4\linewidth}
+\begin{CenteredBox}
+\begin{code}
+eval :: GAlgExp a -> a
+...
+eval (Equals x y) = (eval x) == (eval y)
+                           -- Type error!
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+
+Consider a generalization of !IsZero x! namely, !Equals x y! as shown
+in the above code block. The intention of !Equals x y! to
+encode comparing the arguments !x! and !y! and decide if they are
+equal. The !eval! function case that evaluates !Equals x y! fails
+to type check. The problem is not that the return type does not match,
+it is indeed !Bool!, but there is no reason to believe that
+!eval x! and !eval y! can be compared using the !(==)! operator. The
+only information we can infer from the pattern match is that
+the type of !eval x! and !eval y! are of some generic type variable
+!a!. Such types are called existential as they do not appear in
+the return type. We need to constrain the types of the
+arguments to !Equal! to only those that can be compared.
+By constraining the type variable to only those which satisfy
+the !Eq! typeclass, we can convince the typechecker that the
+term !(eval x) == (eval y)! is well typed.
+
+
+\begin{minipage}[ht]{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+data GAlgExp a where
+...
+   Equals :: Eq a => GAlgExp a -> GAlgExp a
+                  -> GAlgExp Bool
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}[ht]{0.4\linewidth}
+\begin{CenteredBox}
+\begin{code}
+eval :: GAlgExp a -> a
+...
+eval (Equals x y) = (eval x) == (eval y)
+                              -- Okay!
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+
+To summarize GADTs generalize the notion of algebraic datatypes in two
+distinct ways by uniformly supporting:
+\begin{enumerate}
+\item phantom or tagged types, where the return type of the data
+  constructor is no longer a generic type variable and it is refined
+  to be a fixed type;
+\item existential types, where it is possible for the type variables
+  that appear in the types of the arguments to the data
+  constructors to not appear in the return type.
+\end{enumerate}
+
+While there is a rich literature of GADTs (inductive type families)
+for dependently typed languages~\cite{dybjer_inductive_1991,
+  dybjer_inductive_1994}, the idea of GADTs for non-dependently typed
+languages appeared under different names such as indexed
+types~\cite{zenger_indexed_1997}, first class phantom
+types~\cite{cheney_first-class_2003}, guarded recursive
+datatypes~\cite{xi_guarded_2003}, equality qualified
+types~\cite{sheard_meta-programming_2008}. GHC/Haskell was the only
+language compiler that supported GADTs~\cite{peyton_jones_wobbly_2004}
+until recently OCaml 4.0~\cite{garrigue_gadt_2011} and
+Scala 3~\cite{xu_implementing_2021} added them.
 
 \section{Type Computation}\label{sec:type-computation}
 \subsection{Multiparameter Typeclasses}\label{sec:multiparam-typeclasses}
-While single parameter type classes model unary
+While single parameter typeclasses model unary
 relations over types, multiparameter typeclasses generalize single
 parameter typeclasses by modeling n-ary relations
 over types. For example, ~\citet{jones_tcfd_2000} uses the
@@ -739,60 +759,36 @@ where
 \end{CenteredBox}
 \end{minipage}
 \caption[\lstinline{Con} typeclass]{\lstinline{Con} typeclass and its instances}
+\Description[Con Typeclass]{Con Typeclass and instances}
 \label{fig:tc-collection}
 \end{figure}
 
-The use of !empty! in a polymorphic setting, however, leads to a type ambiguity during
-compilation. For example, consider the term !single3! as below:
-
-\begin{CenteredBox}
-\begin{code}
-single3 = insert 3 empty
-\end{code}
-\end{CenteredBox}
-
-the typechecker infers the type of !empty! as !Con e [Int] => [Int]!. The type inferred by
-the typechecker is the right one, but we have a free type variable
-!e! which appears only in the constraint. We do not have enough
-information to determine what the concrete type of !e! should be as
-we cannot rule out the existence of another instance such as !Con Float [Int]!.
-This results in an ambiguity in compilation step; the compiler cannot
+The use of !empty! in a polymorphic setting, however, leads to ambiguity during
+compilation. The type of empty is inferred as !empty! as !Con e c => c!.  This type
+in ambiguous as a free type variable !e! which appears only in the constraint.
+Ambiguous types do not have well defined semantics as the compiler cannot
 resolve the typeclass constraint to a unique instance and hence cannot
-choose the right implementation to use. Types that
-give rise to such ambiguity in compilation are called ambiguous types. Formally, if a
-type variable only appears in the constraints of the type it is called
-an \emph{ambiguous type}. The type of !empty!,
-!FORALL e c. Con e c => c!, is ambiguous due to the occurrence of !e! in the
-constraint and no where else. Terms with ambiguous types need to be rejected by the compiler
-precisely because they do not have a well defined semantics.
-A possible solution to this problem, is to resort to assigning local
-type annotations, for example,
+choose the right implementation to use. Further,
+if the intention of the programmer is to allow only homogeneous containers,
+multiparameter typeclasses are insufficient. Consider the term !con3a!
+which claims to insert both an !Int! value and a !Char! value into
+the argument !con!.
 
 \begin{CenteredBox}
 \begin{code}
-single3 :: [Int] = insert (3 :: Int) (empty :: [Int])
+con3a con = insert 3 (insert 'a' con)
 \end{code}
 \end{CenteredBox}
 
-One might think that the typechecker can now infer the type of the term unambiguously by
-instantiating !e! to !Int!, but it still cannot$\bang$ In the
-original type inference algorithm, the type constraints are propagated from
-the leaves of the AST~\cite{lee_proofs_1998} to its root. Even if it
-did solve the problem, the type annotation solution is unsatisfactory for the following reasons:
-\begin{itemize}
-\item it increases programmers' cognition overhead:
-  it relies on the assumption that the programmer knows where to add the
-  type annotations by having a deep understanding of how the typechecker
-  uses the type annotation information, and worse;
-\item it is fragile:
-  any changes to the typechecker algorithm may result in unpredictable
-  type inference causing previously typecheck-able programs to now fail.
-\end{itemize}
-% The problem is that the typeclasses are relations making them too
-% general for this use case.
+The typechecker infers the type of !con3a! as
+!(Con Int c, Con Char c) => c -> c!. However, a use of this term
+to a container which contains only !Int! or !Char! will raise a type error.
+If the intention of the programmer was to allow only homogeneous containers,
+it would be helpful for the definition of the term !con3a! to be rejected,
+rather than a type error to appear at its use site.
 
 \subsection{Functional Dependencies}
-The problem with multiparameter type classes is that there is a
+The problem with multiparameter typeclasses is that there is a
 mismatch between the programmers intention and the expressivity of the
 typeclass machinery. Continuing with the above example, the
 programmers intention might be to have a functional relation between !c! and
@@ -805,10 +801,11 @@ of the typeclass.
 \begin{code}
 class Con e c | c ~> e where
   empty :: c
-  extend :: e -> c -> c
+  insert :: e -> c -> c
 \end{code}
 \end{CenteredBox}
 \caption[\lstinline{Con} typeclass]{The \lstinline{Con} Typeclass with Functional Dependency}
+\Description[Con typeclass]{The Con Typeclass with Functional Dependency}
 \label{fig:tc-collection-fd}
 \end{figure}
 As seen in the \pref{fig:tc-collection-fd}, the new annotation !c ~> e!
@@ -818,10 +815,10 @@ on the typeclass definition captures the functional dependency of the typeclass
 determined}. The parameter !c! is called the determiner, while
 the parameter !e! is called the determinant of the
 functional dependency. This extension to typeclasses has a good power
-to weight ratio; with a minimal change to the typeclass syntax and
+to weight ratio with a minimal change to the typeclass syntax, and
 complete backwards compatibility with no change to typeclass instance declarations.
-Typechecker needs to now verify that the new instance declarations do
-not violate the functional dependency: We cannot allow both the typeclass instances,
+The typechecker needs to verify that the new instance declarations do
+not violate the functional dependency: we cannot allow both the typeclass instances,
 !Con Int [Int]! and !Con Float [Int]! to exist together.
 
 ~\citet{jones_tcfd_2000} introduced functional dependencies as a
@@ -834,14 +831,12 @@ functional programming community.
 
 \subsection{Associated Types}
 Another way of introducing a functional relation on types, or simply
-type functions, would be via associating the determinant of the
+type functions, is via associating the determinant of the
 functional dependency within the class definition in a more direct fashion.
 Using the previous !Con c e! example, if we have a functional
 dependency !c ~> e! then, another style to capture the programmers
-intention is to use a special type function, say !Elem c!, where ever
-the type parameter !e! appears. The !Elem! is a special type function
-that takes in a type and returns a type, and is associated with the
-typeclass.
+intention is to use a type function, !Elem c!, where ever
+the type parameter !e! appears.
 
 \begin{figure}[ht]
 \begin{center}
@@ -877,81 +872,76 @@ instance Con (Tree Char) where
 \end{minipage}
 \end{center}
 \caption[Con typeclass]{\lstinline{Con} Typeclass with an Associated Type}
+\Description[Con typeclass]{Con Typeclass with an Associated Type}
 \label{fig:assoc-types}
 \end{figure}
 
 In the \pref{fig:assoc-types}, the typeclass !Con! needs only one
 parameter, !c!, for the container type, with an additional field for
 the type function !Elem! that depends on the type parameter !c! of the
-typeclass. As a cascading effect, the type signature of !insert!, now only depends on
-the type parameter !c!, and the !Elem c! stands for the element
+typeclass. As a cascading effect, the type signature of !insert!,
+now only depends on the type parameter !c!,
+and the !Elem c! stands for the element
 type of container. In the instance declaration, the !Elem [Int]! is mapped to
 !Int!, meaning, the element of the list of integers is of type !Int!.
-Every multiparameter typeclass, with a functional dependencies can be
-rewritten by representing all the determinants of the functional
-dependency associated with it to be the associated type. This provides
-a mechanism to circumvent the problem of ambiguous types.
+To circumvent the problem of ambiguous types,
+the multiparameter typeclass can be
+rewritten by replacing all the determinants of the functional
+dependency by the associated type applied to the determiners.
 
 Associated types were introduced by ~\citet{chakravarty_associated_2005}
 as an alternative for functional dependencies because of a more
-direct syntax: functional programmers are acustomend to writing
-functions and not relationals as in logic programming.
+direct syntax: functional programmers are accustomed to writing
+functions and not relations as in logic programming.
 
 \part{II: \SFC}\label{part:II}
 \section{History and Motivation}
+Haskell~\cite{haskell_2010} is statically typed.
+This has practical and theoretical implications.
+In practice, only those terms whose types can be verified by the
+typechecker can be compiled to the core intermediate language, and in theory,
+terms without types have no meanings.
 The Glasgow Haskell Compiler (GHC)~\cite{ghc_2020}, is the de facto
-Haskell language~\cite{haskell_2010} compiler. It operates in
-three major phases. First, the \emph{parsing phase}, ingests the
-programmer writing text code, also known as
-the surface syntax, in an appropriate abstract syntax tree
-representation, second, the \emph{typechecking phase},
-checks for type correctness of the surface syntax, and finally the
-third \emph{desugaring phase}, compiles the program into a core intermediate
-language. Colloquially, these three major phases--parsing,
-typechecking, desugaring---are together called
-the front end of the compiler. Haskell is statically typed,
-which has practical and theoretical implications;
-in practice, only the terms which can be verified to be type correct by
-the typechecker is compiled to the core intermediate language, and in theory,
-terms without types have no meanings. The prior iterations of GHC
-compiler, used \SF as its core intermediate language with
-separate extensions to support different language features. In the
-rest of this section, We will briefly re-visit the extensions  from
-the previous section and motivate why \SF with extensions is
-insufficient to encode the advanced language features.
+Haskell language compiler. The former iterations of GHC,
+used \SF~\cite{girard_proofs_1989, reynolds_towards_1974} with extensions,
+as its core intermediate language. In the
+rest of this section, we will briefly see how \SF, with extensions
+encoded the language features but was insufficient for encoding newtypes.
 
-To achieve decidable and complete type inference, Haskell follows the suit
-of Hindley-Milner type system~\cite{milner_theory_1978}; the
-programmers are not burdened with decorating the terms with explicit
-type annotations as the type checking algorithm can infer the most
-general, or pricipal, type of the term. Implicit parametric~\cite{reynolds_user-defined_1978}, and adhoc
-polymorphism~\cite{hall_type_1994} in Haskell can be
-translated into \SF~\cite{girard_proofs_1989,reynolds_towards_1974}.
-The Hindley-Milner type system can be viewed as a restricted
-version of \SF. All the types in Hindley-Milner type system
-are of the prenex form: the universally quantified type variables appear
-at the outermost level and there are no existentially quantified type variables.
-The functions from the surface level language are elaborated
-to have explicit type arguments. The function's use site  in the elaborated
-form needs to have all the type argument applied before the value arguments.
-For example, the elaborated function !id! in \SF will have a type
-!id : FORALL a. a -> a!, while for the term, !id 3!, it will be elaborated
-to !id Int 3!. The typeclasses are converted into record types called
-dictionaries~\cite{wadler_polymorphism_1989} which contain the
-associated methods. The instances of typeclasses are
-values of this type. They contain a reference to the method instances.
+GHC is based on Hindley-Milner type system~\cite{milner_theory_1978}.
+It can be viewed as a restricted version of \SF where all the types
+are in prenex form: the type variables
+are universally quantified at the outermost level and there are no
+explicitly existentially quantified types.
+The advantage of this system is that the term language
+is expressive enough to allow programmers write non-trivial programs
+while not burdening them with annotating every term with an explicit
+type. There is a decidable and complete algorithm
+which computes a most general unique type for a term.
+
+The basic language features can be encoded in \SF~\cite{burstall_hope_1980}.
+The encoding amounts to making the implicit type in the surface level language
+explicit in function definitions and function applications.
+For example, the polymorphic function definition !id! is elaborated to:
+
+\begin{CenteredBox}
+\begin{code}
+id :: FORALL t. t -> t
+id A x = x
+\end{code}
+\end{CenteredBox}
+
+The term !id 3! written by the programmer is elaborated to !id Int 3!.
+Typeclasses or implicit adhoc polymorphism, is encoded via means of
+special terms called dictionaries~\cite{wadler_polymorphism_1989, hall_type_1994}.
+The typeclass instances are dictionaries which contain a reference
+to actual the method implementations.
 Elaboration of implicit adhoc polymorphism amounts to finding
 the right dictionary to be applied to the function as an explicit
 argument in the elaborated version of the function application.
 
-Elaboration of algebraic datatypes into \SF has also been widely
-studied in literature and various elaboration (or encoding) schemes
-such as Church~\cite{jansen_efficient_2005,jansen_programming_2013},
-Mogensen-Scott~\cite{mogensen_efficient_1992}, or Mendler-Parigot
-~\cite{parigot_representation_1990, stump_efficiency_2016} can be used.
 The data constructors introduced by user defined datatypes are treated as
-term constants with its type and appropriate argument are specified in
-the declaration. Consider a pathological datatype declaration as shown
+term constants. Consider a pathological datatype declaration as shown
 below:
 
 \begin{CenteredBox}
@@ -962,67 +952,39 @@ below:
 
 The data constructor !MkT! is of type !FORALL a. a -> T a! in the
 core language. The programmer written term !MkT 42! for the type
-!T Int! will be elaborated to !MkT Int 42!. The example illustrates
-that the types, which need to be explicitly applied in the elaborated language,
-needs to be computed by a procedure. Further, there needs to be
-a unique value type to fill into the placeholder arguments in the elaborated term.
-The burden of finding or inferring the types naturally falls on the typechecker
-The uniqueness criteria for inferred type is important as the meaning
-of the term is inherently tied to the type argument it is applied to and
-we do not want the compiler to make arbitrary decisions for the programmer.
+!T Int! is elaborated to !MkT Int 42!.
 
-Although typeclasses and algebraic data types can be encoded in \SF,
-GADTs, generative abstract types, and associated types are cumbersome,
-if not impossible, to express using orthogonal extensions of pure \SF.
-Further, the interaction of each of these seemingly different features together would
-be painful for the compiler writer to implement, and programming
-language theorists to argue about its
-correctness. \SFC~\cite{sulzmann_system_2007} was designed as an
+\SFC~\cite{sulzmann_system_2007} was designed as an
 alternative to having separate extensions for
-each language feature.
-
-The key insight is that each language feature
-is, encoding a notion of type equality
+each language feature. The key insight is that each language feature
+is, in a sense, trying to encode some notion of type equality
 ($\tau\sim\sigma$). GADTs introduce type refinements, as seen in
 !eval! example, are type equality constraints exposed after a pattern
 is matched. Instances of associated types introduce a type equality
 between the instantiated associated type and the concrete type
-(!Elem [Int] ~ Int!). The generative abstract type introduces
-type equalities between the new defined type and its representation.
-(!Html ~ String!).
-% By introducing a single construct for type equality
-% within the system, all the features described previously can be
-% encoded in a fairly straightforward fashion.
+(!Elem [Int] ~ Int!). The newtype introduces
+type equalities between the new defined type and its representation
+(!Html ~ String!). Consider a the following declaration:
 
-In the following sections we describe the meta-theory of the core intermediate
-language followed by details of how each of the language features:
-GADTs (in the \pref{sec:fc-encodes-gadts}), generative abstract
-types (\pref{sec:fc-encodes-newtypes}), and associated
-types (\pref{sec:fc-encodes-assoctypes}) are encoded in \SFC
-using \emph{coercions} and \emph{coercion
+\begin{CenteredBox}
+\begin{code}
+newtype Fun = MkFun (Fun -> Fun)
+\end{code}
+\end{CenteredBox}
+
+This newtype definition could not be encoded in the intermediate
+\SF without using adhoc machinery. However, in \SFC this is achieved
+by introducing a type equality axiom: !Fun ~ Fun -> Fun!
+
+In the following sections we describe the meta-theory
+of the core intermediate language followed by details
+of how each of the language features
+GADTs (in the \pref{sec:fc-encodes-gadts}), newtypes
+ (\pref{sec:fc-encodes-newtypes}), and associated
+types (\pref{sec:fc-encodes-assoctypes}), and also a unique feature of
+the system, open type functions (\pref{sec:fc-encodes-opentypefun}) are
+encoded in \SFC using \emph{coercions} and \emph{coercion
   axioms} which embody the notion of type equality.
-We also describe a unique feature of the system,
-open type functions (\pref{sec:fc-encodes-opentypefun}) which expose
-the type equality functionality to the user as a direct
-programming language feature.
-
-% In one statment: \SFC is an intensional intrinsically typed programming language.
-% It is intensional, meaning each term encodes its typing derivation, and it is intrinsically typed, meaning all the terms are index by types.
-
-% Some key points to cover:
-
-% Store the equality between types explicitly in the AST during type checking.
-
-% New feature: coercion is a type and its kind tells us what types does the coercion equate.
-
-% Features that can be directly expressed in \SFC: New types or generative types, associated types, functional dependencies, generalized algebraic datatypes (GADTs).
-
-% Brand new feature user defined open type functions.
-
-% Makes type rewriting complicated. But makes the type system more expressive by making it extensible.
-% Proving type soundness is a bit more involved now.
-
-% why don't we have a rule that says: if $\sigma_1 \sim \sigma_2$ then
 
 \section{Syntax}\label{sec:sfc-syntax}
 \begin{figure}[ht]
@@ -1034,17 +996,17 @@ programming language feature.
  \end{syntax}
  \begin{syntax}
  \text{Kinds} &&\kappa \bnfeq& \star \bnfor \kappa \to \kappa \bnfor \shl{\sigma \sim \tau}\\
- \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor \shl{F\App\many\tau} \bnfor \shl{\Co}\\
+ \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor T \bnfor \tau \to \tau \bnfor \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor \shl{F_n\App\many\tau} \bnfor \shl{\Co}\\
  \shl{\text{Coercions}} &&\nu,\Co \bnfeq& c \bnfor \Refl\tau \bnfor \Sym\Co \bnfor \Trans\nu\Co % equiv relation
  \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction instantiation
  \bnfor \nu\App\Co \bnfor \Left \Co \bnfor \Right \Co\\  % compose/decompose
  \text{Types/Coercions} && \phi \bnfeq& \tau \bnfor \Co\\
- \text{Patterns} &&P \bnfeq& H\App \many{\TyVar\co\kappa}\App{\many{x\co\tau}} \\
+ \text{Patterns} &&P \bnfeq& H\App \many{\beta\co\kappa}\App{\many{x\co\tau}} \\
  \text{Terms} &&M,N \bnfeq& x \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\phi\co\kappa} M \bnfor M\App \tau \bnfor H \bnfor \Case M \many{P \to M} \bnfor \shl{\Cast \Tm \Co}\\
 
  \end{syntax}
  \begin{syntax}
- \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\TyVar\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv,F\co\tau \bnfor \TEnv, \Co \co \tau\sim\sigma\\
+ \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,H\co T \bnfor \TEnv,F_n\co\tau \bnfor \TEnv,\TyVar\co\kappa  \bnfor \TEnv, c \co \tau\sim\sigma\\
  \text{Substitutions} &&\Subst \bnfeq& \empt \bnfor \Set{\many{\TyVar \mapsto \tau}}
  \end{syntax}
 
@@ -1052,11 +1014,12 @@ programming language feature.
  \text{Program} &&P_{gm} \bnfeq& \many{D_{cl}} \mathrel{;} \many{x = \Tm}\\
  \text{Data Declarations} &&D_{cl} \bnfeq& \textbf{\texttt{data }}\App T\co\many{\kappa} \to \star\App \textbf{\texttt{ where }}\App \many{C_{trs}(T)} \\
  && \bnfor& \textbf{\texttt{type }}\App F : \many\kappa \to \kappa\\
- && \bnfor& \textbf{\texttt{axiom }}\App C\App \many{\TyVar\co\kappa} : \sigma_1 \sim \sigma_2\\
+ && \bnfor& \textbf{\texttt{axiom }}\App c\App \many{\TyVar\co\kappa} : \sigma_1 \sim \sigma_2\\
  \text{Data Constructors} &&C_{trs}(T) \bnfeq& H : \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \many\sigma \to T\many\TyVar}\\
  \end{syntax}
 
  \caption{The Syntax of \SFC}
+ \Description{The Syntax of \SFC}
  \label{fig:sfc-syntax}
 \end{figure}
 
@@ -1065,75 +1028,67 @@ system is classified into three sub-languages or levels: (1) kinds,
 (2) types, and (3) terms. The kind language sits at the highest
 abstraction level. It consists of base kind ($\STAR$), higher kinds
 ($\kappa \to \kappa$), and the novel construct for expressing type
-equality ($\shl{\tau \sim \sigma}$). Kinds classify types. The type
-language contains type variables ($\alpha$), type constructors or
-constants $T$, which ranges over built-in types such as !Int!, !(->)!
-and other user defined types, and polytypes ($\Forall \alpha \tau)$
-for supporting polymorphic functions. Function types ($\tau \to
-\sigma$), can very well be considered as a type constructor $T$, but
-we give it a special status for the sake of presentation. The absence
-of type level lambdas make the type level calculus less expressive by
-disallowing certain types such as $\TLam a {T\App a\App Int}$. This is
-a cautious decision to ensure type checking remains tractable and
-efficient. To make up for the lack of type level lambdas, the system
-allows higher kinded types. This allows programmers to define
+equality ($\shl{\tau \sim \sigma}$).
+Kinds classify types. The type language contains
+type variables ($\alpha$), type constructors $T$,
+function type $\tau\to\sigma$,
+and polytypes ($\Forall \alpha \tau)$ which support polymorphic functions.
+The type constant ranges over builtin types such as !Int!
+and user defined types.
+The system allows defining higher kinded types and
 inductive algebraic datatypes such as !List!s and !Tree!s.
 
-The novel construct, coercions, $\shl{\Co}$ are proofs of type equality.
-They are classified by kind level type equality predicate,
+The type equality coercion, $\shl{\Co}$, is the novel type level construct.
+It is classified by kind level type equality predicate,
 $\shl{\tau\sim\sigma}$. Coercions are first class at the level of types:
 they can be constructed, applied to and passed in as arguments, and also
-abstracted over by using the special coercion syntax infrastructure.
-\SFC supports a full fledged coercion calculus where
+abstracted over by using the special coercion infrastructure.
+\SFC supports a coercion calculus where
 each syntactic construct corresponds to a logical equation between two
-types. The first basic coercion construct is the
-reflexivity construct `$\Refl\tau$': the type $\tau$
-witness the (obvious) fact that it is equal to itself. The two other
-basic constructs on coercions are symmetry `$\Sym\Co$', which flips
-the direction of equality, transitivity `$\Trans {\Co_1}{\Co_2}$',
-which chains two coercions $\Co_1$ and $\Co_2$. Reflexivity, symmetry
-and transitivity together makes type equality an equivalence class in the
-system. Coercions can also be composed and decomposed using the
-`$\nu\App\Co$', and `$\Left\Co$' and `$\Right\Co$' constructs
-respectively. Finally, coercion abstraction `$\Forall
-{\TyVar\co\kappa}\Co$' and coercion application `$\Co\At\tau$' aids
-equality reasoning on polytypes.
-In principle, \emph{coercions are types}. They are shown separately
-only for the sake of presentation in \pref{fig:sfc-syntax}.
-and we will use $\phi$ when the distinction is immaterial. Coercions can also
-be introduced as equality axioms which can be thought as a templatized type
-equation. For example, an axiom $\Forall \alpha {F\App a \sim a}$
+types. In practice coercions are types, and $\phi$ ranges over both
+types and coercions. The type function constants $F_n$ need to appear fully
+saturated in types to be well formed. The subscript $n$ specifies the
+arity of the type function, but it is elided when the context makes it clear.
+Coercions can also be introduced as equality axioms which can be
+thought as a templatized type equation.
+For example, an axiom $\Forall \alpha {F\App a \sim a}$
 says that for all types, !F a! can be treated exactly as !a!, and vice
-versa. We distinguish user defined datatypes $T$ from type function constructors
-$F$. Only the saturated application of $F$ can appear on the left hand
-side of a coercion axiom head.
+versa. We distinguish user defined datatypes $T$
+from type function constructors $F$.
 
 Finally, types classify the terms of the system.
-The novel term construct of the system is the type cast, $\shl{\Cast \Tm \Co}$.
+The novel term construct of the system is $\shl{\Cast \Tm \Co}$.
 It denotes that if a term $M$ is of type $\tau$
 and we have a coercion, $\Co$, which says that $\tau\sim\sigma$
 then, the term, $\Cast M \Co$, justifies treating $M$ as if it has type
 $\sigma$. Alternatively, the type equality coercion can be thought of
-as: if $\Co$ justifies $\tau \sim \sigma$ then, within a context that
-expects a term of type $\sigma$, we can freely use the term $\Cast M \Co$.
-The type coercions in the system can be thought of as axiomatic type equality,
-similar to axiomatizing functional extensionality.
-However, the type soundness argument of the system,
-does not rely on any specific semantic notion of type equality.
+as: if $\Co$ justifies $\tau \sim \sigma$ and $\Tm$ is of type $\tau$
+then, within a context that expects a term of type $\sigma$,
+the term $\Cast M \Co$ can be freely used,
+without worrying that the term will get stuck or crash during runtime.
+The ``will not crash'' guarantee is called as the \emph{type
+  soundness property} of the system. The type coercions introduced
+in the system should be thought of as axiomatic type equality,
+similar to axiomatic functional extensionality.
+However, the type soundness argument of the system, as we
+will see later, does not rely on any specific
+semantic notion of type equality.
 
-The system has the usual term constructs: term variables `$x$',
-term abstractions `$\Lam {x\co\tau} \Tm$' and term applications `$M \App N$',
+The system has the usual term constructs: variables `$x$',
+abstractions `$\Lam {x\co\tau} \Tm$' and applications `$M \App N$',
 type level abstraction `$\TLam \TyVar \Tm$' and type applications
 `$\Tm\App\sigma$'. Declaration of algebraic datatypes introduces data
-constructors, $H$, the types of which are of the form:
+constructors $H$, the types of which are of the form:
 \[
 H \co \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa}} \many{\sigma} \to T\App\many\TyVar}
 \]
 Here, the type variables, $\many\TyVar$, appear in the same order as in
 the algebraic datatype declarations, $T\App\many\TyVar$.
 The type variables $\many\beta$ are special; they
-do not appear in the return type. And are disjoint from the type variables $\alpha$,
-$\many\TyVar \cap \many\beta = \emptyset$.
+do not appear in the return type, $\many\TyVar \cap \many\beta = \emptyset$.
+This characterization of splitting the type variables into $\many\alpha$
+and $\many\beta$ plays a crucial role in representing GADTs and
+existential types.
 The $\Case M {\overline{P \to N}}$
 discriminates on the shape of the term $M$ and chooses one of the
 alternatives $N$ after a successful match on the one of the patterns
@@ -1173,7 +1128,7 @@ $P$.
 
 \newcommand\KForallCo{
  \ib{\irule[\trule{co-$\I\forall$}]
- {\CoKinding {\TEnv,\TyVar\co\kappa} \Co {\tau_1 \sim \tau_2}}{\alpha\#\TEnv};
+ {\CoKinding {\TEnv,\TyVar\co\kappa} \Co {\tau_1 \sim \tau_2}}{\fresh\alpha\TEnv};
  {\CoKinding \TEnv {\Forall {\TyVar\co\kappa} \Co} {\Forall {\TyVar\co\kappa}\tau_1 \sim \Forall {\TyVar\co\kappa}\tau_2}}
  }
 }
@@ -1238,9 +1193,9 @@ $P$.
 }
 \newcommand{\KFCon}{
  \ib{\irule[\trule{ty-fcon}]
- {F \co \many \kappa^n \to \kappa' \in \TEnv}
+ {F_n \co \many \kappa^n \to \kappa' \in \TEnv}
  {\many {\TyKinding \TEnv {\sigma} {\kappa}}^n};
- {\TyKinding \TEnv {F \many\sigma^n} {\kappa'}}
+ {\TyKinding \TEnv {F_n \many\sigma^n} {\kappa'}}
  }
 }
 \newcommand{\KTyCon}{
@@ -1252,7 +1207,7 @@ $P$.
 \newcommand{\KTyAll}{
  \ib{\irule[\trule{ty-all}]
  {\TyKinding {\TEnv,\TyVar\co\kappa} {\sigma} \star}
- {\fresh \TyVar \TEnv};
+ {\TyVar\not\in \dom\TEnv};
  {\TyKinding \TEnv {\Forall {\TyVar\co\kappa} \sigma} \star}
  }
 }
@@ -1272,28 +1227,43 @@ $P$.
  \KLeftCo \rsp \KRightCo \\
  \KCoConst
  \end{gather*}
- \caption{Coercion Typing: Excerpt of Static Semantics of \SFC}
+ \caption{Coercion Kinding Judgements: Excerpt of Static Semantics of \SFC}
+ \Description{Coercion Kinding Judgements: Excerpt of Static Semantics of \SFC}
  \label{fig:sfc-typing-co}
 \end{figure}
 
-To formalize our intuitions of how coercions ought to behave, we
-provide static semantics in the form judgments rules in \pref{fig:sfc-typing-co}.
-All coercions are types such that their kinds tell us which two types
-considered equal. We read the coercion kinding judgment
-\fbox{$\CoKinding \TEnv \Co \kappa$} as, ``under the assumptions in
-$\Gamma$, the coercion $\Co$ provably is of kind $\kappa$''. The kinding rules
-\trule{co-refl}, \trule{co-sym} and \trule{co-trans} makes coercion an
-equivalence relation. The rules \trule{co-$\E\forall$} and
+The judgements in \pref{fig:sfc-typing-co} formalize the intuitions of how coercions ought to behave. All coercions are types such that their
+kinds say which what types considered equal.
+The coercion kinding judgment \fbox{$\CoKinding \TEnv \Co \kappa$}
+is read as, ``under the assumptions in
+$\TEnv$, the coercion $\Co$ is (provably) of kind $\kappa$''.
+The kinding rules \trule{co-refl}, \trule{co-sym} and \trule{co-trans}
+makes type equality an equivalence relation.
+The reflexivity construct `$\Refl\tau$' says that the type $\tau$
+is equal to itself. The construct `$\Sym\Co$' flips
+the direction of equality while transitivity `$\Trans {\Co_1}{\Co_2}$'
+chains two coercions $\Co_1$ and $\Co_2$.
+
+The rules \trule{co-$\E\forall$} and
 \trule{co-$\I\forall$} justifies coercions between polytypes and their
 instantiations. If two polytypes are equal, then their instantiations
-with equal types are also equal \trule{co-$\E\forall$}, and similarly
-if two types, with a free type variable, are equal then type
-abstraction on both the types yields equal polytypes
-\trule{co-$\I\forall$}. The rule \trule{co-comp} enables lifting
+with equal types are also equal by the rule \trule{co-$\E\forall$}.
+The substitutions $\Subst_1$ and $\Subst_2$ maps the free type variables
+$\alpha$ and $\beta$ to type $\sigma$.
+If two types, with a free type variable, are equal then type
+abstraction on both the types yields equal polytypes by the rule
+\trule{co-$\I\forall$}. A necessary condition to avoid variable capture
+is that $\fresh\alpha\TEnv$ meaning, the variable $\alpha$
+is fresh in the the environment.
+The rule \trule{co-comp} enables combining
 coercions for higher kinded types and enable reasoning of equalities
 between them and similarly the rule \trule{co-F-comp} enables coercion
 lifting for fully saturated type functions.
 
+% Coercions can also be composed and decomposed using the
+%`$\nu\App\Co$', and `$\Left\Co$' and `$\Right\Co$' constructs
+%respectively. Only the saturated application of $F$ can appear on the left hand
+%side of a coercion axiom head.
 
 \begin{figure}[ht]
 \begin{gather*}
@@ -1302,31 +1272,34 @@ lifting for fully saturated type functions.
  \KTyCon \rsp \KFCon \rsp \KTyAll
 \end{gather*}
  \caption{Kinding Judgments: Excerpt of Static Semantics of \SFC}
+ \Description{Kinding Judgments: Excerpt of Static Semantics of \SFC}
  \label{fig:sfc-typing-ki}
 \end{figure}
 
 The kinding rules for types, \fbox{$\TyKinding \TEnv \tau \kappa$},
 which are not coercions, are listed in \pref{fig:sfc-typing-ki}.
-They are fairly standard in comparison to \SF. The rule $\trule{ty-app}$
-enables kinding applications of higher kinded types like !List Int! or
-!Tree Float!. Note that the kinding judgment rules $\trule{ty-fcon}$
+They are fairly standard in comparison to \SF.
+The kinding judgment rules $\trule{ty-fcon}$
 and $\trule{ty-con}$ are distinct as only fully saturated type
 function constructors are valid types in the system. The impredicative
 nature of \SFC is evident from the rule $\trule{ty-all}$: type
 quantification is a closed operation over types in the universe of kinds.
+Polytypes---the types with explicit type abstraction---and
+monotypes---the types with no explicit type abstraction---
+both are of kind $\STAR$.
 
-To illustrate why coercion composition is useful, consider a higher
+To illustrate usefulness of coercion composition, consider a higher
 kinded algebraic type !Tree! and a coercion
 $\Co\co\sigma_1\sim\sigma_2$, then using $\tau_1$ and $\tau_2$ to be
-equal to !Tree!, we have that $\Refl{\texttt{Tree}\App\Co} :
+equal to !Tree!, we have that $\Refl{\texttt{Tree}} \App\Co :
 \texttt{Tree}\App\sigma_1 \sim \texttt{Tree}\App\sigma_2$. On the
 other hand, if we have a coercion $\texttt{Tree}\App\sigma_1 \sim
 \texttt{Tree}\App\sigma_1$ then we can recover the coercion components
 using the \trule{co-left} and \trule{co-right}, for the higher kinded
-type and its arguments respectively. In full generality, we can state
-the lifting property formally in \SFC using
-\pref{thm:sfc-coercion-lifting}. It captures the idea that
-if we have two equal types, substituting it with two equal sub-parts
+type and its arguments respectively. In full generality, the lifting
+property is formalized in  \pref{thm:sfc-coercion-lifting}.
+It captures the idea that if we have two equal types,
+substituting it with two equal sub-parts
 in them maintains the type equality.
 
 \begin{theorem}[Coercion Lifting]\label{thm:sfc-coercion-lifting}
@@ -1414,15 +1387,16 @@ in them maintains the type equality.
 \end{gather*}
 
  \caption{Typing Judgments: Excerpt of Static Semantics of \SFC}
+ \Description{Typing Judgments: Excerpt of Static Semantics of \SFC}
  \label{fig:sfc-typing-ty}
 \end{figure}
 
 A typing rule for terms, \fbox{$\Typing \TEnv \Tm \tau$}, is
 shown in \pref{fig:sfc-typing-ty}. The rules inherited from \SF
 are $\trule{var}$, $\trule{\I\to}$, $\trule{\E\to}$,
-$\trule{\I\forall}$, and $\trule{\E\forall}$. The rule
-$\trule{cast}$ transforms a term $\Tm$ of type $\tau$ to a term
-of type $\sigma$ using a witness coercion $\Co\co\tau\sim\sigma$.
+$\trule{\I\forall}$, and $\trule{\E\forall}$. The novel rule
+$\trule{cast}$ transforms a term $M\co\tau$ to a term $\Cast M \Co : \sigma$ with
+a witness coercion $\Co\co\tau\sim\sigma$.
 
 The two typing rules worth discussing are the ones for typing case
 statements $\trule{ty-case}$ and typing alternatives
@@ -1432,12 +1406,12 @@ N$ have the same type $\sigma \to \tau$. For alternatives, if the
 pattern is a data constructor, only the existential type variables
 $\many\beta$ are brought into scope explicitly in the pattern.
 The reason to do this is to ensure that the continuation term, $N$, can use
-the existentially bounded variables. However, the existential variables
-should not escape their scope. This invariant
-needs to be enforced by the elaboration step from surface syntax into
-the core language as \SFC is a general calculus.
-Consider the data constructor !IsEquals! and its type
-with explicit kind annotations from the previous section.
+the existentially bounded variables. However, we should be careful to
+not let the existential variables escape their scope. This invariant
+also needs to be enforced by the elaboration step from surface syntax into
+the core language. For example, consider the data constructor
+!IsEquals! and its type with explicit kind annotations from
+the previous section.
 
 \begin{CenteredBox}
 \begin{code}
@@ -1520,10 +1494,10 @@ FORALL (a :: *). (EXISTS (b :: *). (Eq b, b, b)) -> GAlgExp a
 \newcommand{\HPush}{
  \ib{\irule[\trule{h-push}]
  {\substack{\mathlarger{\Co : T\App\many\sigma \sim T\App\many\tau}\\
- \mathlarger{H : \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \rho \to T\App\many\TyVar^n}}}}
+ \mathlarger{H : \Forall {\many{\TyVar\co\kappa}} {\Forall {\many{\beta\co\kappa'}} \many\rho \to T\App\many\TyVar^n}}}}
  {\substack{\mathlarger{{\Subst = \Set{\many{\TyVar_i \mapsto \Co_i}, \many{\beta_i \mapsto \phi_i}}}}\\
- \mathlarger{\Tm'_i = \Cast {\Tm_i} \Subst\rho_i}}}
- {\Co_i = \Right (\Left^{i-1}\Co) }
+ \mathlarger{\Tm'_i = \Cast {\Tm_i} {\Subst\rho_i}}\\
+ \mathlarger{\Co_i = \Right (\Left^{n-i}\Co) }}}
  {\phi' =
  \begin{cases}
  \Cast {\phi_i} \Subst(v_1 \sim v_2) &\text{if }\beta_i:v_1 \sim v_2\\
@@ -1538,24 +1512,25 @@ FORALL (a :: *). (EXISTS (b :: *). (Eq b, b, b)) -> GAlgExp a
 \begin{figure}[ht]
  \centering
  \begin{syntax}
- \text{Value Types} && T\Val &::= T \bnfor \tau \to \tau \bnfor \Forall {\TyVar\co\kappa}\\
- \text{Plain Values} && \Val &::= H \bnfor \Lam {x\co\tau} M \bnfor \TLam {\TyVar\co\kappa} M \\
- \text{CValues} && C\Val &::= \Val \bnfor \Cast \Val \Co\\
-
- \text{Evaluation Contexts} && \EvalCtxt &::= \EvalCtxtHole{-} \bnfor \EvalCtxt\App M \bnfor \EvalCtxt\App \tau \bnfor \Cast \EvalCtxt \Co \bnfor \Case \EvalCtxt {\many{P}}\\
+% \text{Value Types} && T\Val &::= T \bnfor \tau \to \tau \bnfor \Forall {\TyVar\co\kappa}\\
+ \text{Plain Values} && \Val &::= H \bnfor \Lam {x\co\tau} \Tm \bnfor \TLam {\TyVar\co\kappa} \Tm \\
+ \text{CValues} && C\Val &::= \Val \bnfor \Cast \Val \Co
+%
+% \text{Evaluation Contexts} && \EvalCtxt &::= \EvalCtxtHole{-} \bnfor \EvalCtxt\App M \bnfor \EvalCtxt\App \tau \bnfor \Cast \EvalCtxt \Co \bnfor \Case \EvalCtxt {\many{P}}\\
  \end{syntax}
+ \Description{Term values and evaluation contexts}
 \end{figure}
-
-We now analyze the runtime or the operational semantics,
-of the terms of the language. The value terms fall into two
-categories: normal values,  $\Val$, or coercion values, $C\Val$,
+The operational semantics formalizes the runtime behavior of the
+terms of the language. The value terms fall into two
+categories: plain values,  $\Val$, or coercion values, $C\Val$,
 which are values with coercion casts.  Value terms denote the ``good''
 terms of the language which do not evaluate. For example, !True!, of
 type !Bool! is a value term. Coercion values, or cvalues, are needed
-to maintain the type preservation property. We use $\EvalCtxt$
-notation to identify which sub-term reduces in the next step. This
-presentation uses call by need semantics. The terms involving
-coercions can step in one of the four interesting
+to maintain the type preservation property.
+%We use $\EvalCtxt$ notation to identify which sub-term reduces in the next step.
+%This presentation uses call by need semantics, but it may as well use call
+%by value without affecting any meta-theoretic properties.
+The terms involving coercions can step in one of the four interesting
 ways given by the rules \trule{push}, \trule{ty-push},
 \trule{co-push}, or \trule{h-push} shown in the \pref{fig:op-sem-sfc}.
 \begin{figure}[ht]
@@ -1564,11 +1539,12 @@ ways given by the rules \trule{push}, \trule{ty-push},
  \fbox{$\stepsto M N$}\\
  \Push \rsp \TyPush\\
  \CoPush\\
- {\mathsmaller{\HPush}}\\
+ \HPush\\
  \Beta \rsp \TBeta\\
  \CaseE \rsp \CoTransE
  \end{gather*}
  \caption{Operational Semantics of \SFC}
+ \Description{Operational Semantics of \SFC}
  \label{fig:op-sem-sfc}
 \end{figure}
 
@@ -1585,42 +1561,45 @@ inside a coercion abstraction. Just like in the rule \trule{push}, we see that
 the rule \trule{ty-push} enables evaluation for type functions applied
 to a coercion. The rule \trule{co-push} is similar to the rule
 \trule{ty-push} but works on coercion abstractions. The type and
-coercion computation ensures that the types are
+coercion calculation ensures that the types are
 preserved when we push the coercions inside the body of a lambda bound term.
- The most complex rule, \trule{h-push}, pushes the coercion within
-the case term scrutinee. This rule is best illustrated with an example: consider
-the case scrutinee
+
+The most complex rule, \trule{h-push}, pushes the coercion within
+the case term scrutinee. This rule is best illustrated with an example.
+Consider the case scrutinee:
 
 \begin{CenteredBox}
 \begin{code}
-Cons (T Bool) x xs /> $\Co$
+Cons (T Bool) x xs /> c
 \end{code}
 \end{CenteredBox}
 
-where, !Cons : FORALL a. a -> [a] -> [a]!,
-!$\Co$ : [T Bool] ~ [Int]!, and !T! is a type constant.
-The cast transforms the scrutinee into a type ![Int]! by pushing
-the coercion into its sub-components.
+where !T! is a type constant, !Cons : FORALL a. a -> List a -> List a!,
+and !c : List (T Bool) ~ List Int!.
+The cast transforms the scrutinee from type !List (T Bool)! to type !List Int!
+while pushing the coercion into its sub-components with
+$\Subst = \Sub a {\Right c}$
 \[
 \stepsto {\Cast {(\texttt{Cons}\App \texttt{(T Bool)}\App \texttt{x}\App
-                              \texttt{y})} \Co}
+                              \texttt{xs})} c}
          {\texttt{Cons} \App \texttt{Int}\App
-                   (\Cast {\texttt{x}} \Right\Co) (\Cast {\texttt{xs}}
-                   {(\Refl{[]}\Right\Co)})}
+                   (\Cast {\texttt{x}} \Right c)
+                   (\Cast {\texttt{xs}} {\Refl{\texttt{List}}\App (\Right c)})}
 \]
 After this transformation, the term is no longer is a
 coercion term, but a data constructor. The rule \trule{case}
 can now be applied to make progress in evaluation.
+The notation $\Left^k \Co$ stands for $\Left{}$ applied $k$ times to $\Co$.
 Coercion lifting plays an important role: it ensures that the term
-sub-components $\Cast M_i {\Subst}\rho_i$ are of
+sub-components $\Cast {M_i} {\Subst}\rho_i$ are of
 the appropriate type. Finally, the rule \trule{co-trans}
 flattens a chain of two coercions, $\Co$ and $\nu$, into a casted term
 with one coercion, $\Trans\Co\nu$.
 
 The other rules, \trule{$\beta$}, \trule{ty-$\beta$} and \trule{case}
-are straightforward and are carried over from
-\SF~\cite{pierce_tapl_2002}. As a short hand to chain multiple rules of
-the operational semantic, we define a  multi-step reduction. It is a
+are carried over from \SF~\cite{pierce_tapl_2002}. As a short hand to chain
+multiple rules of the operational semantics defined in~\pref{fig:op-sem-sfc},
+we define a  multi-step reduction $\manystepsto\bullet\bullet$. It is a
 reflexive transitive closure of the single step operational semantics,
 $\stepsto \Tm N$.
 
@@ -1643,61 +1622,53 @@ $\stepsto \Tm N$.
     }
 }
 
-\begin{defn}[Multi step reduction relation: $\manystepsto \Tm N$]\label{defn:multi-step-reduction}
-  \begin{gather*}
-    \MultiStepRefl \rsp \MultiStepLift \rsp \MultiStepTrans
-  \end{gather*}
-\end{defn}
-
-
-The operational calculus of coercions is not required during
-actual runtime. They are required to prove important
-meta-theoretic property of the calculus. The system maintains a strict
-phase distinction where the coercions and types can be safely erased
-after the type checking phase.
+The operational calculus of coercions is not required during runtime.
+They are required to prove the soundness property of the calculus.
 
 \subsection{Meta-theory}
-\subsubsection{Soundness}
-The above formalization aids us to state and prove
-the important property of the system: do the static semantics
-effectively weed out all the programs that may fail at runtime?
-A way to show soundness for a system is by first proving the subject
-reduction property~\cite{wright_syntactic_1994}.
+The above formalization of static and operational semantics
+help us to answer the two important questions about the system:
+\begin{enumerate}
+\item Do the static semantics effectively weed out
+    all the programs that may fail at runtime?
+\item If we forget all the coercion and type annotations
+    from the well typed term, can the same operational semantics be simulated?
+\end{enumerate}
 
+The first question is answered by proving the syntactic soundness property~\cite{wright_syntactic_1994},
+the second question is answered by showing that the system
+respects phase distinction~\cite{harper_higher-order_1989}.
+
+\subsubsection{Soundness}
 \begin{claim}[Progress and Subject Reduction]\label{claim:sfc-ty-safety}
  If $\Typing \TEnv \Tm \tau$ then, either $\Tm \in C\Val$ or, $\stepsto \Tm \Tm'$ and
  $\Typing \TEnv {\Tm'} \tau$
 \end{claim}
 
 Informally, if we have a well typed term $\Tm$, with type $\tau$, then
-there can be two possible cases:
-\begin{enumerate}
-\item the term is a value, and it cannot evaluate any further, or;
-\item it can either evaluate using one of the rules given by the
-  operational semantics.
-\end{enumerate}
-In practice, this shows that a well typed term in the system
-cannot raise in an exception, as all those terms would already have
-been rejected by the typechecker.
+either the term is a value, and it cannot evaluate any further, or
+it can evaluate using one of the rules given by the operational semantics.
+Further, the type of the term never changes during evaluation.
+In practice, all those terms that may get a stuck
+are rejected by the typechecker as they will be ill-typed.
 
-\subsubsection{Consistency}
-An important step while proving subject reduction would be to ensure that we
-can never derive anything obviously wrong such as !coBAD : Int ~ Bool!
-in our system. The coercion, !coBAD!, has the power to cast a term of
-a type !Int! into !Bool!. If such unsound equalities were
-derivable within the system, any term that is of type !Int! could be
-casted into a term !Bool!. This would mean we would be able to escape
-the protection provided by the typechecker. In other words, the
-coercion, !coBAD!, can be used in a cast, to convert an ill-typed term
-to a well typed term and break subject reduction property. The
-\pref{claim:sfc-ty-safety} needs to be strengthened using an
-appropriate restriction on $\TEnv$. In general, checking consistency
-at top level is an undecidable. There exists is a conservative
-syntactic check which is sufficient for our purpose.
+An important step while proving subject reduction is to ensure
+that anything obviously wrong such as
+!coBAD : Int ~ Bool! can never be derived in the
+system at the top level. Consider the term:
+\[ f = \TLam{c:Int \sim Bool}{not (\Cast 5 c)}\]
+with top level environment $\Delta = \TEnv, not\co\texttt{Bool} \to \texttt{Bool}$. If it was possible to derive !coBad! using $\Delta$
+then, $f$ can be invoked, and it will
+crash the program. However, if the system prohibits derivation
+of such inconsistent coercions $f$ can never be called.
+The \pref{claim:sfc-ty-safety} thus needs to be strengthened
+using an appropriate restriction on $\TEnv$.
+\SFC uses a conservative check which is sufficient to
+ensure coercions like !coBad! can never be derived.
 
 \begin{definition}[$\Good\TEnv$]
- A type environment, $\TEnv$, is $\Good\TEnv$ when it satisfies the
- following properties:
+ A type environment, $\TEnv$, is $\Good\TEnv$ when it satisfies
+ the following properties:
  \begin{itemize}
  \item If $\CoKinding \TEnv \Co {T \many\sigma \sim \tau}$ and $\tau$
    is a value type, then $\tau$ is of the form $T\App\many\sigma'$
@@ -1707,43 +1678,50 @@ syntactic check which is sufficient for our purpose.
      \tau}$ and $\tau$ is a value type, then $\tau$ is of the form
    $\Forall {\TyVar\co\kappa} \sigma'$
  \end{itemize}
+Where a type is a Value types if it is of the form $T\many\tau$, $\tau\to\sigma$, or $\Forall{\alpha\co\kappa}{\tau\sim\sigma}$
 \end{definition}
 
 \begin{theorem}[Progress and Subject Reduction]\label{thm:progress-sfc}
  If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ then, either $\Tm \in
  C\Val$ or, $\stepsto \Tm \Tm'$ and $\Typing \TEnv {\Tm'} \tau$
 \end{theorem}
+\begin{corollary}[Syntactic Soundness]
+\label{thm:soundness-sfc}
+ If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ then, one of the cases holds:
+ \begin{enumerate}
+    \item $\manystepsto \Tm {C\Val}$ and $\Typing \TEnv {C\Val} \tau$, or;
+    \item evaluation of $\Tm$ diverges
+ \end{enumerate}
+\end{corollary}
 
-It is important to note that the consistency criteria is
-dependent on the language feature. We will see in detail
-how the consistency criteria falls out naturally in the following
-section when we try to encode language different language features in to
-\SFC. \pref{thm:progress-sfc} also establishes the phase distinction
-property~\cite{harper_higher-order_1989} where types no not
+\subsubsection{Phase Distinction}
+The system also has the property where types do not
 interfere with the execution of the program: even if we erase all the
 type and kind annotations from a well typed term, the term does not
-crash at runtime, or that the types do not hold any computational
-significance. Phase distinction is important as it provides formal
+get stuck at runtime.  In other words, the types do not hold any
+computational significance.
+Phase distinction is important as it provides formal
 guarantee that the efficient representation of the terms will not
-change its meaning. We formalize this in the
-\pref{lemma:sfc-syntax-soundness}.
-
+change its meaning. We formalize this in
+\pref{cor:sfc-erasure-soundness}.
 
 The erasure function, $\Erased{-}$, is defined on the term structure.
 It erases all the type and coercion annotations from a \SFC term and
 obtains an untyped lambda calculus term. The term, $\Unit$, is a
-special term constant. It contains no computational information and is
+special constant. It contains no computational information and is
 used to simulate application of type level lambdas.
 
-\begin{defn}[Erasure of a \SFC Terms: $\Erased{\Tm}$]\label{defn:term-erasure}\hfill{}
+\begin{defn}[Erasure of a \SFC Terms and Patterns]\label{defn:term-erasure}\hfill{}\\
+Erasure of terms \Erased{\Tm}, defined inductively
 
   \begin{CenteredBox}
     \begin{minipage}[ht]{0.5\linewidth}
       \begin{flalign*}
         \Erased{x\co\tau}            &= x\\
         \Erased{\Lam {x\co\tau} \Tm} &=\Lam x\Erased{\Tm}\\
-        \Erased{\TLam \alpha \Tm}    &= \Lam \alpha {\Erased \Tm}\\
-        \Erased{H\App\many{\beta\co\kappa}\App\many{x\co\tau}} &= H\App \many\beta\App\many x
+        \Erased{\TLam {\alpha\co\kappa} \Tm}    &= \Lam \alpha {\Erased \Tm}\\
+        \Erased{\Case N {\many{\Ptrns \to \Tm}}} &= \Case {\Erased{N}}
+                                               {\many{\Erased{\Ptrns} \to \Erased{\Tm}}}
       \end{flalign*}
     \end{minipage}%
     \begin{minipage}[ht]{0.5\linewidth}
@@ -1756,22 +1734,31 @@ used to simulate application of type level lambdas.
     \end{minipage}
   \end{CenteredBox}
 
+Erasure of Patterns $\Erased\Ptrns$
+
   \begin{CenteredBox}
     \begin{minipage}{1.0\linewidth}
       \begin{flalign*}
-        \Erased{\Case N {\many{\Ptrns \to \Tm}}} &= \Case {\Erased{N}}
-                                               {\many{\Erased{\Ptrns} \to \Erased{\Tm}}}
+        \Erased{H\App\many{\beta\co\kappa}\App\many{x\co\tau}} = H\App\many\beta\App \many x
       \end{flalign*}
     \end{minipage}
   \end{CenteredBox}
 \end{defn}
 
-We can now state the important property of the system in spirit of
-Milner's ``Well typed programs don't go
-wrong''~\cite{milner_theory_1978}.
-\begin{corollary}[Syntactic Soundness]\label{lemma:sfc-syntax-soundness}
-  If $\Good\TEnv$ and $\Typing \TEnv \Tm \tau$,
-  then $\manystepsto \Tm \Val$ iff $\manystepsto {\Erased\Tm} v$, where $v\in\Erased\Val$, or $\Tm$ diverges.
+\begin{theorem}
+  If $\Good\TEnv$ and $\Typing \TEnv \Tm \tau$
+  then one of the cases hold:
+  \begin{enumerate}
+      \item if $\Tm$ is a $C\Val$ then $\Erased\Tm$ is a $\Val$
+      \item if $\stepsto \Tm {\Tm'}$ then,
+      $\stepsto {\Erased\Tm}{\Erased{\Tm'}}$ or
+      ${\Erased\Tm} = {\Erased{\Tm'}}$
+  \end{enumerate}
+\end{theorem}
+
+\begin{corollary}[Erasure Soundness]\label{cor:sfc-erasure-soundness}
+  If $\Good\TEnv$ and $\Typing \TEnv \Tm \tau$
+  then $\manystepsto \Tm {\Tm'}$ if and only if $\manystepsto {\Erased\Tm} {\Erased{\Tm'}}$
 \end{corollary}
 
 % reason for divergence is that we have datatypes!
@@ -1787,15 +1774,14 @@ wrong''~\cite{milner_theory_1978}.
 \text{Polytypes} && \pi \bnfeq& \eta \bnfor \Forall\TyVar\pi
 \end{syntax}
 \caption{GADT Surface level type syntax}
+\Description{GADT Surface level type syntax}
 \label{fig:gadt-type-syntax}
 \end{figure}
 
 We now formalize how GADTs can be encoded into \SFC
 using a type directed elaboration. Although \SFC does not distinguish
-between monotypes and polytypes, the surface level syntax does. This
-is due to pragmatic reasons; if higher ranked type schemes were allowed
-it makes the type inference non-trivial~\cite{jones_practical_2007}.
-In the \pref{fig:gadt-type-syntax} constraints, $C$ are type equality
+between monotypes and polytypes, the surface level syntax does.
+In \pref{fig:gadt-type-syntax}, the constraints, $C$, are type equality
 predicates. The monotypes, $\tau$, can be constrained using these type
 equality constraints. The polytypes, $\pi$, are quantified constrained types.
 
@@ -1865,6 +1851,7 @@ equality constraints. The polytypes, $\pi$, are quantified constrained types.
  \GADTAlt
  \end{gather*}
  \caption[Encoding GADTs]{Type-directed Translation of GADTs in \SFC}
+ \Description[Encoding GADTs]{Type-directed Translation of GADTs in \SFC}
  \label{fig:encoding-gadts}
 \end{figure}
 
@@ -1900,17 +1887,18 @@ data GAlgExp :: * -> * where
   Plus   :: FORALL a. (a ~ Int) => GAlgExp a
                               -> GAlgExp a
                               -> GAlgExp a
-  IsZero :: FORALL a. (a ~ Bool) => Int -> GAlgExp a
+  IsZero :: FORALL a. (a ~ Bool) => GAlgExp Int
+                              -> GAlgExp a
 \end{code}
 \end{minipage}%
 \begin{minipage}[ht]{0.5\linewidth}
 \begin{code}
 eval :: FORALL a. GAlgExp a -> a
 eval (Value x) = x
-eval (Plus (co :: a ~ Int) (x :: Int) (y :: Int))
+eval (Plus (co :: a~Int) (x :: GAlgExp Int) (y :: GAlgExp Int))
    = (((eval (x /> sym co)) /> co)
      + ((eval (y /> sym co)) /> co)) /> sym co
-eval (IsZero (co :: a ~ Bool) (x :: Int))
+eval (IsZero (co :: a~Bool) (x :: GAlgExp Int))
    = (isZero x) /> sym co
 \end{code}
 \end{minipage}
@@ -1919,12 +1907,13 @@ In case alternative for !Value!, the argument to the constructor is a generic
 variable of type !a!, and it agrees with the return type of the !eval!
 function. In the case alternative of !IsZero!, an existential
 coercion, !co :: a ~ Bool!, is brought into scope. Recall that the type of the
-function !isZero! is !Int -> Bool!. The coercion, !co!, can
+function !isZero! is !GAlgExp Int -> Bool!. The coercion, !co!, can
 be used to refine the result type of !isZero x! to
 the generic variable !a! from the actual type !Bool!. The complicated
 looking !Plus!, can be read systematically: Each argument
-!x! and !y! is first, coerced to a generic type !a! using the
-existential coercion !co : a ~ Int! and then coerced back into !Int!
+!x! and !y! is first coerced to a generic type !a! using the
+(existential) coercion !co : a ~ Int! exposed after the pattern is matched
+and then coerced back into !Int!
 to perform the addition operation (!+!). Before returning, it is
 casted back into the generic type variable !a!.
 
@@ -1993,6 +1982,7 @@ runtime cost.
     \end{code}
   \end{minipage}
   \caption[\lstinline{HTML}]{\lstinline{newtype HTML} functions (left) and its elaboration in \SFC (right)}
+  \Description[\lstinline{HTML}]{\lstinline{newtype HTML} functions (left) and its elaboration in \SFC (right)}
   \label{fig:newtype-html-example}
 \end{figure}
 
@@ -2009,6 +1999,7 @@ For example, in the programmer written function !mkHTML! as shown in \pref{fig:n
     \text{Newtype Declaration} && D_{cl} \bnfeq& \texttt{\textbf{newtype}}~ T_{N}~\many\alpha = D_N\App\tau\\
   \end{syntax}
   \caption{\lstinline{newtype} support in \SFC}
+  \Description{newtype support in \SFC}
   \label{fig:newtypes-sfc}
 \end{figure}
 
@@ -2053,11 +2044,12 @@ the translation of !unHTML!. Both the rules, \trule{nt-pack} and
 \begin{figure}[ht]
 \centering
 \begin{gather*}
-  \NTAx \\
-  \NTElab \\
-  \NTPatElab
+  \NTAx
+%  \NTElab \\
+%  \NTPatElab
 \end{gather*}
 \caption{\texttt{Newtype} type directed translation}
+\Description{Newtype type directed translation}
 \label{fig:nt-elaboration}
 \end{figure}
 
@@ -2082,9 +2074,8 @@ soundness for newtypes:
  a ground type, or $\Tm$ diverges.
 \end{theorem}
 
-\subsection{Type Computation}\label{sec:fc-encodes-assoctypes}
-
-\subsubsection{Associated Types}
+\subsection{Type Computation}
+\subsubsection{Associated Types}\label{sec:fc-encodes-assoctypes}
 Elaborating associated types to \SFC is very similar to translating
 GADTs. The constraint context now contains class predicates along with
 equality predicates. This extension is also needed if GADT data
@@ -2103,13 +2094,14 @@ constructors but in any term type.
  \text{Method bindings} &&asigs \bnfeq& x = \Tm
  \end{syntax}
  \caption[Class Syntax]{Class and Associated Types Surface Syntax}
+ \Description[Class Syntax]{Class and Associated Types Surface Syntax}
  \label{fig:assoc-types-syntax}
 \end{figure}
 
 The judgment $\DTranslate C {D\App\tau} d$ elaborates the predicate
 $D\App\tau$ to a dictionary $d$ in \SFC. The rule \trule{subst} allows
-replacing type class parameters with equal types. This is necessary to
-account for associated types that appear in the type class
+replacing typeclass parameters with equal types. This is necessary to
+account for associated types that appear in the typeclass
 signature. $D\App\tau$ may contain an associated type, and depending
 on the instantiations of the free type variables in $\tau$ an
 appropriate coercion can be used to justify casting the dictionary $d$
@@ -2188,6 +2180,7 @@ type instance Plus (S m) n = S (Plus m n)
 \end{code}
 \end{minipage}
 \caption{Type level Arithmetic}
+\Description{Type level Arithmetic}
 \label{fig:open-type-fun-add}
 \end{figure}
 
