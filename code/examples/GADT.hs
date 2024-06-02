@@ -18,11 +18,16 @@ data Alg a where
   VAlg   :: a -> Alg a
   IsZero :: Alg Int -> Alg Bool
   Plus   :: Alg Int -> Alg Int -> Alg Int
---             | forall b. Fun (Alg a -> Alg b) (Alg a)
-  Equals :: Eq a => Alg a -> Alg a -> Alg Bool
+
+  -- Equals :: Eq a => Alg a -> Alg a -> Alg Bool
 
 zero, one :: Alg Int
+
 zero = VAlg 0
+
+-- z1 :: Alg Bool
+z1 = IsZero zero
+
 one = VAlg 1
 
 suc :: Alg Int -> Alg Int
@@ -33,13 +38,15 @@ isZero (VAlg 0) = True
 isZero _    = False
 
 
+i_plus :: Int -> Int -> Int
+i_plus = (+)
 
 eval :: Alg a -> a
 eval (VAlg i) = i
+eval (Plus a b) = i_plus (eval a) (eval b)
 eval (IsZero a) = isZero a
-eval (Plus a b) = (eval a) + (eval b)
 -- eval (Fun f arg) = f (eval arg)
-eval (Equals a b) = eval a == eval b
+-- eval (Equals a b) = eval a == eval b
 
 
 
