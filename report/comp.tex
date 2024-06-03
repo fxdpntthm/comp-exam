@@ -1005,7 +1005,7 @@ encoded in \SFC using \emph{coercions} and \emph{coercion
 
  \end{syntax}
  \begin{syntax}
- \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,H\co T \bnfor \TEnv,F_n\co\tau \bnfor \TEnv,\TyVar\co\kappa  \bnfor \TEnv, c \co \tau\sim\sigma\\
+ \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,H\co\tau \bnfor \TEnv,F_n\App\many\tau\co\kappa \bnfor \TEnv,\TyVar\co\kappa  \bnfor \TEnv, c \co \tau\sim\sigma\\
  \text{Substitutions} &&\Subst \bnfeq& \empt \bnfor \Set{\many{\TyVar \mapsto \tau}}
  \end{syntax}
 
@@ -2406,73 +2406,63 @@ Consider the previously defined newtype data definition:
 function, !F! as shown in~\pref{fig:nt-tf-example}.
 The type family instance declarations add
 two new type equalities: !F Html ~ Bool! and !F String ~ Char!,
-along with the existing type equality !Html ~ String!
-Now, using these three equalities, and the formulation of \SFC as
-above, we can derive a type unsound coercion !Char ~ Bool!.
-
-While puzzling at first, a careful re-examination reveals the
-how we can derive the unsound coercion !Char ~ Bool!.
-By virtue of the type function axiom we have !Char ~ F String!,
-then we use coercion lifting to derive !F String ~ F Html!
-(as !String ~ Html!), and finally, obtain !Char ~ Bool!
-(by using !F Html ~ Bool!, and !F String ~ Char!):
+along with the type equality !Html ~ String! due to newtype declaration.
+Now, using these three equalities we can derive a type
+unsound coercion !Char ~ Bool!. By virtue of the type
+function axiom we have !Char ~ F String!, then we use coercion
+lifting to derive !F String ~ F Html! (as !String ~ Html!),
+and finally, obtain !Char ~ Bool! (by using !F Html ~ Bool!, and !F String ~ Char!):
 \[
-\Trans {\Trans {(\Sym coFHS)} {(F\App coHtml)}} {coFSC} : Char \sim Bool
+\Trans {\Trans {(\Sym coFSC)} {(F\App (\Sym{coHtml}))}} {coFHS} : Char \sim Bool
 \]
-Although we had a characterization of $\Good\TEnv$ in
-\pref{thm:progress-sfc} to make ``bad'' coercions
-impossible to derive, we have in fact managed to derive them.
-Type functions interacting with newtypes is just one of the cases where
-seemingly innocuous features interacting cause type unsoundness.
+
+The reason for this unsound behaviour is the subtle interaction of
+the two features: type functions and newtypes.
+When viewed separately, as formulated in the previous section,
+the consistency criteria is sufficient to guarantee soundness.
 \citet{weirich_generative_2011} gives similar type unsoundness behavior
 by using GADTs and newtypes. The crux of the problem is
 \emph{unconstrained coercion lifting}: the use non-parametric
 features (type functions, GADTs) of the language in the context that assumes
 parametricity (newtypes).
 
-In the previous \pref{sec:sfc-encoding-features}, we studied \SFC
-encodings of each language feature and their respective soundness
-criteria was straightforward when viewed independently.
-However, the above ``bug'' is an evidence that we need to be more
-careful to prove type soundness while working with multiple features.
-To this effect, we need to reformulate our system to allow safe coercion lifting.
-
-
  \begin{figure}[ht]
  \begin{syntax}
- \text{Type Vars} &\TyVar,\beta,\Co &\qquad\text{Type constants} &T \\
- \text{Term Vars} &x,y &\qquad\text{Newtypes} &\shl{\NType} \\
- \text{Coercion Vars} &c &\qquad\text{Type Functions} &F\\
+ \text{Type Vars} &\TyVar,\beta,\Co &\qquad\text{Type constants} &\TypeConst \\
+ \text{Term Vars} &x,y &\qquad\text{Newtypes} &\NType \\
+ \text{Coercion Vars} &c &\qquad\text{Type Function Names} &F_n\\
                       &  &\qquad\text{Indices} &i,n \in \mathbb{N}\\
  \end{syntax}
  \begin{syntax}
    \text{Roles} &&\rho \bnfeq& \shl{\texttt{N} \bnfor \texttt{R} \bnfor \texttt{P}}\\
    \text{Kinds} &&\kappa \bnfeq& \star \bnfor \kappa \to \kappa \bnfor \shl{\sigma \sim_\rho \tau}\\
    \text{Types} &&\tau,\sigma \bnfeq& \TyVar \bnfor \mathcal{T} \bnfor
-   \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor
-   F\many\tau \bnfor \Co \\
-    \text{Type Constants} &&\TypeConst \bnfeq& T \bnfor (\to) \bnfor \shl{\NType}\\
+   \tau\App\tau \bnfor \Forall {\TyVar\co\kappa} \tau \bnfor \Co \\
+    \text{Type Constants} &&\TypeConst \bnfeq& T \bnfor (\to) \bnfor \NType \bnfor
+   F_n\many\tau\\
  \text{Coercions} &&\nu,\Co \bnfeq& c \bnfor \Refl\tau \bnfor \Sym\Co \bnfor \Trans\nu\Co % equiv relation
  \bnfor \Forall {\TyVar\co\kappa} \Co \bnfor \Co\At\tau % abstraction, instantiations
  \bnfor \nu\App\Co \\
                   &&              &\bnfor \Left \Co \bnfor \Right \Co \bnfor \Nth i \Co \bnfor \TypeConst\App\many\Co \bnfor F\many\Co \bnfor \shl{\SubCo \Co} \\  % compose/decompose
  \text{Types/Coercions} && \phi \bnfeq& \tau \bnfor \Co\\
- \text{Patterns} &&P \bnfeq& H\App \many{\TyVar\co\kappa}\App{\many{x\co\tau}} \\
- \text{Terms} &&M,N \bnfeq& x \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau \bnfor H \bnfor \Case M \many{P \to M} \bnfor \Cast \Tm \Co
+ \text{Patterns} &&P \bnfeq& H\App \many{\beta\co\kappa}\App{\many{x\co\tau}} \\
+ \text{Terms} &&M,N \bnfeq& x \bnfor \Lam {x\co\tau} M \bnfor M\App N \bnfor \TLam{\tau\co\kappa} M \bnfor M\App\phi \bnfor H \bnfor \Case M \many{P \to M} \bnfor \Cast \Tm \Co
  \end{syntax}
  \begin{syntax}
- \text{Typing Context} &&\TEnv,\Delta \bnfeq& \empt \bnfor \TEnv,x\co\tau \bnfor \TEnv,\TyVar\co\kappa \bnfor \TEnv,H\co T \bnfor \TEnv, \Co \co \tau\sim\sigma\\
- \text{Role Context} &&\mathcal{R} \bnfeq& \empt \bnfor \mathcal{R},\alpha\co\rho\\
-                     &&\roles{\TypeConst} \bnfeq& {\Set{\rho \mid \alpha\co\rho \in Params(\TypeConst)}}\\
-                     &&Params(\TypeConst) \bnfeq& \many{\alpha\co\rho}\quad  \text{s.t. } (\TypeConst\App\many\alpha) \co \star% \\
-                     %&&\roles{F} \bnfeq& \many{\alpha\co N}\qquad\text{ where }F\many\alpha\co\star
+
+ % \text{Role Context} &&\mathcal{R} \bnfeq& \empt \bnfor \mathcal{R},\alpha\co\rho\\
+                     &&\roles{\TypeConst} \bnfeq& \Set{\rho \mid \alpha\co\rho, \alpha\in\Params{\TypeConst}}\\
+                     &&\Params{T} \bnfeq& \Set{\alpha \mid T\App\many\alpha\co\star}\\
+                     &&\Params{\NType} \bnfeq& \Set{\alpha  \mid \NType\App\many\alpha \co \star}\\
+                     &&\Params{F_n} \bnfeq& \Set{\alpha  \mid F\App\many\alpha^n \text{ is well formed}}
  \end{syntax}
  \caption{Excerpt of Syntax of \SFR; extension of \SFC}
  \label{fig:sfr-syntax}
  \end{figure}
 
-The key extension to \SFC which disallows unconstrained coercion lifting
-is by making the equality predicate finer grained.
+
+The key extension to \SFC
+is making the type equality finer grained.
 This enriches the type equality by encoding
 \emph{how} the two types are equal. In the above case, we see that
 we have two flavors of type equality coercions:
@@ -2480,38 +2470,26 @@ we have two flavors of type equality coercions:
 via type function instances (!F String ~ Char!), and
 (ii) representational equality which is established
 via newtype definitions (!Html ~ String!).
-With these notions of type equality made explicit we
-can restrict coercion lifting.
+In effect, the construct $F(\Sym{coHtml})$ needs to be rejected by the
+type system as it is unsound to mix the
+two different notions of type equality.
 
 \subsection{Syntax}\label{sec:sfr-syntax}
-We formalize the syntax of \SFR in \pref{fig:sfr-syntax}.
-The highlighted portions are the additional pieces
-\pref{fig:sfc-syntax}. Although the original work
-by \citet{breitner_safe_2014} and \citet{weirich_generative_2011}
-formalizes the system slightly differently, the presentation in
-this report is easier to understand as an extension of \SFC
-shown in \pref{fig:sfc-syntax}. To represent finer grained type equality,
-we use the concept of \emph{roles}, $\rho$. All type parameters to a type constructor are
-decorated with a role. We define the function
-$\roles{\TypeConst}$ that returns the roles of
-all the type parameters of a type constant $\TypeConst$.
-While comparing to datatypes for equality, the role annotations
-tell us how the two type parameters are equal.
+The syntax of \SFR\cite{breitner_safe_2014, weirich_generative_2011} in shown \pref{fig:sfr-syntax}.
+The highlighted portions are the extensions to \SFC.
+The concept of \emph{roles}, $\rho$, captures the idea of finer grained type equality,
+Each type parameter to a type constant is decorated with a role along
+with its kind. The role annotations
+specify at what level the type parameter is to be compared.
+The convenience function $\roles{\TypeConst}$ returns the role of
+each of the type parameters of a type constant $\TypeConst$.
 
-\subsection{Static Semantics}\label{sec:sfr-static-sem}
-The important judgment for coercions is
-$\CoKinding \TEnv \Co {\tau\sim_\rho\sigma}$.
-It is read as ``in the type environment $\TEnv$
-the coercion $\Co$, witness the equality between types $\tau$
-and $\sigma$ at role $\rho$''.
-The ``equality at role $\rho$'' is the novel feature of \SFR.
 \SFR has three different roles for three different flavors of equalities:
 \begin{itemize}
 \item\textbf{Nominal:} The strictest kind of equality denoted by
   $\teqN$ which holds exactly when the two types are the \emph{same}.
   For example, an type function axiom !F Int = Bool!
-  makes !F int $\teqN$ Bool!. A type synonym is also defines nominally
-  equal types, for example, !type UserName = String!.
+  makes !F int $\teqN$ Bool!.
 \item\textbf{Representational:} This equality holds when the two types
   have the same runtime representation.
   For example, a new type declarations !newtype Age = Int! makes
@@ -2519,6 +2497,58 @@ The ``equality at role $\rho$'' is the novel feature of \SFR.
 \item\textbf{Phantom:} The weakest kind of equality holds for all
   types: !a $\teqP$ b! is valid at all types !a! and !b!
 \end{itemize}
+
+For example, consider the type definitions shown in \pref{fig:datatype-roles}.
+In the case of !Maybe a!, the type variable !a! is used parametrically and hence has a role !R!.
+In a type function, !F a!, the type variable is used non-parametrically---the type function instances inspect
+the instantiated type value---and hence has a role !N!. In the case of !DT1 a! and !DT2 a! the type variable
+takes the role !N! as it occurs inside a type function, albeit deeply nested. Further, as expected,
+in case of !DT3 a!, the type variable is at role !R!, but in the case of !DT4 a!, the type variable is
+at role !N!. Although it is used at role !R! in the first argument to the constructor, it is used at
+role !N! in the second. The role of a parameter is the least upper bound
+of the role lattice due to the ordering !P > R > N!. Finally, the role of the parameter
+in !DT5! is !P!, as it plays no role in the structure of the types definition.
+\begin{figure}[h]
+\begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+data Maybe a = Nothing | Just a
+type family F a
+
+data DT1 a = MkDT1 (Maybe (F a))
+data DT2 a = MkDT2 (F (Maybe a))
+data DT3 a = MkDT3 (Maybe (Maybe a))
+data DT4 a = MkDT4 (Maybe a) (F a)
+data DT5 a = MkDT5
+\end{code}
+\end{CenteredBox}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
+\begin{code}
+roles(Maybe) = { R }
+roles(F)     = { N }
+
+roles(DT1) = { N }
+roles(DT2) = { N }
+roles(DT3) = { R }
+roles(DT4) = { N }
+roles(DT5) = { P }
+\end{code}
+\end{CenteredBox}
+\end{minipage}
+\caption{Type definitions and their respective roles}
+\label{fig:datatype-roles}
+\end{figure}
+
+
+
+\subsection{Static Semantics}\label{sec:sfr-static-sem}
+The novel feature of \SFR, ``equality at role $\rho$'', is captured by
+the coercion kinding judgements: $\CoKinding \TEnv \Co {\tau\sim_\rho\sigma}$.
+It is read as ``in the type environment $\TEnv$
+the coercion $\Co$, witness the equality between types $\tau$
+and $\sigma$ at role $\rho$''.
 
 \newcommand\CastRN{
   \ib{\irule[\trule{cast}]
