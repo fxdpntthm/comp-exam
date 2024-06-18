@@ -1054,7 +1054,10 @@ thought as a templatized type equation.
 For example, an axiom $\Forall \alpha {F\App a \sim a}$
 says that for all types, !F a! can be treated exactly as !a!, and vice
 versa. We distinguish user defined datatypes $T$
-from type function constructors $F$.
+from type function constructors $F$. We use a special syntax $\tau_1 \sim \tau_2 \then \sigma$
+to abreviate $\Forall {\_ \co \tau_1 \sim \tau_2} \sigma$, meaning the coercion
+variable does not occur in the type $\sigma$.
+
 
 Finally, types classify the terms of the system.
 The novel term construct of the system is $\shl{\Cast \Tm \Co}$.
@@ -1212,7 +1215,7 @@ $P$.
  }
 }
 \newcommand{\KCoConst}{
- \ib{\irule[\trule{co-const}]
+ \ib{\irule[\trule{co-var}]
  {c\co{\tau \sim\sigma}\in\TEnv};
  {\CoKinding \TEnv c {\tau \sim\sigma}}
  }
@@ -1298,24 +1301,47 @@ other hand, if we have a coercion $\texttt{Tree}\App\sigma_1 \sim
 \texttt{Tree}\App\sigma_1$ then we can recover the coercion components
 using the \trule{co-left} and \trule{co-right}, for the higher kinded
 type and its arguments respectively. In full generality, the lifting
-property is formalized in  \pref{thm:sfc-coercion-lifting}.
-It captures the idea that if we have two equal types,
-substituting it with two equal sub-parts
-in them maintains the type equality.
+operation is defined in \pref{def:sfc-coercion-lifting}
+and the property is formailzed in \pref{lem:sfc-coercion-lifting}.
 
-\begin{theorem}[Coercion Lifting]\label{thm:sfc-coercion-lifting}
+\begin{defn}[Coercion Lifting]\label{def:sfc-coercion-lifting}
+Let $\Subst = \Sub{\alpha}{\Co}$\\
+\begin{minipage}{0.5\linewidth}
+\begin{flalign*}
+\Subst c &:= c\\
+\Subst T &:= T\\
+\Subst\Refl{\beta} &:= \texttt{if}~ \alpha = \beta~ \texttt{then}~ \Co~ \texttt{else}~\Refl\beta\\
+\Subst\Sym\nu     &:= \Sym{\Subst\nu}\\
+\Subst\Trans\nu{\nu'} &= \Trans{\Sub\alpha\Co\nu}{\Sub\alpha\Co\nu'}\\
+\Subst\Right\nu     &:= \Right\Subst\nu
+\end{flalign*}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{flalign*}
+\Subst{\beta} &:= \texttt{if}~ \alpha = \beta~ \texttt{then}~ \Co~ \texttt{else}\beta\\
+\Subst(\tau\to\sigma)  &:= (\Subst\tau)\to(\Subst\sigma)\\
+\Subst(\tau\App\sigma) &:= (\Subst\tau)\App(\Subst\sigma)\\
+\Subst(\Forall {\beta\co\kappa}\tau) &:= \Forall {\beta\co\kappa}{(\Subst\tau)}\\
+\Subst(\nu\At\tau)     &:= (\Subst\nu)\At(\Subst\tau)\\
+\Subst\Left\nu     &:= \Left\Subst\nu\\
+\Subst(F\App\many\tau) &= F\App\Subst\many\tau
+\end{flalign*}
+\end{minipage}
+\end{defn}
+
+
+\begin{theorem}[Coercion Lifting Lemma]\label{lem:sfc-coercion-lifting}
  If $\TyKinding {\TEnv,\TyVar\co\kappa'}\phi\kappa$, where $\TyVar$ is free in $\phi$
  and does not appear free in $\TEnv$,
  $\CoKinding\TEnv\Co{\sigma_1\sim\sigma_2}$, and $\TyKinding\TEnv{\sigma_i}\kappa'$
  then, $\CoKinding\TEnv{\Set{\TyVar\mapsto \Co}\Refl\phi}
  {\Set{\TyVar\mapsto\sigma_1}\phi\sim\Set{\TyVar\mapsto\sigma_2}\phi}$
 \end{theorem}
-\begin{proof}[Proof Sketch \pref{thm:sfc-coercion-lifting}]
+\begin{proof}[Proof Sketch \pref{lem:sfc-coercion-lifting}]
  Proof is by induction on the derivation of the well kinded type
  $\phi$. In each of the four cases, whenever in the original
  derivation the rule \trule{co-refl} was used, it is replaced by the
- derivation of $\CoKinding \TEnv \Co {\sigma_1\sim\sigma_2}$. Proof is
- given in Appendix~\pref{proof:thm-sfc-coercion-lifting}.
+ derivation of $\CoKinding \TEnv \Co {\sigma_1\sim\sigma_2}$.
 \end{proof}
 
 \newcommand\TVar{
@@ -1659,7 +1685,7 @@ An important step while proving subject reduction is to ensure
 that anything obviously wrong such as
 !coBAD : Int ~ Bool! can never be derived in the
 system at the top level. Consider the term:
-\[ f = \TLam{c:Int \sim Bool}{not (\Cast 5 c)}\]
+\[ f = \TLam{c:Int \sim Bool}{not\App (\Cast 5 c)}\]
 with the environment $\Delta = \TEnv, not\co\texttt{Bool} \to \texttt{Bool}$.
 If it was possible to derive !coBad! using $\Delta$
 then, $f$ can be invoked, and it will
@@ -1807,7 +1833,7 @@ IsZero :: FORALL(a :: TYPE). a ~ Bool => GAlgExp Int
 \end{code}
 \end{CenteredBox}
 \end{minipage}%
-\caption{\texttt{GAlgExp} datatype and and its \SFC elaboration}
+\caption{\texttt{GAlgExp} datatype (left) and and its \SFC elaboration (right)}
 \Description[GAlgExp]{GAlgExp datatype and its \SFC elaboration}
 \label{fig:galgexp-sfc-encode}
 \end{figure}
@@ -1949,7 +1975,7 @@ eval a (IsZero Bool co x)
 \end{code}
 \end{CenteredBox}
 \end{minipage}
-\caption[Encoding eval]{The \texttt{eval} function (right) and its elaboration in \SFC (left)}
+\caption[Encoding eval]{The \texttt{eval} function (left) and its elaboration in \SFC (right)}
  \Description[Encoding GADTs]{Elaborating function eval in \SFC}
  \label{fig:encoding-eval}
 \end{figure}
@@ -2397,7 +2423,7 @@ coFHS  &: \texttt{F}~\texttt{Html} \sim \texttt{Bool}\\
 coFSC  &: \texttt{F}~\texttt{String} \sim \texttt{Char}\\
 \end{flalign*}
 \end{minipage}
-\caption{Type Functions and New Types}
+\caption{Type Functions and Newtypes}
 \label{fig:nt-tf-example}
 \end{figure}
 
@@ -2409,13 +2435,13 @@ two new type equalities: !F Html ~ Bool! and !F String ~ Char!,
 along with the type equality !Html ~ String! due to newtype declaration.
 Now, using these three equalities we can derive a type
 unsound coercion !Char ~ Bool!. By virtue of the type
-function axiom we have !Char ~ F String!, then we use coercion
-lifting to derive !F String ~ F Html! (as !String ~ Html!),
+function axiom we have !Char ~ F String!, then coercion
+lifting derives !F String ~ F Html! (as !String ~ Html!),
 and finally, obtain !Char ~ Bool! (by using !F Html ~ Bool!, and !F String ~ Char!):
-\[
+\begin{gather*}
+\texttt{Char} \sim \texttt{F\App\texttt{String}} \sim F\App\texttt{Html} \sim Bool\\
 \Trans {\Trans {(\Sym coFSC)} {(F\App (\Sym{coHtml}))}} {coFHS} : Char \sim Bool
-\]
-
+\end{gather*}
 The reason for this unsound behaviour is the subtle interaction of
 the two features: type functions and newtypes.
 When viewed separately, as formulated in the previous section,
@@ -2425,8 +2451,7 @@ by using GADTs and newtypes. The crux of the problem is
 \emph{unconstrained coercion lifting}: the use non-parametric
 features (type functions, GADTs) of the language in the context that assumes
 parametricity (newtypes).
-
- \begin{figure}[ht]
+ \begin{figure}[h]
  \begin{syntax}
  \text{Type Vars} &\TyVar,\beta,\Co &\qquad\text{Type constants} &\TypeConst \\
  \text{Term Vars} &x,y &\qquad\text{Newtypes} &\NType \\
@@ -2451,16 +2476,14 @@ parametricity (newtypes).
  \begin{syntax}
 
  % \text{Role Context} &&\mathcal{R} \bnfeq& \empt \bnfor \mathcal{R},\alpha\co\rho\\
-                     &&\roles{\TypeConst} \bnfeq& \Set{\rho \mid \alpha\co\rho, \alpha\in\Params{\TypeConst}}\\
-                     &&\Params{T} \bnfeq& \Set{\alpha \mid T\App\many\alpha\co\star}\\
-                     &&\Params{\NType} \bnfeq& \Set{\alpha  \mid \NType\App\many\alpha \co \star}\\
-                     &&\Params{F_n} \bnfeq& \Set{\alpha  \mid F\App\many\alpha^n \text{ is well formed}}
+                     &&\roles{\TypeConst} \bnfeq& \List{\rho \mid \alpha\co\rho, \alpha\in\Params{\TypeConst}}\\
+                     &&\Params{T} \bnfeq& \List{\alpha \mid T\App\many\alpha\co\star}\\
+                     &&\Params{\NType} \bnfeq& \List{\alpha  \mid \NType\App\many\alpha \co \star}\\
+                     &&\Params{F_n} \bnfeq& \List{\alpha  \mid F_n\App\many\alpha^n}
  \end{syntax}
  \caption{Excerpt of Syntax of \SFR; extension of \SFC}
  \label{fig:sfr-syntax}
  \end{figure}
-
-
 The key extension to \SFC
 is making the type equality finer grained.
 This enriches the type equality by encoding
@@ -2469,20 +2492,19 @@ we have two flavors of type equality coercions:
 (i) nominal equality, which is established
 via type function instances (!F String ~ Char!), and
 (ii) representational equality which is established
-via newtype definitions (!Html ~ String!).
-In effect, the construct $F(\Sym{coHtml})$ needs to be rejected by the
-type system as it is unsound to mix the
-two different notions of type equality.
+via newtype definitions (!Html ~ String!). The type system
+needs to reject unsound coercions like !F (sym coHtml) : F String ~ F Html!.
 
 \subsection{Syntax}\label{sec:sfr-syntax}
 The syntax of \SFR\cite{breitner_safe_2014, weirich_generative_2011} in shown \pref{fig:sfr-syntax}.
 The highlighted portions are the extensions to \SFC.
-The concept of \emph{roles}, $\rho$, captures the idea of finer grained type equality,
+The concept of finer grained type equality is captured by \emph{roles}, $\rho$.
 Each type parameter to a type constant is decorated with a role along
 with its kind. The role annotations
 specify at what level the type parameter is to be compared.
 The convenience function $\roles{\TypeConst}$ returns the role of
-each of the type parameters of a type constant $\TypeConst$.
+each of the type parameters of a type constant $\TypeConst$ as a sequence, $\List{\rho}$, which
+preserves the order in which it occurs in its definition.
 
 \SFR has three different roles for three different flavors of equalities:
 \begin{itemize}
@@ -2506,8 +2528,8 @@ takes the role !N! as it occurs inside a type function, albeit deeply nested. Fu
 in case of !DT3 a!, the type variable is at role !R!, but in the case of !DT4 a!, the type variable is
 at role !N!. Although it is used at role !R! in the first argument to the constructor, it is used at
 role !N! in the second. The role of a parameter is the least upper bound
-of the role lattice due to the ordering !P > R > N!. Finally, the role of the parameter
-in !DT5! is !P!, as it plays no role in the structure of the types definition.
+of the role lattice due to the ordering !N < R < P!. Finally, the role of the parameter
+in !DT5! is !P!, as it plays no role in the structure of the type definition.
 \begin{figure}[h]
 \begin{minipage}{0.5\linewidth}
 \begin{CenteredBox}
@@ -2526,14 +2548,14 @@ data DT5 a = MkDT5
 \begin{minipage}{0.5\linewidth}
 \begin{CenteredBox}
 \begin{code}
-roles(Maybe) = { R }
-roles(F)     = { N }
+roles(Maybe) = [ R ]
+roles(F)     = [ N ]
 
-roles(DT1) = { N }
-roles(DT2) = { N }
-roles(DT3) = { R }
-roles(DT4) = { N }
-roles(DT5) = { P }
+roles(DT1) = [ N ]
+roles(DT2) = [ N ]
+roles(DT3) = [ R ]
+roles(DT4) = [ N ]
+roles(DT5) = [ P ]
 \end{code}
 \end{CenteredBox}
 \end{minipage}
@@ -2553,8 +2575,7 @@ and $\sigma$ at role $\rho$''.
 \newcommand\CastRN{
   \ib{\irule[\trule{cast}]
     {\Typing \TEnv \Tm \tau}
-    {\CoKinding \TEnv \Co {\tau \teq{\rho} {\tau'}}}
-    {\rho\in\Set{R, N}};
+    {\CoKinding \TEnv \Co {\tau \teqR {\tau'}}};
     {\Typing \TEnv {\Cast \Tm \Co} {\tau'}}
   }
 }
@@ -2567,9 +2588,25 @@ and $\sigma$ at role $\rho$''.
  }
 }
 
+\newcommand\KCoRefl{
+ \ib{\irule[\trule{co-refl}]
+ {\TyKinding \TEnv {\tau} {\kappa}};
+ {\CoKinding \TEnv {\Refl{\tau}} {\tau \teqN \tau}}
+ }
+}
+
+\newcommand\KTransCoRho{
+ \ib{\irule[\trule{co-trans}]
+ {\CoKinding \TEnv {\Co} {\tau \teq\rho \tau'}}
+  {\CoKinding \TEnv {\Co'} {{\tau'} \teq\rho \tau''}};
+ {\CoKinding \TEnv {\Trans\Co\Co'} {\tau \teq{\rho} {\tau''}}}
+ }
+}
+
+
 \newcommand\KNthCo{
  \ib{\irule[\trule{co-nth}]
-   {\CoKinding \TEnv {\Co} {T \App \many\sigma \teqR T\App\many{\tau'}}}
+   {\CoKinding \TEnv {\Co} {T \App \many\sigma \teqR T\App\many{\tau}}}
    {\many\rho = \text{roles}(T)};
    {\CoKinding \TEnv {\Nth i \Co} {\tau_1 \teq{\rho_i} \tau_2}}
  }
@@ -2614,8 +2651,9 @@ and $\sigma$ at role $\rho$''.
     {\many\rho = \roles{\TypeConst}}
     {\substack {\mathlarger {\Kinding \TEnv {\TypeConst\App\many{\tau}} {\kappa}}\\
                {\mathlarger {\Kinding \TEnv {\TypeConst\App\many{\sigma}} {\kappa}}}}}
-    {\many{\CoKinding \TEnv {\Co} {\tau \teq\rho \sigma}}};
-    {\CoKinding \TEnv {\TypeConst \many\Co} {\TypeConst \many{\tau} \teq\rho \TypeConst\many{\sigma}}}
+    {\many{\CoKinding \TEnv {\Co} {\tau \teq\rho \sigma}}}
+    {\TypeConst \in \Set{T, \NType}};
+    {\CoKinding \TEnv {\TypeConst \many\Co} {\TypeConst \many{\tau} \teqR \TypeConst\many{\sigma}}}
   }
 }
 
@@ -2623,8 +2661,8 @@ and $\sigma$ at role $\rho$''.
 \begin{figure}[ht]
  \centering
  \begin{gather*}
- \fbox{$\CoKinding \TEnv \tau \kappa$}\\
- \KSubCo\\
+ \fbox{$\CoKinding \TEnv \Co {\tau\teq\rho \sigma}$}\\
+ \KCoRefl \rsp \KTransCoRho \rsp \KSubCo \\
  \KNthCo \rsp \KLeftCoR \rsp \KRightCoR \\
  \KTyAppCo \rsp \KFAppCo  \\
  \KTyConAppCo
@@ -2637,159 +2675,49 @@ and $\sigma$ at role $\rho$''.
  \caption{Excerpt of Static Semantics of \SFR: Coercion Calculus}
  \label{fig:sfr-typing}
 \end{figure}
-Type safe casts can now be expressed using the kinding rules
-\trule{cast-r} and \trule{cast-n} as shown in \pref{fig:sfr-typing}.
-The rule \trule{cast-r} captures the notion of equality which arises
-due to newtype definitions as the rule enables coercions between
-expressions that have the same representation type. The rule
-\trule{cast-n} captures the notion of type equalities introduced by
-instantiating axioms arising due to type functions.
-The phantom equality on types seems unnecessary, and outright wrong:
-why would any two types be equal if they are obviously not equal?
-Phantom equality is useful in keeping the type system practical.
-In case of multiparameter datatypes, some type parameters are used
-only as type tags, their instantiation does not affect the
-representation of the datatype in anyway. Phantom equality is useful
-to assert equality on such datatypes.
 
-Backwards compatibility is also one of the goals of this extension.
-We must be able to type check all the previous programs that passed type
-checking and rightly did so. We leverage the fact that
-the equality roles form a total relation: $N < R < P$. If two types
-are nominally equal, they are representationally equal as
+
+If two types are nominally equal, they are representationally equal as
 well. Similarly, if the two types are representationally equal, they
-are also equal at phantom role. This is captured in the \trule{co-sub}
-shown in \pref{fig:sfr-typing}. It says that if we \emph{want} to have
-equality at representational role, and we are \emph{given} that the
-two types are nominally equal ($\Co$), then we can generate a coercion that
-proves the wanted equality from the given equality ($\SubCo \Co$).
-Nominal equality is the strictest from of equality while phantom
-equality is the weakest.
+are also equal at phantom role. This is captured in the rule \trule{co-sub}.
+The rule \trule{co-refl} says that a well formed (kinded) type gives rise
+to a nominal type equality. The rule \trule{co-trans} says that coercions
+can be chained only if they are at the same role level. The construct $\Sym{\Co}$,
+has no effect on the role of the type equality of $\Co$.
+The rule \trule{co-tycon-app} builds representational type equality for newtypes and datatypes
+while \trule{co-F-app} builds a nominal type equality for type functions.
+The rule \trule{co-ty-app} builds a coercion between two type applications only if
+the argument type, $\sigma_1\teqN\sigma_2$, is at nominal level. The rules \trule{co-left}
+and \trule{co-right} work only on nominal type equality for type applications.
 
 
-\newcommand\RVar{
-  \ib{\irule[\trule{r-var}]
-    {\tau\co\rho' \in \REnv}
-    {\rho' \leq \rho};
-    {\Typing \REnv \tau \rho}
-  }
-}
-
-\newcommand\RTyApp{
-  \ib{\irule[\trule{r-ty-app}]
-    {\Typing \REnv \tau \rho}
-    {\Typing \REnv \sigma N};
-    {\Typing \REnv {\tau\App\sigma} \rho}
-  }
-}
-
-\newcommand\RTyConApp{
-  \ib{\irule[\trule{r-tycon-app}]
-    {\many{\Typing \REnv {\tau} {\rho}}}
-    {\many{\rho} \text{ is a prefix of } \roles{\TypeConst}};
-    {\Typing \REnv {\TypeConst\App\many\tau} R}
-  }
-}
-
-\newcommand\RFApp{
-  \ib{\irule[\trule{r-f-app}]
-    {\many{\Typing \REnv \tau N}};
-    {\Typing \REnv {F\App\many\tau} N}
-  }
-}
-
-
-\newcommand\RTAssign{
-  \ib{\irule[\trule{r-T}]
-    {H\co
-      \Forall{\many{\alpha\co\kappa}}{\Forall{\many{\beta\co\kappa'}}{\many\sigma
-          \to T\many\alpha}} \in
-      C_{trs}(T)}
-    {\tau \in \many\sigma}
-    {\Typing {\many{\alpha\co\rho},\many{\beta\co N}} \tau R};
-    {\RoleAssign {\many\rho} T}
-  }
-}
-
-\newcommand\RNTAssign{
-  \ib{\irule[\trule{r-nty}]
-    {co\NType : \Forall \alpha {\NType\many\alpha \teqR \sigma}}
-    {\Typing {\many{\alpha\co\rho}} \sigma R};
-    {\RoleAssign {\many\rho} \NType}
-  }
-}
-
-\newcommand\RToAssign{
-  \ib{\irule[\trule{r-$\to$}]
-    {};
-    {\RoleAssign {\alpha\co R, \beta\co R} {\alpha \to \beta}}
-  }
-}
-
-\newcommand\REqAssign{
-  \ib{\irule[\trule{r-$\sim$}]
-    {};
-    {\RoleAssign {\alpha\co\rho, \beta\co\rho} ({\alpha} \teq\rho {\beta})}
-  }
-}
-
-\begin{figure}[ht]
-  \centering
-  \begin{gather*}
-    \fbox{$\many\rho \forces \TypeConst$}\\
-    \RNTAssign \rsp \RTAssign\\
-    \RToAssign \rsp \REqAssign
-  \end{gather*}
-  \begin{gather*}
-    \fbox{$\Typing \REnv \tau \rho$}\\
-    \RVar \rsp \RTyApp\\
-    \RTyConApp \rsp \RFApp
-  \end{gather*}
-  \begin{gather*}
-    \fbox{$\rho \leq \rho'$}\\
-    {\ib{\irule[]{};{N \leq \rho}}} \rsp {\ib{\irule[]{};{\rho \leq \rho}}} \rsp {\ib{\irule[]{};{\rho \leq P}}}
-  \end{gather*}
-  \caption{\SFC Assignment and Validity Rules for Roles}
-  \label{fig:sfr-validity}
-\end{figure}
-
-
-Role assignments to type parameters are performed during type checking
-the user defined type constant. They are formalized using the role
-validity as shown in \pref{fig:sfr-validity}. The judgment
-$\RoleAssign {\many\rho} \TypeConst$ is to be read as ``$\many\rho$
-are appropriate for the type constant \TypeConst'', while the judgment
-$\Typing \REnv \tau \rho$ is read as ``under the role context
-assumptions $\REnv$, the type $\tau$ has the role $\rho$''. We do not
-want a global type context to claim that a type parameter's role which
-is in conflict with the role given to it by the definition the type
-constant. The role assignment algorithm plays an important role (no
-pun intended) in inferring the best role for the type parameters for a
-type constant by walking over its definition. We want to ensure that
-the role assignments are no too restrictive nor to permissive. In the
-former case, we can assign each type parameter a nominal role but we
-would fail to type check a huge majority of the programs that we want
-to be able to type check. In the later case we can assign each type
-parameter a phantom role but that would be type unsound.
+The rule \trule{co-nth} is restricted to non-type function types, $T$ and $\NType$.
+The application of \trule{co-nth} type functions is unsound as
+knowing that $F_n\many\tau \sim F_n\many\sigma$ does not give
+any information about the relationship between $\many\tau$ and $\many\sigma$.
+Type functions are non-injective. Although newtypes are injective, using
+the rule \trule{co-nth} still poses a threat to soundess.
+Consider the following definitions using !Any a! and !App f a!:
 
 \begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
 \begin{code}
-                 data Any a = Any
-                 newtype App f a = MkApp (f a)
+data Any a = Any
+newtype App f a = MkApp (f a)
 \end{code}
+\end{CenteredBox}
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
+\begin{CenteredBox}
 \begin{code}
-                 $\roles{\texttt{Any}} = \Set{P}$
-                 App f a ~ (f a)
-                 $\roles{\texttt{App}} = \Set{R, N}$
+roles{Any} = $\List{P}$
+App (f a) $\teqR$ f a
+roles{App} = $\List{R, N}$
 \end{code}
+\end{CenteredBox}
 \end{minipage}
 
-Consider the following definitions shown above for !Any a! and !App f a!.
-With the rules given in \pref{fig:sfr-validity}, for the
-generative type !App!, the roles inferred will be
-$\roles{\texttt{App}} = \Set{R, N}$. Now, due to the rules of the coercion
+Now, due to the rules of the coercion
 calculus we can derive the following representational type equality:
 \begin{align}\label{eqn:app-any-newtype}
   \texttt{App } \App \texttt{Any}\App \texttt{Int} \teqR \texttt{App}\App\texttt{Any} \App{Bool}\tag{app-co}
@@ -2804,15 +2732,20 @@ This is possible because of the following chain of reasoning:
 The first step and the last step of the reasoning chain is valid due to
 the instantiations of the coercion axiom,
 $\texttt{coApp} : \Forall{f,a}. \texttt{App}\App f\App a \teqR f\App a$.
-We do not want to allow the rule
-\trule{co-nth} to \pref{eqn:app-any-newtype}. Because if we did, then
-we would be able to produce a coercion $\texttt{Int} \teqR
-\texttt{Bool}$, a blunder. We thus allow the \trule{co-nth}
-only on vanilla algebraic type constants ($T$); not on newtypes
-($T_N$) and neither on type function constants $F$.
+Using the rule \trule{co-nth} will produce a unsound coercion $\texttt{Int} \teqR
+\texttt{Bool}$.
+
+Type safe casts are expressed using the rule
+\trule{cast}. It is sufficient to say that the type equality
+is at representational role as the terms will have
+the same representation in memory at runtime and
+thus also have identical behavior.
+
+There is no change in operational semantics. Specifically, the push rules from the previous section
+\pref{fig:op-sem-sfc} still hold.
 
 \subsection{Meta-theory}\label{sec:sfr-metatheory}
-The proof of progress does not change with respect to \SFC as the only
+The proof of progress lemma does not change with respect to \SFC as the only
 additional construct is roles, which does not play any part in the
 operational semantics of the language. To recall, the proof of
 progress is necessary to show that the well typed terms are either
@@ -2823,125 +2756,31 @@ values or they can take a step.
 The proof of preservation uses the formulation of coercion calculus
 extended with roles. The reason for
 type unsoundness in \SFC was that we allowed too many coercions with
-unrestricted coercion lifting.
-\begin{lemma}[Soundness of Role Narrowing]\label{lem:role-narrowing}
-If $\RoleAssign{\many\rho}{\TypeConst}$, and $\many\rho' = \Set{\rho'
-  \mid \rho \in \many\rho, \rho' \leq \rho}$ then $\RoleAssign{\many\rho'}{\TypeConst}$
+unrestricted coercion lifting. The coercion lifting lemma in this system
+is stated below:
+
+\begin{lemma}[\SFR Coercion Lifting]\label{lem:sfr-coercion-lifting}
+ If $\TyKinding {\TEnv,\TyVar\co\kappa'}\phi\kappa$, where $\TyVar$ is free in $\phi$
+ and does not appear free in $\TEnv$,
+ $\CoKinding\TEnv\Co{\sigma_1\teqN\sigma_2}$, and $\TyKinding\TEnv{\sigma_i}\kappa'$
+ then, $\CoKinding\TEnv{\Set{\TyVar\mapsto \Co}\Refl\phi}
+ {\Set{\TyVar\mapsto\sigma_1}\phi\teqN\Set{\TyVar\mapsto\sigma_2}\phi}$
 \end{lemma}
-\pref{lem:role-narrowing} claims that it is sound to make the role
-assignments stricter for any type constant. Narrowed role assignments
-will reject more programs so the programmer will find it difficult to
-work with even if it guarantees type safety. We now need a role
-assignment algorithm which ensures that the typechecker can assign the
-roles automatically. This characterization of role inference runs
-parallel to type inference: we want to develop an algorithm, possibly
-efficient, such that when the typechecker assigns the roles, it is
-most general, in the sense we do not want to make the system unusable,
-but also we want to have roles to be correctly assigned.
-\begin{figure}[ht]
-  \begin{algorithmic}[1]
-    \Procedure{\RoleInfer}{[$\TypeConst$]}\Comment{Infer the roles of type parameters of all $\TypeConst$s}
 
-    \State For all $\TypeConst$, populate $roles(\TypeConst)$ using programmer supplied annotations. \\
-    \qquad Or default ADT and newtype type parameters to $P$.
-    \State For every $H\co\tau \in C_{trs}(\TypeConst)$ and every $\sigma$ that appears in $\tau$: call $\walk\TypeConst\sigma$\label{here}
-    \State For every newtype $T_N$, and its representation type $\sigma$: call $\walk\TypeConst\sigma$
-    \State If any role parameter changed in previous steps then go to Step 2.
-    \State For all $\TypeConst$, Check $\RoleAssign {\roles\TypeConst} \TypeConst$. Error on inconsistency.
-    \EndProcedure
-  \end{algorithmic}
-  \begin{algorithmic}[1]
-    \Procedure{\texttt{walk}}{$\TypeConst, \sigma$}\Comment{Role marking for $\TypeConst$}
-    \State $\walk \TypeConst {\alpha} \bnfeq$ Mark $\alpha$ to $R$, if not already marked.
-    \State $\walk \TypeConst {H\App \many\tau} \bnfeq$ let $\many\rho = \roles{H}$
-    \If {Any $\rho_i = N$ such that $\rho_i \in \many\rho$}
-        \State Mark all unmarked parameters in $\tau_i \in \many\tau$ as $N$
-    \ElsIf{Any $\rho_i = R$}
-        \State call $\walk{\TypeConst}{\tau_i}$
-    \EndIf
-    \State $\walk \TypeConst {\tau\App\tau'} \bnfeq$ $\walk{\TypeConst}{\tau}$ and then mark all unmarked parameters in $\tau'$ as $N$
-    \State $\walk \TypeConst {F\App\many\tau} \bnfeq$ Mark all type parameters in $\many\tau$ to $N$
-    \State $\walk \TypeConst {\Forall{\beta\co\kappa}\tau} \bnfeq \walk \TypeConst \tau$
-    \EndProcedure
-  \end{algorithmic}
-\caption{\RoleInfer algorithm and $\walk\TypeConst\sigma$}\label{alg:role-infer}
-\end{figure}
+As a consequence of the refined coercion lifting,
+the type system disallows the unsound coercions such as\\
+!F (sym coHtml) : F String $\teqN$ F Html!.
+The type equality !String $\teqR$ Html! cannot be lifted through the type equality
+!sym (F a) : F a $\teqN$ F a!. Finally, types are invariant with respect to the operational
+semantics.
 
-The role inference algorithm, \RoleInfer, as shown in the \pref{alg:role-infer}
-has three choices to make for the type parameters of each type constant.
-The role defaulting policy for type parameters is to assign phantom
-roles to algebraic datatypes ($H$), nominal role for function type
-($\to$) and type function constants. This is a way for the programmer
-to override the defaulting role assignment, using a new optional
-syntax. This syntax is not backwards compatible but it is lightweight
-and can be easily incorporated by using compiler pre-processor pragmas
-which GHC already supports CPP style macros\footnote{\url{https://downloads.haskell.org/ghc/latest/docs/users\_guide/phases.html\#standard-cpp-macros}}
-which can decide by checking the compiler version if these type role
-annotations are to be kept in the source code to be passed to the
-typechecker or not.
-
-\begin{CenteredBox}
-\begin{code}
-type role App representational nominal
-newtype App f a = MkApp (f a)
-\end{code}
-\end{CenteredBox}
-In the above code, for the !App! user defined type, the type parameter
-!f! is assigned representational while !a! is assigned nominal, or
-that $\roles{App} = \Set{R, N}$
-
-The $\walk{\TypeConst}{\sigma}$ is the workhorse for \RoleInfer.
-It assigns the type parameters of the $\TypeConst$ with appropriate
-roles. The algorithm \RoleInfer runs $\walk{\TypeConst}{\sigma}$ for
-every new $\TypeConst$
-defined by the programmer. In the first case of
-$\walk\TypeConst\sigma$, if $\sigma$ is a type variable, $\alpha$,
-which is not a type parameter, we can just ignore it. The other cases
-are easy to follow from the algorithm snippet.
-
-We have the following properties for \RoleInfer algorithm:
-\begin{enumerate}
-\item terminating;
-\item sound role choice for all type parameters and;
-\item optimal role choice for all type parameters and
-\end{enumerate}
-
-The algorithm is terminating as at every call to
-$\walk{\TypeConst}\sigma$, we either mark the type parameter role
-stricter that the previous one, or we never touch it again. Due to the
-lower bound on the role ordering, and there being a finite number of
-type parameters, the algorithm is guaranteed to terminate. The role
-assignment soundness property follows directly from
-\pref{lem:role-narrowing}, as each walk essentially narrows the
-role. The algorithm is greedy which proves that the role
-assignment is optimal, as if there was a valid role assignment that
-was wider than the one assigned by the algorithm, then the algorithm
-would have chosen that before narrowing it.
 \begin{lemma}[Type Preservation for \SFR]\label{lem:sfr-preservation}
 If $\Good \TEnv$ and $\Typing \TEnv \Tm \tau$ and $\stepsto \Tm \Tm'$, then $\Typing \TEnv {\Tm'} \tau$
 \end{lemma}
-The role directed coercion calculus can be proved to be confluent only
-if the right hand sides of the coercion axioms have linear
-patterns. Confluence of type rewriting guarantees consistency for the
-complete system. In case of overlapping non-linear patterns, the proof
-of confluence is an open problem~\cite{mizuhito_rta_1995}.
-Finally, type preservation, \pref{lem:sfr-preservation}, along
-with progress, \pref{lem:sfr-progress} is the formal guarantee that
-ensures type soundness.
 
-The goal of \SFR is to find a good power to pain ratio: making
-minimal changes to the system to the benefit the programmer, and
-re-establishing type soundness in presence of newtypes, type functions
-and GADTs by disallowing unrestricted coercion lifting. The key
-challenge was to identify and solve the problem of generating fewer
-type coercions but enough to be backwards compatible.
 
 \section{\SFK}\label{sec:sfk} % K for kind eq
-Programmers may want to encode more complex constraints via GADTs. For example,
-consider the extension of !TyRep! from the previous section and a function, !baseElem!
-which accepts !TyRep a! as shown below:
-
-\begin{figure}[ht]
+\begin{figure}[h]
 \begin{minipage}[ht]{0.5\linewidth}
 \begin{code}
 data TyRep :: forall k. k -> Type where
@@ -2960,20 +2799,23 @@ baseElem (TyApp TyList _) = []
 \end{code}
 \end{minipage}
 \caption{Representing Higher Kinded Types}
+\label{fig:sfk-example}
 \end{figure}
+Programmers may want to encode complex constraints via GADTs. For example,
+consider the datatype declaration !TyRep! and the function !baseElem!
+which accepts !TyRep a! as shown in \pref{fig:sfk-example}.
 
-In this new definition of !TyRep!, the constructor !TyList!, encodes the list type,
-and !TyApp! represents type application. The !TyRep! datatype represents only well kinded
-types. This definition of !TyRep! allows user
-to write more interesting programs like !baseElem!.
-The !baseElem! function takes only those !TyRep a! where !a! is of a base kind $\star$ and returns
+In this definition of !TyRep!, the constructors !TyInt! and !TyBool! represent the base type !Int!
+and !Bool!, !TyList!, represents the list type,
+and !TyApp! represents type application. The !TyRep! datatype encodes only well kinded
+types. The !baseElem! function takes only those !TyRep a! where !a! is of a base kind $\star$ and returns
 a base element of that type. Thus, !baseElem TyBool! returns !False!,
-and !(TyApp TyList _)! maps to an empty list ![]!.
-The reason this works is due to kind equalities. In the case for !TyApp!,
+and !(TyApp TyList _)! maps to an empty list ![]!. \SFC is incapable of encoding
+the data constructors !TyList! and !TyApp! due to two reasons.
+First, the !TyRep! is kind polymorphic, requiring explicit kind abstraction and
+application. Second, the function implicitly uses kind equalities. In the case for !TyApp!,
 the first argument is inferred to have kind !$\star$ -> $\star$! and the second argument
-is inferred to have kind $\star$, making the result to be of kind $\star$. This definition of !TyApp! is
-rejected in \SFP due to the restriction which disallows non-trivial equalities between kinds.
-
+is inferred to have kind $\star$, making the result to be of kind $\star$.
 
 \subsection{Syntax}\label{sec:sfk-syntax}
 \begin{figure}[ht]
@@ -2997,10 +2839,10 @@ rejected in \SFP due to the restriction which disallows non-trivial equalities b
  \bnfor \Co\At\MCo \bnfor \shl{\Co\At(\MCo, \MCo')}\\ % abstraction instanst
  && \bnfor& \MCo\App\Co \bnfor \Left \Co \bnfor \Right \Co %
  \bnfor \Nth i \Co \bnfor \shl{\Kind \Co} \bnfor T\App\many\phi \\  % compose/decompose
- \text{Patterns} &&P \bnfeq& H\App \many\alpha\co\kappa \shl{\Telescope}\App{\many{x\co\tau}} \\
+ \text{Patterns} &&P \bnfeq& H\App \many{\alpha\co\kappa} \shl{\Telescope}\App{\many{x\co\tau}} \\
  \text{Telescopes} &&\Telescope \bnfeq& \empt \bnfor \Telescope, \TyVar\co\kappa \bnfor \Telescope, c\co\Prop\\
  \text{Terms} &&M,N \bnfeq& x \bnfor \Lam {x\co\tau} M \bnfor M\App N %
- \bnfor \TLam{\tau\co\kappa} M \bnfor M\App \tau \\
+ \bnfor \TLam{\alpha\co\kappa} M \bnfor M\App \tau \\
  && \bnfor& \Lam {c\co\Prop} {\Tm} \bnfor \Tm\App\Co %
  \bnfor H \bnfor \Case M \many{P \to M} \bnfor \Cast \Tm \Co
  \end{syntax}
@@ -3011,17 +2853,15 @@ rejected in \SFP due to the restriction which disallows non-trivial equalities b
 \caption{The Syntax of \SFK}\label{fig:sfk-syntax}
 \end{figure}
 
-Datatypes in \SFP requires specific ordering of the arguments:
-the kind arguments occur before the type arguments.
-In \SFK there is no distinction between types and kinds and thus they
-can intermingle freely. The type of the data constructors in this system are of the form:
+The type of the data constructors in this system are of the form:
 \[
     H : \Forall {\many{\alpha\co\kappa}}{\Forall{\shl{\Telescope}}{\many\tau \to T\many\alpha}}
 \]
 The list $\many{\alpha\co\kappa}$ are the parameters of the data constructors.
 All the existential arguments to the data constructor are captured in the telescope $\Telescope$.
-The existential arguments can be types or coercions. They are allowed to mix freely
-as long as they are well scoped. The restriction on the language is that the
+The existential arguments can be types or coercions.
+In \SFK there is no distinction between types and kinds and thus they
+can intermingle freely. The restriction on the language is that the
 data constructors can only be prameterized by types which are not coercions.
 For example, the type of !TyInt! and and !TyList! will be:
 \begin{flalign*}
@@ -3104,7 +2944,7 @@ kinds as a classifier for types.
  \ib{\irule[\trule{co-Coh}]
  {\CoKinding \TEnv {\Co} {\tau \sim \tau'}}
  {\Kinding \TEnv {\Cast \tau \Co'} \kappa};
- {\CoKinding \TEnv {\Cast \Co {\Co'}} {\Cast {\tau} {\Co' \sim \tau'}}}
+ {\CoKinding \TEnv {\Cast \Co {\Co'}} {\Cast {\tau} {\Co'} \sim \tau'}}
  }
 }
 
@@ -3120,20 +2960,22 @@ kinds as a classifier for types.
 \newcommand\PropEq{
  \ib{\irule[\trule{Prop-Eq}]
  {\Kinding \TEnv \tau   {\kappa}}
- {\Kinding \TEnv \sigma {\kappa_2}};
+ {\Kinding \TEnv \sigma {\kappa'}};
  {\TEnv \vdash_p {\tau \sim \sigma} {\texttt{~ok}}}
  }
 }
 
-
+\newcommand\TyKCo{
+\ib{\irule[\trule{Ty-$\forall\Co$}]
+{\TyKinding {\TEnv, c\co\phi} {\tau} {\star}}
+{\TEnv \vdash_p {\phi} {\texttt{~ok}}};
+{\TyKinding \TEnv {\Forall {c\co\phi} \tau} {\star}}
+}
+}
 
 \subsection{Static Semantics}\label{sfk-static-sem}
 \begin{figure}[ht]
  \centering
- % \begin{gather*}
- % \fbox{$\Typing \TEnv M \tau$}\\
- % \TContra
- % \end{gather*}
  \begin{gather*}
    \fbox{$\CoKinding \TEnv \Co {\tau \sim \tau}$}\\
  \KExtCo \rsp \KCoCo\\
@@ -3141,13 +2983,13 @@ kinds as a classifier for types.
  \KCAllC\\
  \KCAppCo \rsp \KCInstCo
  \end{gather*}
-\begin{minipage}{0.4\linewidth}
+\begin{minipage}{0.5\linewidth}
 \begin{gather*}
- \fbox{$\Kinding \TEnv \tau \kappa$}\\
-    \KTyCast
+ \fbox{$\TyKinding \TEnv \tau \kappa$}\\
+   \TyKCo \\ \KTyCast
  \end{gather*}%
 \end{minipage}%
-\begin{minipage}{0.4\linewidth}
+\begin{minipage}{0.5\linewidth}
 \begin{gather*}
   \fbox{$\TEnv \vdash_p \Prop \texttt{~ok}$}\\
   \PropEq
@@ -3166,6 +3008,13 @@ This enables the system to trivially consider all coercions to be equivalent.
 The propositional equality check $\trule{Prop-Eq}$ ensures that the type equality is between two well-formed types.
 The coherence rule, $\trule{co-Coh}$, says that kind coercions can be ignored while proving type equality.
 
+The rule \trule{co-$\I\forall$} in \SFC required that the kind of the quantified variable had
+to be syntactically equal. In \SFK, as seen in \trule{$co-\I{\forall\tau}$}, that is no longer the case.
+It is possible that the variables have different kinds, but there is a coercion that makes them equal.
+The rule \trule{co-$\I{\forall\Co}$} is analogus to \trule{$co-\I{\forall\tau}$} but for coercions.
+However, due to proof irrelevance, there is no proof witness required to show $c$ and $c'$ are equal.
+
+
 \subsection{Operational Semantics}\label{sfk-op-sem}
 \newcommand\Context[1]{\texttt{context}({#1})}
 \newcommand\Extend[1]{\texttt{extend}({#1})}
@@ -3174,10 +3023,10 @@ The coherence rule, $\trule{co-Coh}$, says that kind coercions can be ignored wh
  \ib{\irule[\trule{S-KPush}]
  {\substack{\mathlarger{H \co \Forall {\many{\TyVar\co\kappa}}%
                {\Forall \Telescope \many{\sigma} \to T\App\many\TyVar}}\\
-            \mathlarger{\phi' = \Psi_2(\dom\Telescope)}
+            \mathlarger{\phi' = \Psi_2(\dom\Telescope)}\\
+             \mathlarger{\many{\tau'} = \Psi_2(\many\TyVar)}
  }}
  {\substack{\mathlarger{\Psi = \Extend{\Context\Co ;\many\phi; \Telescope}}\\
- \mathlarger{\many{\tau'} = \Psi_2(\many\TyVar)}\\
  \mathlarger{\many{\Tm'} = \many{\Cast {\Tm} \Lift{\sigma}}}}};
  {$\stepsto {\Case {(\Cast {H\App \many\tau\App \many\phi\App\many\Tm} \Co)} {\many{\Ptrns \to N}} }
             {\Case {H\App \many{\tau'}\App \many{\phi'}\App\many{\Tm'}} {\many{\Ptrns \to N}} }$}
@@ -3192,11 +3041,11 @@ The coherence rule, $\trule{co-Coh}$, says that kind coercions can be ignored wh
 \caption{Excerpt of Operational Semantics of \SFK}
 \label{fig:sfk-op-sem}
 \end{figure}
-Most of the operational semantics for \SFK is carried over from \SFP.
+Most of the operational semantics for \SFK is carried over from \SFC.
 The most interesting rule of the system is $\trule{S-KPush}$
 which transforms a data constructor applied
-to a cast into an ``equivalent'' data constructor by pushing in the cercions.
-This is achieved by using lifting operation.
+to a cast into an ``equivalent'' data constructor by pushing the cercions in the arguments.
+This is achieved by using the lifting operation.
 \begin{definition}[Lifting operation, $\Lift -$]
 The lifting operation is defined inductively on the type structure:
 \begin{flalign*}
@@ -3208,12 +3057,12 @@ The lifting operation is defined inductively on the type structure:
                &\text{where~} \Psi' = \Psi, \alpha\co\kappa \mapsto (a_1, a_2, c) \text{~and~} \fresh{\Set{\alpha_1, \alpha_2, c}}\Psi \\
   \Lift{\Forall {\Co\co\sigma_1\sim\sigma_2}{\tau}} &= \forall_{(\Psi(\sigma_1), \Psi{\sigma_2})}(c_1,c_2). \Psi'(\tau)\\
                &\text{where~} \Psi' = \Psi, \alpha\co\sigma_1\sim\sigma_2 \mapsto (a_1, a_2, c) \text{~and~} \fresh{\Set{c_1, c_2}}\Psi\\
-  \Lift{\Cast\tau\Co} &= \Cast{\Lift\tau}{\Cast{\Sym(\Cast{\Sym\Co}{\Psi_1(\Co)})}{\Psi_2(\Co)}}
+  \Lift{\Cast\tau\Co} &= \Cast{\Lift\tau}{\Cast{\Sym(\Cast{(\Sym\Co)}{\Psi_1(\Co)})}{\Psi_2(\Co)}}
 \end{flalign*}
 \end{definition}
 The lifting operation, $\Lift - $, is a generalized version of lifting
-defined to fomalize \SFC (\pref{thm:sfc-coercion-lifting}).
-The lifting context, $\Psi$, is built using the $\Context{\Co}$ function as follows:
+defined to fomalize \SFC (\pref{def:sfc-coercion-lifting}).
+The lifting context, $\Psi$, is built using the function $\Context{\Co}$.
 \begin{definition}[Lifting Context Creation, $\Context{\Co}$]
 If $\CoKinding \TEnv \Co {T\App\many\tau \sim T\App\many\sigma}$, and $T\co\Forall{\many{\alpha\co\kappa}} \co \star \in \TEnv$
 then
@@ -3261,26 +3110,34 @@ $\stepsto{}{}$ Cons $\star$ Int ($\Refl{\star}$) (x /> $\Psi(a)$) (xs /> $\Psi([
 \end{code}
 \end{CenteredBox}
 
+\begin{lemma}[Coercion lifting Lemma]\label{lem:sfk-coercion-lifting}
+If $\Psi$ is a valid lifting context for $\TEnv$ and the telescope $\Telescope$,
+and $\TyKinding {\TEnv,\Telescope} \tau \kappa$ then
+\[ \CoKinding {\TEnv} {\Psi(\tau)} {\Psi_1(\tau) \sim \Psi_2(\tau)} \]
+\end{lemma}
+
+
 \subsection{Meta-theory}\label{sfk-meta-theory}
 With all the machinery built to allow kind hetrogenous equalities, it remains to argue whether
 the system still enjoys type safety.
 
-\begin{theorem}[Preservation for \SFK]\label{lem:sfk-preservation}
-If $\Typing \TEnv \Tm \tau$  and $\stepsto \Tm \Tm'$ then $\Typing \TEnv {\Tm'} \tau$
-\end{theorem}
+\begin{lemma}[Preservation for \SFK]\label{lem:sfk-preservation}
+If $\Good\TEnv$, $\Typing \TEnv \Tm \tau$  and $\stepsto \Tm \Tm'$ then $\Typing \TEnv {\Tm'} \tau$
+\end{lemma}
 The proof is inspection of all the rules and making sure that the operational semantics rules
 do not change the type of the reduced term. The push rules are the most interesting rule to analyze.
 To ensure the push rules preserve types it is enough to check that erasure of type (an coercion) annotations
 from the term has no effect on the operational semantics.
 
-
-\begin{theorem}[Progress for \SFK]\label{lem:sfk-progress}
-If $\Typing \TEnv \Tm \tau$ and $\Tm \not\in \Val or~ C\Val$, and $\TEnv$ is consistent context, then
+\begin{lemma}[Progress for \SFK]\label{lem:sfk-progress}
+If $\Typing \TEnv \Tm \tau$ and $\Tm$ is not $C\Val$, and $\TEnv$ is a closed, consistent context, then
 there exists a $\Tm'$ such that $\stepsto \Tm {\Tm'}$
-\end{theorem}
+\end{lemma}
 
-The consistency criteria for the typing environment is captured using $\Good\TEnv$ as in \SFP and \SFC. It is
-more involved owing to the fact that \SFK is more complex than its predecessor systems.
+The consistency criteria for the typing environment is captured using $\Good\TEnv$ and \SFC. It is
+more involved as \SFK is more complex than its predecessor systems.
+The proof proceeds in two steps: first, showing that the kind erasure does not interfere with
+semantics of types then second, the type erasure does not interfere with term semantics.
 There are some types in the system which are equal but cannot be proven so within the system.
 For example the two types $\Forall {c_1\co Int \sim b} Int$ and $\Forall {c_2\co Int \sim b} b$ are equal,
 but the system cannot prove them to be equal. Such incompleteness is a non-issue as the the surface level
@@ -3298,15 +3155,12 @@ The typechecking problem for \SFK is decidable and all the terms are explicitly 
 and the type equalities are always accompanied with a finitely sized equality proof.
 The system also maintains a distinction between the (equality)
 proofs and objects. This allows proofs to be independent of any computational value.
-From the previous section on \SFP, some types could not be
-promoted because of a weak kind system. In \SFK, the kind language is as expressive
-as the type langauge and thus any data type can be promoted.
 
 \part{IV: The Path Ahead and The Detours}\label{part:IV}
 \section{Future Work}\label{sec:future-work}
-Consider the !Con e c! from \pref{fig:tc-collection-fd}.
 \begin{figure}[ht]
-\begin{minipage}{0.5\linewidth}
+\begin{minipage}{0.4\linewidth}
+\begin{CenteredBox}
 \begin{code}
 class Con e c | c ~> e where
   empty :: FORALL e c. Con e c => c
@@ -3316,23 +3170,26 @@ instance Con Int [Int] where
   empty = ...
   extend = ...
 \end{code}
+\end{CenteredBox}
 \end{minipage}%
-\begin{minipage}{0.5\linewidth}
+\begin{minipage}{0.6\linewidth}
+\begin{CenteredBox}
 \begin{code}
 type family FDCon c : *
 empty : FORALL c. Con (FDCon c) c => c
 extend : FORALL c. Con (FDCon c) c => e -> c -> c
 
-axiom coFDCon[Int]Int : FDCon [Int] ~ Int
+axiom coFDConLIntInt : FDCon [Int] ~ Int
 empty_[Int]  : Con [Int] (FDCon [Int]) => Int
 extend_[Int] : Con [Int] (FDCon [Int]) => Int -> [Int] -> [Int]
 
 \end{code}
+\end{CenteredBox}
 \end{minipage}
 \caption[FunDeps in \SFC]{Elaborating Functional Dependencies into \SFC}
 \label{fig:elab-fundeps-sfc}
 \end{figure}
-Functional dependencies introduce the
+Functional dependencies introduce
 uniqueness criteria for a subset of the multiparameter type classes.
 We may expect obtaining a natural encoding of functional dependencies
 via the mechanism of open type functions. In this encoding scheme,
@@ -3345,8 +3202,7 @@ function. For example, as shown in \pref{fig:elab-fundeps-sfc},
 !Con e c! gets converted to !Con (FCCon c) c!. While this encoding is
 sound, and works for simple cases, it does not cover all the use cases.
 Consider a specialized case of containers, !UCon con!, for unsorted containers,
-where the container elements may not have a ordering function defined
-on them.
+where the container does not enforce any ordering on the elements.
 
 \begin{CenteredBox}
 \begin{code}
@@ -3355,11 +3211,10 @@ class Con elem con => UCon con
 \end{CenteredBox}
 
 Representing the typeclass constraints in a first order predicate logic, we get the following
-(seemingly broken) formula:
+(seemingly broken) formula as as the type variable !elem! is out of scope:
 \[
 \Forall{con}{\texttt{UCon}\App con \then \texttt{Con}\App elem\App con}
 \]
-It is broken, as the type variable !elem! is out of scope.
 The intended meaning of the class declaration is:
 whenever we have an evidence that says the typeclass constraint
 !UCon con! is satisfied, we can also assume, or produce, an
@@ -3368,70 +3223,31 @@ Although it may seem that the type parameter
 !elem! is free in this definition, it is uniquely
 determined due to the functional dependency, !con ~> elem!.
 The type parameter !con! is existentially
-bound; now made explicit in the formula below:
+bound. It is made explicit in the formula below:
 \[
 \Forall{con}{\texttt{UCon}\App con \then \Exists{\bang elem}\texttt{Con}\App con\App elem}
 \]
-To tackle this problem \citet{karachalias_elaboration_2017} develop an
+To tackle this problem, \citet{karachalias_elaboration_2017} develop an
 elaboration scheme for typeclass and instance declarations which
 elaborates functional dependencies. However,
 their work cannot provide an explanation of the general theory of
-the simplifying and improvement of types\cite{jones_simplifying_1995}
+the simplifying and improvement of types~\cite{jones_simplifying_1995},
 as functional dependencies may introduce partial type
 refinements. Functional dependencies remain a type inference level
-artifact and have no evidence at the level of \SFC. This gap is evident
-from the comments from the GHC developers, ``If someone can explain how to
-elaborate functional dependencies into well-typed evidence in $\SFC$
-, that would be good. My inability to do so was one of the reasons
-we developed type families and $\SFC$ in the first
-place.''\footnote{Comment on GHC Issue \#9627:
-  \url{https://gitlab.haskell.org/ghc/ghc/-/issues/9627\#note\_88529}}
+artifact and have no evidence at the level of \SFC.
 The consequence of the incomplete encoding of functional
-dependencies is reflected in GHC implementation:
-obscure type errors, and worse the type checker is unnecessarily more
-restrictive than it should be. For example, issues with functional
-dependencies interacting with associated typeclasses\footnote{GHC Issue \#11534:
+dependencies is reflected in the compiler implementation.
+For example, issues with functional dependencies interacting
+poorly with type families\footnote{GHC Issue \#11534:
   \url{https://gitlab.haskell.org/ghc/ghc/-/issues/11534}},
 GADTs\footnote{GHC Issue \#345:
   \url{https://gitlab.haskell.org/ghc/ghc/-/issues/345}},
-or more generally, causing non-confluence issues in the GHC constraint
+and furthermore, causing non-confluence issues in the GHC constraint
 solver \footnote{GHC issue \#18851:
   \url{https://gitlab.haskell.org/ghc/ghc/-/issues/18851}}
-
-The functional dependency style has advantages over the
-functional style\cite{jones_language_2008}. Consider the !extendWithOne!
-function which uses the !extend! method from !Con con elem!
-typeclass as shown in \pref{fig:fundeps-vs-tfs}.
-\begin{figure}[ht]
-\centering
-\begin{minipage}{0.5\linewidth}
-\begin{code}
-       extendWithOne :: Con con Int
-                     => con -> con
-       extendWithOne 1 c = extend 1 c
-\end{code}
-\end{minipage}%
-\begin{minipage}{0.5\linewidth}
-\begin{code}
-      extendWithOne :: (Elem con ~ Int, Con con)
-                    => con -> con
-      extendWithOne 1 c = extend 1 c
-\end{code}
-\end{minipage}
-\caption[FundDeps or TFs]{Functional Dependencies vs Type Functions}
-\label{fig:fundeps-vs-tfs}
-\end{figure}
-
-In the associated type class setting as the associated type is
-independent of the typeclass itself, the !extendWithOne! function will
-need to have two constraints. One that fixes the element of the
-container, the other that constrains the container type.
-In general, writing a polymorphic function over the
-determiner of the typeclass will require such redundant
-constraints. This means that the user has to provide more hints to the
-constraint solver to convince it that the program is type correct.
-Further, the compiler writer needs to write a non-trivial solver that
-now accepts and verifies explicit equality constraints.
+Such issues degrade the programmer's experience by
+obscure type errors, and worse the type checker
+is unnecessarily more restrictive than required.
 
 \begin{figure}[ht]
   \centering
@@ -3463,11 +3279,7 @@ node distance=1.5cm
 
 The hope is to find an acceptable solution for encoding
 the behavior of functional dependencies in a core typed
-intermediate language. This would liberate the language designer from
-choosing one language feature over another, and in turn give the
-user the flexibility to use the language feature that fits their style.
-
-In the next section we go over more language features in brief. While
+intermediate language. In the next section we go over more language feature extensions. While
 the focus of the future research problem will be solving the
 tension between functional dependencies and type functions, we will
 have to take into consideration these extensions and ensure they
@@ -3476,104 +3288,22 @@ will not introduce inconsistencies.
 \section{Related Work}\label{sec:related-work}
 %%%%%%%%%
 \subsection{Ad-hoc polymorphism}\label{sec:rw-adhoc-poly}
-\subsubsection{Typeclass alternatives}
-\citet{kaes_parametric_1988} had very similar ideas related to
-implementation aspects of adhoc polymorphism before
-~\citet{wadler_polymorphism_1989}. The work on functional dependencies
-for multi-parameter typeclasses is directly influenced by parametric
-type classes~\cite{chen_parametric_1992}. Implicit
-objects~\cite{oliveira_typeclasses_2010} provide a mechanism for the
-programmer to choose the intended behavior instance if
-there are multiple available options. This pushes the burden of choosing the
-right instance on programmer whenever the typechecker cannot uniquely
-resolve an option or when the programmer wants to force the
-typechecker to resolve it to a specific instance. Constraint handling
-rules(CHR)~\cite{fruhwirth_theory_1998,stuckey_theory_2005} is a recent
-way to account for operator overloading. The limitation of using CHRs
-is that the programmer needs to ensure confluence external to the
-system to be able to get coherence guarantees.
-
-\subsubsection{Traits and Interfaces}
-Object oriented languages provide an explicit mechanism of abstraction
-over behavior of classes in the form of traits (cf. Rust, Scala) or
-interfaces (cf. Java, C\#). In dynamically typed languages
-(cf. python), traits are emulated using implicit programmer
-conventions. Typeclasses subsume traits and interfaces. Typeclasses
-can be higher kinded, which often is lacking in object oriented
-languages, with an exception of Scala where traits can be declared on
-higher kinded types by means of generics. There is no equivalent of
-multi-parameter typeclasses and funtional dependencies in interfaces
-and the expressivity of type level computation is non-existent. Traits
-in Scala 3 can have parameters, but there is no way to express a
-functional relation between the parameters. Superclasses (not to be
-confused with superclasses for classes in object oriented languages)
-mechanisms exists in both typeclasses and traits and interfaces that
-establish a containment relationship. The abstract behaviour described
-by superclasses is contained in the sub-classes.
-
-
-% \subsubsection{Automatic Typeclass Derivation}
-% For simple cases we should be able to automatically derive typeclass
-% instances such as !Show a!. This is a principled way of ``scraping your
-% boilerplate''. The key point is that a simple pattern is identifiable
-% to generate these implementation functions. For ADTs deriving
-% machinery is straightforward. Recall that an ADT can be realized as
-% named sums and products. Deriving an typeclass instance amounts to
-% identifying the simple common substructure. For eg. consider a data
-% structure
-
-% \begin{CenteredBox}
-% \begin{code}
-% data T = X Int | Y (String, Bool)
-% \end{code}
-% \end{CenteredBox}
-
-% In this artificial example, a cannonical !Show! instance will be
-% printing the Name of the data constructor and then printing each of
-% the fields, each of which is just a recursive call to the show
-% function. The generated them is then typechecked and desugared so that
-% the recursive calls to show are called at the appropriate type.
-% For example, for the !X Int! case the !show (Y s b)! will look like
-
-% \begin{CenteredBox}
-% \begin{code}
-% show (Y pair) = "X" ++ show pair
-% \end{code}
-% \end{CenteredBox}
-
-% the show in the left hand side of equation is called at type
-% !(Int, Bool)!. As we know how to print Int and a Bool and also a pair of an
-% !Int! and a !Bool!, we can also print the !Y pair! case.
-
-% GHC provides an automatic efficient automatic deriving machinery
-% for a wide variety of typeclasses. This feature is a definitive time
-% saver by automatically generating boilerplate code.
-
-% \begin{CenteredBox}
-% \begin{code}
-% data T = X Int | Y (String, Bool)
-%                 deriving (Show)
-% \end{code}
-% \end{CenteredBox}
-
-\subsubsection{Closed Typeclasses}
-Closed typeclasses, as
-opposed to the open typeclasses, cannot be extended with
-instances. GHC/Haskell does not support closed typeclasses out of the
-box. In Scala, sealed traits accomplish this behavior by using modules
-as implicit boundaries to prohibit extensions. This can be useful in
-cases where we want the typechecker to be able to deduce that certain
-typeclass constraints can never be satisfied. In current Haskell,
-unsatisfiable typeclass constraints for a function type, amounts dead
-code as such functions cannot be used.
-With a support to closed typeclasses, the typechecker would be
-able to identify such cases and warn the programmer about the dead code.
-Only partial behavior of closed typeclasses can be
-encoded in current Haskell. This is achieved by limiting the export
-names from modules. While this establishes the closed-ness property of
-the typeclass. The typechecker cannot use this information that the
-unexported typeclass cannot be extended and use it to reason about
-whether the constraint can be solvable or not.
+% \subsubsection{Typeclass alternatives}
+% \citet{kaes_parametric_1988} had very similar ideas related to
+% implementation aspects of adhoc polymorphism before
+% ~\citet{wadler_polymorphism_1989}. The work on functional dependencies
+% for multi-parameter typeclasses is directly influenced by parametric
+% type classes~\cite{chen_parametric_1992}. Implicit
+% objects~\cite{oliveira_typeclasses_2010} provide a mechanism for the
+% programmer to choose the intended behavior instance if
+% there are multiple available options. This pushes the burden of choosing the
+% right instance on programmer whenever the typechecker cannot uniquely
+% resolve an option or when the programmer wants to force the
+% typechecker to resolve it to a specific instance.
+% Constraint handling
+% rules~\cite{fruhwirth_theory_1998,stuckey_theory_2005} accounts for operator overloading.
+% The limitation of using CHRs is that the programmer needs to ensure confluence external to the
+% system to be able to get coherence guarantees.
 
 \subsubsection{Instance Chains}
 Instance chains~\cite{morris_instance_2010} enable finer grained
@@ -3674,9 +3404,23 @@ while trying to solve a wanted type equality constraint such as,
 !F a ~ Char!, the typechecker can leverage the fact that !F! is injective,
 and hence, there can be only one solution for the equation: !a ~ Int!,
 thus aiding the solver with extra information to solve the original
-wanted constraint. Injective type
-families~\cite{stolarek_injective_2015}
+wanted constraint. Injective type families~\cite{stolarek_injective_2015}
 can be extended for closed type families as well.
+The key change in terms of formalization is to relax the rule \trule{co-nth}
+from \pref{fig:sfr-typing} to allow decomposing injective type family applications.
+The formalization however, still has to assume that
+the type rewriting is terminating for proving consistency.
+
+\newcommand\KNthCoInj{
+ \ib{\irule[\trule{co-nth}]
+   {\CoKinding \TEnv {\Co} {\mathcal{T} \App \many\sigma \teqR \mathcal{T} \App\many{\tau}}}
+   {\mathcal{T} \in \Set{T, F} (\text{F is injective})};
+   {\CoKinding \TEnv {\Nth i \Co} {\tau_1 \teq{\rho_i} \tau_2}}
+ }
+}
+\[ \KNthCoInj \]
+
+
 
 \subsubsection{Constrained Type Families}
 Constrained type families~\cite{morris_typefamilies_2017} allows type
@@ -3692,67 +3436,26 @@ special infrastructure, fall out naturally in this system. The
 formalized system however, does not have a corresponding  working
 implementation\footnote{GHC Proposal: \url{https://github.com/typedrat/ghc-proposals/blob/constrained-type-families/proposals/0000-simple-constrained-type-families.rst}}.
 
-\subsubsection{Partially Applied Type families}
-\SFC had a restriction on the usage of type functions; they have to
-be fully applied. An unsaturated application of a type function can
-creep in type unsoundness due to unrestricted coercion lifting issues
-similar to the discussion made in \SFP. The restriction can be
-relaxed by stratifying the function
-hierarchy~\cite{kiss_higher-order_2019}: the functions that can be
-matched on, and the other that cannot be matched on. This allows the
-typechecker to reject unsafe programs which could violate the
-safety property. This idea is also not currently implemented in a
+% \subsubsection{Partial Type Constructors}
+% Consider the associated type appearing as type argument within a data
+% constructor:
 
-\subsubsection{Partial Type Constructors}
-Consider the associated type appearing as type argument within a data
-constructor:
+% \begin{CenteredBox}
+% \begin{code}
+% data E a = MkE (Elem a)
+% \end{code}
+% \end{CenteredBox}
 
-\begin{CenteredBox}
-\begin{code}
-data E a = MkE (Elem a)
-\end{code}
-\end{CenteredBox}
-
-GHC designers decided to ignore the question of whether typechecking
-an instance of an element of !E a! should check for satisfaction of
-the associated !Con a! typeclass. This makes the type system restrictive as to
-ensure safety, certain typeclass abstraction machinery cannot be used
-leverage coding patterns such as the constrained monad
-problem~\cite{sculthorpe_constrained-monad_2013} or its generalized
-version, the constrained typeclass problem. Partial type
-constructors~\cite{jones_partial_2019,ingle_partial_2022} explores the language design
-space which takes into consideration such type partiality. The
-advantage of which allows a simple and elegant solution to the
-constrained typeclass problem.
-
-\subsection{Modules}\label{sec:rw-modules}
-% Modules and typeclasses
-% are they same
-% no, different.
-% Their co-existence incoherent
-Modules help decompose large programs into smaller programs by allowing the programmers to establish separation of concerns. All general purpose programming languages provide some capabilities to make programs modular. ~\citet{macqueen_modules_1984} pioneered the formalizing semantics of modules in Standard ML.
-Various attempts~\cite{dreyer_modular_2007, wehr_ml_2008, white_modular_2014} have been made to enable a happy co-existence of parametric and implicit adhoc polymorphism together in a language by encoding typeclasses as modules and vice versa. However, every attempt has failed to avoid incoherence issues without crippling the language expressivity. ML and its variants~\cite{milner_definition_1997,leroy_ocaml_2023} disallow allow operator overloading to enable modular compilation, while Haskell like languages compromise on the correct module behavior to allow operator overloading via typeclass mechanisms.
-
-
-\subsection{Type Inference}\label{sec:rw-type-inf}
-The monograph did not delve into the surface syntax typechecking aspects of the
-compiler. We assumed that there either exists an algorithm which can
-efficiently compute the types of a programmer provided term, which
-does not contain any types via a complete type
-construction~\cite{milner_theory_1978}, or the  programmer supplies
-sufficient typing annotations so that the type construction problem
-becomes tractable via partial type
-construction~\cite{pierce_local_2000, dunfield_bidirectional_2021}.
-\HMX and its variants are the state of the art type modular inference
-framework that is based on by using constraint handling rules. The
-stratified type inference algorithm~\cite{pottier_stratified_2006} works in two
-phases: the first phase collects the typing constraints and then the
-second phase solves them. This is different than the greedy approaches
-used by original typing algorithms~\cite{lee_proofs_1998} $\mathcal{W}$
-and $\mathcal{M}$. The stratified type inference systems are better
-suited for languages that support GADTs and language features that
-introduce local constraints~\cite{vytiniotis_outsideinx_2011}.
-
+% GHC designers ignore the question of whether typechecking
+% an instance of an element of !E a! should check for satisfaction of
+% the associated !Con a! typeclass. This makes the type system restrictive as to
+% ensure safety, certain typeclass abstraction machinery cannot be used
+% leverage coding patterns such as the constrained monad
+% problem~\cite{sculthorpe_constrained-monad_2013} or its generalized
+% version, the constrained typeclass problem. Partial type
+% constructors~\cite{jones_partial_2019,ingle_partial_2022} explores the language design
+% space which takes into consideration such type partiality while
+% allowing a simple and elegant solution to the constrained typeclass problem.
 
 \section{Conclusion}\label{sec:conclusion}
 \begin{figure}[ht]
@@ -3765,7 +3468,7 @@ introduce local constraints~\cite{vytiniotis_outsideinx_2011}.
    \hline
    ADTs~\cite{burstall_hope_1980}         & \emph{GADTs}~\cite{cheney_first-class_2003}\\
    \hline
-   \multirow{3}*{\emph{Generative abstract types}~\cite{breitner_safe_2014}}
+   \multirow{3}*{\emph{Newtypes}~\cite{breitner_safe_2014}}
                                         & \emph{Open Type Functions}~\cite{schrijvers_type_2008}\\
                                         & Closed Type Functions~\cite{eisenberg_typefamilies_2014},\\
                                         & \emph{Associated types}~\cite{chakravarty_associated_2005}
@@ -3777,23 +3480,22 @@ We surveyed some important language features--the ones which functional
 programmers prefer---and seen in depth, a theoretical
 foundation of a modern day declarative functional programming
 language. The language features are tabulated in the
-\pref{fig:haskell-lang-features}. The features in
-covered in some detail in this monograph are emphasized.
+\pref{fig:haskell-lang-features}.
 There are two ways of supporting a new programming language
 feature, either via encoding them with the help of libraries or, via
 supporting them as a core language feature. In the latter scenario, we
 realized that composing different language features is non-trivial and
 their subtle interactions can threaten semantic consistency. We
 first identified that the three seemingly different language features:
-generative abstract types, generalized algebraic datatypes and type
+newtypes, generalized algebraic datatypes and type
 functions can be encoded using a simple single construct: type
 equality. We then showed how non-parametric features
 interacting with parametric features of the language that contain
-explicit type equalities can cause type unsoundness bugs, unless they are
-treated carefully. Along the way we saw how the the type system evolved
+explicit type equalities can cause type unsoundness bugs.
+Along the way we saw how the the type system evolved
 with different flavors of type equality: \SFC had a primitive notion defining when two
-types are equal, but \SFR, \SFP and \SFK made the type equality relation
-more explicit. Taming ad-hoc language features is non-trivial and requires
+types are equal, but \SFR, and \SFK made the type equality relation
+more refined. Taming ad-hoc language features requires
 sophisticated proof techniques to formalize and argue about their
 correctness. As new programming languages are designed, built and
 used, it is not only important to identify and carry over the good design principles
@@ -3806,83 +3508,59 @@ by understanding the real requirements of practice.
 \bibliography{comp}%%%%%%%%%
 
 
-\part{V: Appendix for Proofs, Definitions, and Thorny Bushes}\label{part:appendix}
-
-\begin{defn}[Coercion Substitution in Types]
-The special case is $\Refl\tau$. Let $\Subst = \Sub{\alpha}{\Co}$\\
-\begin{minipage}{0.5\linewidth}
-\begin{flalign*}
-\Subst c &:= c\\
-\Subst T &:= T\\
-\Subst\Refl{\beta} &:= \texttt{if}~ \alpha = \beta~ \texttt{then}~ \Co~ \texttt{else}~\Refl\beta\\
-\Subst\Sym\nu     &:= \Sym{\Subst\nu}\\
-\Subst\Trans\nu{\nu'} &= \Trans{\Sub\alpha\Co\nu}{\Sub\alpha\Co\nu'}\\
-\Subst\Right\nu     &:= \Right\Subst\nu
-\end{flalign*}
-\end{minipage}%
-\begin{minipage}{0.5\linewidth}
-\begin{flalign*}
-\Subst{\beta} &:= \texttt{if}~ \alpha = \beta~ \texttt{then}~ \Co~ \texttt{else}\beta\\
-\Subst(\tau\to\sigma)  &:= (\Subst\tau)\to(\Subst\sigma)\\
-\Subst(\tau\App\sigma) &:= (\Subst\tau)\App(\Subst\sigma)\\
-\Subst(\Forall {\beta\co\kappa}\tau) &:= \Forall {\beta\co\kappa}{(\Subst\tau)}\\
-\Subst(\nu\At\tau)     &:= (\Subst\nu)\At(\Subst\tau)\\
-\Subst\Left\nu     &:= \Left\Subst\nu\\
-\Subst(F\App\many\tau) &= F\App\Subst\many\tau
-\end{flalign*}
-\end{minipage}
-\end{defn}
-
-% \begin{theorem}[Coercion Lifting]\label{thm:sfc-coercion-lifting-appendix}
-%  If $\TyKinding {\TEnv,\TyVar\co\kappa'}\phi\kappa$, where $\TyVar$ is free in $\phi$
-%  and does not appear free in $\TEnv$, and
-%  $\CoKinding\TEnv\Co{\sigma_1\sim\sigma_2}$, and $\TyKinding\TEnv{\sigma_i}\kappa'$
-%  then, $\CoKinding\TEnv {\Sub{\TyVar}{\Co}\Refl{\phi}}
-%  {\Set{\TyVar\mapsto\sigma_1}\phi\sim\Set{\TyVar\mapsto\sigma_2}\phi}$
-% \end{theorem}
-\begin{proof}[\pref{thm:sfc-coercion-lifting}]\label{proof:thm-sfc-coercion-lifting}
-By induction on the structure of the derivation of the well kinded
-types we have the following cases:
-
-\begin{itemize}
-\item[\trule{ty-var}] $\alpha$: It is a well formed type (assumption), the coercion
-  substitution is well formed (assumption), so the claim holds,
-  $\TyKinding \TEnv {\Sub{\alpha}{\Co}\Refl{\alpha}}
-  {\Sub{\alpha}{\sigma_1}\alpha \sim \Sub{\alpha}{\sigma_2}\alpha}$.
-  If the type variable is not $\alpha$, the substitution has no effect
-\item[\trule{ty-con}] $T$ is a constant, so the substitution does not
-  have any effect.
-\item[\trule{ty-fcon}] $F\App{\many\sigma}$: By
-  induction principle application on the well kinded type arguments
-  $\many{\TyKinding \TEnv \sigma \kappa}$
-\item[\trule{ty-all}] $\Forall{\alpha\co\kappa}{\tau}$:
-  after necessary renaming gymnastics to avoid variable capture,
-  induction hypothesis with weakening applies to $\TyKinding {\TEnv,\alpha\co\kappa} \tau \kappa$
-\item[\trule{ty-app}] $\tau\App\sigma$: substitution distributes
-  over the type application and induction on the derivations of
-  $\TyKinding \TEnv \tau {\kappa \to \kappa'}$
-  and $\TyKinding \TEnv \sigma {\kappa}$
-\end{itemize}
-\end{proof}
+% \part{V: Appendix for Proofs, Definitions, and Thorny Bushes}\label{part:appendix}
 
 
-\begin{example}
-    Derivation tree for elaborating !Value 0 :: Int!
+% % \begin{theorem}[Coercion Lifting]\label{thm:sfc-coercion-lifting-appendix}
+% %  If $\TyKinding {\TEnv,\TyVar\co\kappa'}\phi\kappa$, where $\TyVar$ is free in $\phi$
+% %  and does not appear free in $\TEnv$, and
+% %  $\CoKinding\TEnv\Co{\sigma_1\sim\sigma_2}$, and $\TyKinding\TEnv{\sigma_i}\kappa'$
+% %  then, $\CoKinding\TEnv {\Sub{\TyVar}{\Co}\Refl{\phi}}
+% %  {\Set{\TyVar\mapsto\sigma_1}\phi\sim\Set{\TyVar\mapsto\sigma_2}\phi}$
+% % \end{theorem}
+% \begin{proof}[\pref{thm:sfc-coercion-lifting}]\label{proof:thm-sfc-coercion-lifting}
+% By induction on the structure of the derivation of the well kinded
+% types we have the following cases:
 
-   $\TEnv = Value : \Forall {a\co\star} {a \sim Int \then Int \to GAlgExp\App a}$
+% \begin{itemize}
+% \item[\trule{ty-var}] $\alpha$: It is a well formed type (assumption), the coercion
+%   substitution is well formed (assumption), so the claim holds,
+%   $\TyKinding \TEnv {\Sub{\alpha}{\Co}\Refl{\alpha}}
+%   {\Sub{\alpha}{\sigma_1}\alpha \sim \Sub{\alpha}{\sigma_2}\alpha}$.
+%   If the type variable is not $\alpha$, the substitution has no effect
+% \item[\trule{ty-con}] $T$ is a constant, so the substitution does not
+%   have any effect.
+% \item[\trule{ty-fcon}] $F\App{\many\sigma}$: By
+%   induction principle application on the well kinded type arguments
+%   $\many{\TyKinding \TEnv \sigma \kappa}$
+% \item[\trule{ty-all}] $\Forall{\alpha\co\kappa}{\tau}$:
+%   after necessary renaming gymnastics to avoid variable capture,
+%   induction hypothesis with weakening applies to $\TyKinding {\TEnv,\alpha\co\kappa} \tau \kappa$
+% \item[\trule{ty-app}] $\tau\App\sigma$: substitution distributes
+%   over the type application and induction on the derivations of
+%   $\TyKinding \TEnv \tau {\kappa \to \kappa'}$
+%   and $\TyKinding \TEnv \sigma {\kappa}$
+% \end{itemize}
+% \end{proof}
 
-  \[\hspace{-10em}
-    \ib{\irule[\trule{g-$\I\to$}]
-        {\ib{\irule[\trule{g-$\E C$}]
-           {\ib{\irule[\trule{g-$\E\forall$}]
-                {\ib{\irule[\trule{g-var}]{};
-                    {\GTranslate C \TEnv {Value} {\Forall {a} {a \sim Int \then Int \to GAlgExp\App a}} {Value}}}};
-                {\GTranslate C \TEnv {Value} {Int \sim Int \then Int \to GAlgExp\App Int} {Value \App Int}}}}
-           {\CoKinding C {\Refl{Int}} {Int \sim Int}};
-           {\GTranslate C \TEnv {Value} {Int \to GAlgExp\App Int} {Value \App Int\App \Refl{Int}}}}};
-        {\GTranslate C \TEnv {Value\App 0} {GAlgExp\App Int} {Value\App Int\App \Refl{Int}\App 0}}}
-  \]
-\end{example}
+
+% \begin{example}
+%     Derivation tree for elaborating !Value 0 :: Int!
+
+%    $\TEnv = Value : \Forall {a\co\star} {a \sim Int \then Int \to GAlgExp\App a}$
+
+%   \[\hspace{-10em}
+%     \ib{\irule[\trule{$\E\to$}]
+%         {\ib{\irule[\trule{g-$\E C$}]
+%            {\ib{\irule[\trule{g-$\E\forall$}]
+%                 {\ib{\irule[\trule{g-var}]{};
+%                     {\GTranslate C \TEnv {Value} {\Forall {a} {a \sim Int \then Int \to GAlgExp\App a}} {Value}}}};
+%                 {\GTranslate C \TEnv {Value} {Int \sim Int \then Int \to GAlgExp\App Int} {Value \App Int}}}}
+%            {\CoKinding C {\Refl{Int}} {Int \sim Int}};
+%            {\GTranslate C \TEnv {Value} {Int \to GAlgExp\App Int} {Value \App Int\App \Refl{Int}}}}};
+%         {\GTranslate C \TEnv {Value\App 0} {GAlgExp\App Int} {Value\App Int\App \Refl{Int}\App 0}}}
+%   \]
+% \end{example}
 
 \end{document}
 
