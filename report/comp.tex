@@ -2973,6 +2973,14 @@ kinds as a classifier for types.
 }
 }
 
+\newcommand\KTypeInType{
+  \ib{\irule[\trule{Ty-star}]
+   {};
+   {\TyKinding \TEnv \star \star}
+  }
+}
+
+
 \subsection{Static Semantics}\label{sfk-static-sem}
 \begin{figure}[ht]
  \centering
@@ -2986,7 +2994,7 @@ kinds as a classifier for types.
 \begin{minipage}{0.5\linewidth}
 \begin{gather*}
  \fbox{$\TyKinding \TEnv \tau \kappa$}\\
-   \TyKCo \\ \KTyCast
+   \TyKCo \rsp \KTypeInType \\ \KTyCast
  \end{gather*}%
 \end{minipage}%
 \begin{minipage}{0.5\linewidth}
@@ -3144,8 +3152,6 @@ but the system cannot prove them to be equal. Such incompleteness is a non-issue
 syntax disallows writing type equalities of the form $(Int \sim b) \then Int \sim (Int \sim b) \then b$
 and these equalities are quite exotic.
 
-
-
 \SFK is a significantly more expressive type system than its predecessors. It achieves this by squashing
 the distinction between types and kinds. The judgement $\Kinding \TEnv \star \star$,
 or the type in type axiom, is one of the kinding axioms.
@@ -3156,7 +3162,7 @@ and the type equalities are always accompanied with a finitely sized equality pr
 The system also maintains a distinction between the (equality)
 proofs and objects. This allows proofs to be independent of any computational value.
 
-\part{IV: The Path Ahead and The Detours}\label{part:IV}
+\part{IV: The Path Ahead}\label{part:IV}
 \section{Future Work}\label{sec:future-work}
 \begin{figure}[ht]
 \begin{minipage}{0.4\linewidth}
@@ -3211,7 +3217,7 @@ class Con elem con => UCon con
 \end{CenteredBox}
 
 Representing the typeclass constraints in a first order predicate logic, we get the following
-(seemingly broken) formula as as the type variable !elem! is out of scope:
+(seemingly broken) formula as the type variable !elem! is out of scope:
 \[
 \Forall{con}{\texttt{UCon}\App con \then \texttt{Con}\App elem\App con}
 \]
@@ -3223,14 +3229,14 @@ Although it may seem that the type parameter
 !elem! is free in this definition, it is uniquely
 determined due to the functional dependency, !con ~> elem!.
 The type parameter !con! is existentially
-bound. It is made explicit in the formula below:
+bound, as made explicit in the formula below:
 \[
 \Forall{con}{\texttt{UCon}\App con \then \Exists{\bang elem}\texttt{Con}\App con\App elem}
 \]
 To tackle this problem, \citet{karachalias_elaboration_2017} develop an
 elaboration scheme for typeclass and instance declarations which
-elaborates functional dependencies. However,
-their work cannot provide an explanation of the general theory of
+elaborates functional dependencies to type equality axioms in \SFC. However,
+their work does not provide an explanation of the general theory of
 the simplifying and improvement of types~\cite{jones_simplifying_1995},
 as functional dependencies may introduce partial type
 refinements. Functional dependencies remain a type inference level
@@ -3244,8 +3250,8 @@ GADTs\footnote{GHC Issue \#345:
   \url{https://gitlab.haskell.org/ghc/ghc/-/issues/345}},
 and furthermore, causing non-confluence issues in the GHC constraint
 solver \footnote{GHC issue \#18851:
-  \url{https://gitlab.haskell.org/ghc/ghc/-/issues/18851}}
-Such issues degrade the programmer's experience by
+  \url{https://gitlab.haskell.org/ghc/ghc/-/issues/18851}}.
+These issues degrade the programmer's experience by
 obscure type errors, and worse the type checker
 is unnecessarily more restrictive than required.
 
@@ -3272,40 +3278,20 @@ node distance=1.5cm
 [out=210,in=340] (leftcirc.south) node[midway, below=1.6cm] {\cite{jones_language_2008}};
 \end{tikzpicture}
   \caption[Open Problem]{Open Problem: Compiling Functional Dependencies and Type
-    Functions to a unified Typed Intermediate Language}
+    Functions to a typed Intermediate Language}
   \label{fig:future-work}
 \end{figure}
 
 
-The hope is to find an acceptable solution for encoding
-the behavior of functional dependencies in a core typed
-intermediate language. In the next section we go over more language feature extensions. While
-the focus of the future research problem will be solving the
-tension between functional dependencies and type functions, we will
-have to take into consideration these extensions and ensure they
-will not introduce inconsistencies.
+An important research problem is to solve the tension between
+functional dependencies and type families by having a uniform
+treatment of both in a typed intermediate language as shown in \pref{fig:future-work}.
+In the next section we go over language extensions, some of which
+are implemented in GHC, while others are proposals to improve the programmer experience.
 
 \section{Related Work}\label{sec:related-work}
 %%%%%%%%%
-\subsection{Ad-hoc polymorphism}\label{sec:rw-adhoc-poly}
-% \subsubsection{Typeclass alternatives}
-% \citet{kaes_parametric_1988} had very similar ideas related to
-% implementation aspects of adhoc polymorphism before
-% ~\citet{wadler_polymorphism_1989}. The work on functional dependencies
-% for multi-parameter typeclasses is directly influenced by parametric
-% type classes~\cite{chen_parametric_1992}. Implicit
-% objects~\cite{oliveira_typeclasses_2010} provide a mechanism for the
-% programmer to choose the intended behavior instance if
-% there are multiple available options. This pushes the burden of choosing the
-% right instance on programmer whenever the typechecker cannot uniquely
-% resolve an option or when the programmer wants to force the
-% typechecker to resolve it to a specific instance.
-% Constraint handling
-% rules~\cite{fruhwirth_theory_1998,stuckey_theory_2005} accounts for operator overloading.
-% The limitation of using CHRs is that the programmer needs to ensure confluence external to the
-% system to be able to get coherence guarantees.
-
-\subsubsection{Instance Chains}
+\subsection{Instance Chains}
 Instance chains~\cite{morris_instance_2010} enable finer grained
 control of which instance should be used to satisfy
 a typeclass constraint. The instances for !Show! typeclass defines how
@@ -3493,8 +3479,8 @@ equality. We then showed how non-parametric features
 interacting with parametric features of the language that contain
 explicit type equalities can cause type unsoundness bugs.
 Along the way we saw how the the type system evolved
-with different flavors of type equality: \SFC had a primitive notion defining when two
-types are equal, but \SFR, and \SFK made the type equality relation
+with different flavors of type equality: \SFC has a primitive notion defining when two
+types are equal, but \SFR, and \SFK make the type equality relation
 more refined. Taming ad-hoc language features requires
 sophisticated proof techniques to formalize and argue about their
 correctness. As new programming languages are designed, built and
